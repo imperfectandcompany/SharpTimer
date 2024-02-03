@@ -76,7 +76,7 @@ SharpTimer is a simple Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Coun
     - [x] Map Rank (ie 1/100)
     - [x] Map Tier
     - [x] Map Type
-  - [ ] Spectator HUD
+  - [x] Spectator HUD
 - [x] Zones
   - [x] Hook common triggers by default
   - [x] Manual Zones
@@ -87,25 +87,24 @@ SharpTimer is a simple Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Coun
 - [x] Ranks
   - [x] Map !top
   - [x] Map !topbonus
-  - [ ] Global server ranks
-    - [ ] !topserver
-    - [ ] Global Point system _(base 230400 (1h) each timerTick = 1 point. example: player finishes at 1000 ticks. math: 230400 - 1000 = 229400 points x 0.1 = 22940 x 1.maptier)_
+  - [x] Global server ranks
+    - [x] !points
+    - [x] Global Point system
 - [x] Surf Stages/Checkpoint support
   - [x] Stage/Checkpoint PBs with u/s
     - [x] Json Stage/Checkpoint PBs saving
     - [ ] MySql Stage/Checkpoint PBs saving
 - [x] MySQL
 	- [x] Basic Player Records
-  - [ ] Player Server Stats
-  - [ ] Player Map Stats
-- [ ] Replays
+  - [x] Player Server Stats
+  - [x] Player Map Stats
+- [x] Replays
 - [ ] Jumpstats
 - [x] Silly Stuff
   - [x] Color customization
   - [x] Special Tester Gifs
-  - [ ] Custom Player Gifs
+  - [x] Custom Player Gifs
   - [ ] Velocity Bar
 
 
 ## Author: [@DEAFPS_](https://twitter.com/deafps_)
-

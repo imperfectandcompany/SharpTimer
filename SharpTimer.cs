@@ -1,6 +1,7 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes;
+using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
@@ -17,6 +18,7 @@ namespace SharpTimer
             SharpTimerDebug("Loading Plugin...");
 
             defaultServerHostname = ConVar.Find("hostname").StringValue;
+            Server.ExecuteCommand($"execifexists SharpTimer/config.cfg");
 
             gameDir = Server.GameDirectory;
             SharpTimerDebug($"Set gameDir to {gameDir}");
@@ -37,41 +39,36 @@ namespace SharpTimer
             {
                 var player = @event.Userid;
 
-                if (player.IsBot || !player.IsValid)
+                if (!player.IsValid || player.IsBot)
                 {
                     return HookResult.Continue;
                 }
                 else
                 {
-                    connectedPlayers[player.Slot] = new CCSPlayerController(player.Handle);
-                    playerTimers[player.Slot] = new PlayerTimerInfo();
-                    if (connectMsgEnabled == true) Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{player.PlayerName} {ChatColors.White}connected!");
-                    if (cmdJoinMsgEnabled == true) PrintAllEnabledCommands(player);
-                    playerTimers[player.Slot].MovementService = new CCSPlayer_MovementServices(player.PlayerPawn.Value.MovementServices!.Handle);
-                    playerTimers[player.Slot].StageTimes = new Dictionary<int, int>();
-                    playerTimers[player.Slot].StageVelos = new Dictionary<int, string>();
-                    playerTimers[player.Slot].CurrentMapStage = 0;
-                    playerTimers[player.Slot].CurrentMapCheckpoint = 0;
+                    OnPlayerConnect(player);
+                    return HookResult.Continue;
+                }
+            });
 
-                    _ = IsPlayerATester(player.SteamID.ToString(), player.Slot);
+            RegisterEventHandler<EventPlayerTeam>((@event, info) =>
+            {
+                var bot = @event.Userid;
 
-                    if (removeLegsEnabled == true) player.PlayerPawn.Value.Render = Color.FromArgb(254, 254, 254, 254);
-
-                    //PlayerSettings
-                    if (useMySQL == true)
+                if (bot.IsValid && bot.IsBot)
+                {
+                    if(startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile)
                     {
-                        //_ = GetPlayerSettingFromDatabase(player, "Azerty");
-                        //_ = GetPlayerSettingFromDatabase(player, "HideTimerHud");
-                        //_ = GetPlayerSettingFromDatabase(player, "TimesConnected");
-                        //_ = GetPlayerSettingFromDatabase(player, "SoundsEnabled");
-                        //_ = SavePlayerStatToDatabase(player.SteamID.ToString(), "MouseSens", player.GetConVarValue("sensitivity").ToString());
+                        AddTimer(4.0f, () =>
+                        {
+                            Server.ExecuteCommand($"kickid {bot.Slot}");
+                            SharpTimerDebug($"Kicking unused bot on spawn...");
+                        });
+                        return HookResult.Continue;
                     }
-
-                    SharpTimerDebug($"Added player {player.PlayerName} with UserID {player.UserId} to connectedPlayers");
-                    SharpTimerDebug($"Total players connected: {connectedPlayers.Count}");
-                    SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
-                    SharpTimerDebug($"Total playerCheckpoints: {playerCheckpoints.Count}");
-
+                    return HookResult.Continue;
+                }
+                else
+                {
                     return HookResult.Continue;
                 }
             });
@@ -80,13 +77,6 @@ namespace SharpTimer
             {
                 LoadMapData();
                 SharpTimerDebug($"Loading MapData on RoundStart...");
-
-                SharpTimerDebug("Re-Executing custom_exec with 2sec delay...");
-                var custom_exec_delay = AddTimer(2.0f, () =>
-                {
-                    SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
-                    Server.ExecuteCommand("execifexists SharpTimer/custom_exec.cfg");
-                });
                 return HookResult.Continue;
             });
 
@@ -106,6 +96,7 @@ namespace SharpTimer
                     {
                         RemovePlayerCollision(player);
                     }
+                    specTargets[player.Pawn.Value.EntityHandle.Index] = new CCSPlayerController(player.Handle);
                     return HookResult.Continue;
                 }
             });
@@ -120,19 +111,7 @@ namespace SharpTimer
                 }
                 else
                 {
-                    if (connectedPlayers.TryGetValue(player.Slot, out var connectedPlayer))
-                    {
-                        connectedPlayers.Remove(player.Slot);
-                        playerTimers.Remove(player.Slot);
-                        playerCheckpoints.Remove(player.Slot);
-                        SharpTimerDebug($"Removed player {connectedPlayer.PlayerName} with UserID {connectedPlayer.UserId} from connectedPlayers.");
-                        SharpTimerDebug($"Total players connected: {connectedPlayers.Count}");
-                        SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
-                        SharpTimerDebug($"Total playerCheckpoints: {playerCheckpoints.Count}");
-
-                        if (connectMsgEnabled == true) Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{connectedPlayer.PlayerName} {ChatColors.White}disconnected!");
-                    }
-
+                    OnPlayerDisconnect(player);
                     return HookResult.Continue;
                 }
             });
@@ -169,29 +148,30 @@ namespace SharpTimer
                         }
                         else
                         {
-                            HandlePlayerStageTimes(player, caller.Handle);
+                            _ = HandlePlayerStageTimes(player, caller.Handle);
                         }
                     }
 
                     if (useCheckpointTriggers == true && cpTriggers.ContainsKey(caller.Handle) && playerTimers[player.Slot].IsTimerBlocked == false && playerTimers[player.Slot].IsTimerRunning == true && IsAllowedPlayer(player))
                     {
-                        HandlePlayerCheckpointTimes(player, caller.Handle);
+                        _ = HandlePlayerCheckpointTimes(player, caller.Handle);
                     }
 
                     if (IsValidEndTriggerName(caller.Entity.Name.ToString()) && IsAllowedPlayer(player) && playerTimers[player.Slot].IsTimerRunning && !playerTimers[player.Slot].IsTimerBlocked)
                     {
                         OnTimerStop(player);
+                        if (enableReplays) OnRecordingStop(player);
                         SharpTimerDebug($"Player {player.PlayerName} entered EndZone");
                         return HookResult.Continue;
                     }
 
                     if (IsValidStartTriggerName(caller.Entity.Name.ToString()) && IsAllowedPlayer(player))
                     {
-                        playerTimers[player.Slot].IsTimerRunning = false;
+                        if (!playerTimers[player.Slot].IsTimerBlocked) playerCheckpoints.Remove(player.Slot);
                         playerTimers[player.Slot].TimerTicks = 0;
-                        playerTimers[player.Slot].IsBonusTimerRunning = false;
                         playerTimers[player.Slot].BonusTimerTicks = 0;
-                        playerCheckpoints.Remove(player.Slot);
+                        playerTimers[player.Slot].IsTimerRunning = false;
+                        playerTimers[player.Slot].IsBonusTimerRunning = false;
                         if (stageTriggerCount != 0 && useStageTriggers == true)
                         {
                             playerTimers[player.Slot].StageTimes.Clear();
@@ -206,7 +186,7 @@ namespace SharpTimer
                         }
 
                         if ((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
-                            (maxStartingSpeedEnabled == true && use2DSpeed == true  && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
+                            (maxStartingSpeedEnabled == true && use2DSpeed == true && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
                         {
                             Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
                             adjustVelocity(player, maxStartingSpeed, false);
@@ -222,6 +202,7 @@ namespace SharpTimer
                     if (validEndBonus && IsAllowedPlayer(player) && playerTimers[player.Slot].IsBonusTimerRunning && !playerTimers[player.Slot].IsTimerBlocked)
                     {
                         OnBonusTimerStop(player, endBonusX);
+                        if (enableReplays) OnRecordingStop(player);
                         SharpTimerDebug($"Player {player.PlayerName} entered Bonus{endBonusX} EndZone");
                         return HookResult.Continue;
                     }
@@ -230,14 +211,14 @@ namespace SharpTimer
 
                     if (validStartBonus && IsAllowedPlayer(player))
                     {
-                        playerTimers[player.Slot].IsTimerRunning = false;
+                        if (!playerTimers[player.Slot].IsTimerBlocked) playerCheckpoints.Remove(player.Slot);
                         playerTimers[player.Slot].TimerTicks = 0;
-                        playerTimers[player.Slot].IsBonusTimerRunning = false;
                         playerTimers[player.Slot].BonusTimerTicks = 0;
-                        playerCheckpoints.Remove(player.Slot);
+                        playerTimers[player.Slot].IsTimerRunning = false;
+                        playerTimers[player.Slot].IsBonusTimerRunning = false;
 
                         if ((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
-                            (maxStartingSpeedEnabled == true && use2DSpeed == true  && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
+                            (maxStartingSpeedEnabled == true && use2DSpeed == true && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
                         {
                             Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
                             adjustVelocity(player, maxStartingSpeed, false);
@@ -245,6 +226,26 @@ namespace SharpTimer
                         SharpTimerDebug($"Player {player.PlayerName} entered Bonus{startBonusX} StartZone");
                         return HookResult.Continue;
                     }
+
+                    if (IsValidStopTriggerName(caller.Entity.Name.ToString()))
+                    {
+                        playerTimers[player.Slot].TimerTicks = 0;
+                        playerTimers[player.Slot].BonusTimerTicks = 0;
+                        playerTimers[player.Slot].IsTimerRunning = false;
+                        playerTimers[player.Slot].IsBonusTimerRunning = false;
+                        player.PrintToChat(msgPrefix + $"Timer cancelled due to illegal skip attempt");
+                    }
+
+                    if (IsValidStopTriggerName(caller.Entity.Name.ToString()))
+                    {
+                        playerTimers[player.Slot].TimerTicks = 0;
+                        playerTimers[player.Slot].BonusTimerTicks = 0;
+                        playerTimers[player.Slot].IsTimerRunning = false;
+                        playerTimers[player.Slot].IsBonusTimerRunning = false;
+                        RespawnPlayer(player);
+                        player.PrintToChat(msgPrefix + $"You got reset due to illegal skip attempt");
+                    }
+                    
                     return HookResult.Continue;
                 }
                 catch (Exception ex)
@@ -279,9 +280,11 @@ namespace SharpTimer
                     if (IsValidStartTriggerName(caller.Entity.Name.ToString()) && IsAllowedPlayer(player) && !playerTimers[player.Slot].IsTimerBlocked)
                     {
                         OnTimerStart(player);
+                        if (enableReplays) OnRecordingStart(player);
 
-                        if ((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
-                            (maxStartingSpeedEnabled == true && use2DSpeed == true  && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
+                        if (((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
+                            (maxStartingSpeedEnabled == true && use2DSpeed == true && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed)) &&
+                            !currentMapOverrideMaxSpeedLimit.Contains(caller.Entity.Name.ToString()) && currentMapOverrideMaxSpeedLimit != null)
                         {
                             Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
                             adjustVelocity(player, maxStartingSpeed, false);
@@ -297,9 +300,11 @@ namespace SharpTimer
                     if (validStartBonus == true && IsAllowedPlayer(player) && !playerTimers[player.Slot].IsTimerBlocked)
                     {
                         OnTimerStart(player, StartBonusX);
+                        if (enableReplays) OnRecordingStart(player, StartBonusX);
 
-                        if ((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
-                            (maxStartingSpeedEnabled == true && use2DSpeed == true  && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
+                        if (((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
+                            (maxStartingSpeedEnabled == true && use2DSpeed == true && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed)) &&
+                            !currentMapOverrideMaxSpeedLimit.Contains(caller.Entity.Name.ToString()) && currentMapOverrideMaxSpeedLimit != null)
                         {
                             Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
                             adjustVelocity(player, maxStartingSpeed, false);
@@ -341,12 +346,21 @@ namespace SharpTimer
                         return HookResult.Continue;
                     }
 
-                    if (!IsAllowedPlayer(player)) return HookResult.Continue;
+                    if (!IsAllowedPlayer(player) || caller.Entity.Name == null) return HookResult.Continue;
 
-                    if (IsAllowedPlayer(player) && resetTriggerTeleportSpeedEnabled == true && currentMapOverrideDisableTelehop == false)
+                    if (IsAllowedPlayer(player) && resetTriggerTeleportSpeedEnabled && currentMapOverrideDisableTelehop != null)
                     {
-                        Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
-                        adjustVelocity(player, 0, false);
+                        string triggerName = caller.Entity.Name.ToString();
+                        /* if (!currentMapOverrideDisableTelehop.Contains(triggerName))
+                        {
+                            Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
+                            adjustVelocity(player, 0, false);
+                        } */
+                        if (!currentMapOverrideDisableTelehop)
+                        {
+                            Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
+                            adjustVelocity(player, 0, false);
+                        }
                     }
 
                     return HookResult.Continue;
@@ -383,7 +397,7 @@ namespace SharpTimer
 
                     if (!IsAllowedPlayer(player)) return HookResult.Continue;
 
-                    if (triggerPushData.TryGetValue(caller.Handle, out TriggerPushData TriggerPushData) && triggerPushFixEnabled == true)
+                    if (triggerPushData.TryGetValue(caller.Handle, out TriggerPushData TriggerPushData) && triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false)
                     {
                         player.PlayerPawn.Value.AbsVelocity.X += TriggerPushData.PushDirEntitySpace.X * TriggerPushData.PushSpeed;
                         player.PlayerPawn.Value.AbsVelocity.Y += TriggerPushData.PushDirEntitySpace.Y * TriggerPushData.PushSpeed;
@@ -399,6 +413,15 @@ namespace SharpTimer
                     return HookResult.Continue;
                 }
             });
+
+            /* RegisterEventHandler<EventPlayerHurt>((@event, info) =>
+            {
+                var player = @event.Userid;
+                player.PlayerPawn.Value.Health = 100;
+                Utilities.SetStateChanged(player,"CBaseEntity","m_iHealth");
+
+                return HookResult.Changed;
+            }); */
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
             {
@@ -420,6 +443,9 @@ namespace SharpTimer
             {
                 SharpTimerDebug($"Platform is Windows. Blocking TakeDamage hook");
             }
+
+            AddCommandListener("say", OnPlayerChatAll);
+            AddCommandListener("say_team", OnPlayerChatTeam);
 
             SharpTimerDebug("Plugin Loaded");
         }

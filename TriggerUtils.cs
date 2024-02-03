@@ -174,6 +174,36 @@ namespace SharpTimer
             }
         }
 
+        private bool IsValidStopTriggerName(string triggerName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(triggerName)) return false;
+                string[] validStopTriggers = { "st_stop", "surftimer_stop", "timer_stop" };
+                return validStopTriggers.Contains(triggerName);
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Exception in IsValidStopTriggerName: {ex.Message}");
+                return false;
+            }
+        }
+
+        private bool IsValidResetTriggerName(string triggerName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(triggerName)) return false;
+                string[] validResetTriggers = { "st_reset", "surftimer_reset", "timer_reset" };
+                return validResetTriggers.Contains(triggerName);
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Exception in IsValidResetTriggerName: {ex.Message}");
+                return false;
+            }
+        }
+
         private void UpdateEntityCache()
         {
             entityCache.UpdateCache();
@@ -191,7 +221,7 @@ namespace SharpTimer
 
                 foreach (var info_tp in entityCache.InfoTeleportDestinations)
                 {
-                    if (info_tp.Entity?.Name != null && IsInsideTrigger(trigger.AbsOrigin, trigger.Collision.BoundingRadius, info_tp.AbsOrigin))
+                    if (info_tp.Entity?.Name != null && IsVectorInsideBox(info_tp.AbsOrigin, trigger.Collision.Mins + trigger.CBodyComponent.SceneNode.AbsOrigin, trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin))
                     {
                         if (info_tp.CBodyComponent.SceneNode.AbsOrigin != null && info_tp.AbsRotation != null)
                         {
@@ -223,7 +253,7 @@ namespace SharpTimer
                 {
                     foreach (var info_tp in entityCache.InfoTeleportDestinations)
                     {
-                        if (info_tp.Entity?.Name != null && IsInsideTrigger(trigger.AbsOrigin, trigger.Collision.BoundingRadius, info_tp.AbsOrigin))
+                        if (info_tp.Entity?.Name != null && IsVectorInsideBox(info_tp.AbsOrigin, trigger.Collision.Mins + trigger.CBodyComponent.SceneNode.AbsOrigin, trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin))
                         {
                             if (info_tp.CBodyComponent?.SceneNode?.AbsOrigin != null && info_tp.AbsRotation != null)
                             {
@@ -300,7 +330,7 @@ namespace SharpTimer
 
                     foreach (var info_tp in entityCache.InfoTeleportDestinations)
                     {
-                        if (info_tp.Entity?.Name != null && IsInsideTrigger(trigger.AbsOrigin, trigger.Collision.BoundingRadius, info_tp.AbsOrigin))
+                        if (info_tp.Entity?.Name != null && IsVectorInsideBox(info_tp.AbsOrigin, trigger.Collision.Mins + trigger.CBodyComponent.SceneNode.AbsOrigin, trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin))
                         {
                             if (info_tp.CBodyComponent?.SceneNode?.AbsOrigin != null && info_tp.AbsRotation != null)
                             {
@@ -368,6 +398,8 @@ namespace SharpTimer
                 {
                     startMins = trigger.Collision.Mins + trigger.CBodyComponent.SceneNode.AbsOrigin;
                     startMaxs = trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin;
+                    currentMapStartTriggerMaxs = startMaxs;
+                    currentMapStartTriggerMins = startMins;
                     continue;
                 }
 

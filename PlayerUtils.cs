@@ -1,9 +1,11 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Admin;
+using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
-using System.Text;
+using System.Drawing;
 using System.Text.Json;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
@@ -13,7 +15,7 @@ namespace SharpTimer
     {
         private bool IsAllowedPlayer(CCSPlayerController? player)
         {
-            if (player == null || !player.IsValid || player.Pawn == null || !player.PlayerPawn.IsValid || !player.PawnIsAlive || player.IsBot)
+            if (player == null || !player.IsValid || player.Pawn == null || !player.PlayerPawn.IsValid || !player.PawnIsAlive)
             {
                 return false;
             }
@@ -22,9 +24,25 @@ namespace SharpTimer
             bool isTeamValid = teamNum == CsTeam.CounterTerrorist || teamNum == CsTeam.Terrorist;
 
             bool isTeamSpectatorOrNone = teamNum != CsTeam.Spectator && teamNum != CsTeam.None;
-            bool isConnected = connectedPlayers.ContainsKey(player.Slot) || playerTimers.ContainsKey(player.Slot);
+            bool isConnected = connectedPlayers.ContainsKey(player.Slot) && playerTimers.ContainsKey(player.Slot);
 
             return isTeamValid && isTeamSpectatorOrNone && isConnected;
+        }
+
+        private bool IsAllowedSpectator(CCSPlayerController? player)
+        {
+            if (player == null || !player.IsValid || player.IsBot)
+            {
+                return false;
+            }
+
+            CsTeam teamNum = (CsTeam)player.TeamNum;
+            bool isTeamValid = teamNum == CsTeam.Spectator;
+            bool isConnected = connectedPlayers.ContainsKey(player.Slot) &&
+                                playerTimers.ContainsKey(player.Slot) &&
+                                specTargets.ContainsKey(player.Pawn.Value.ObserverServices.ObserverTarget.Index);
+
+            return isTeamValid && isConnected;
         }
 
         async Task IsPlayerATester(string steamId64, int playerSlot)
@@ -36,6 +54,7 @@ namespace SharpTimer
                 using (JsonDocument jsonDocument = JsonDocument.Parse(response))
                 {
                     playerTimers[playerSlot].IsTester = jsonDocument.RootElement.TryGetProperty(steamId64, out JsonElement steamData);
+                    //playerTimers[playerSlot].IsTester = false;
 
                     if (playerTimers[playerSlot].IsTester)
                     {
@@ -57,32 +76,382 @@ namespace SharpTimer
             }
         }
 
-        public void TimerOnTick()
+        private void OnPlayerConnect(CCSPlayerController? player, bool isForBot = false)
         {
-            var updates = new Dictionary<int, PlayerTimerInfo>();
-            foreach (CCSPlayerController player in connectedPlayers.Values)
+            try
             {
-                if (player == null) continue;
+                connectedPlayers[player.Slot] = new CCSPlayerController(player.Handle);
+                playerTimers[player.Slot] = new PlayerTimerInfo();
+                if (enableReplays) playerReplays[player.Slot] = new PlayerReplays();
+                if (cmdJoinMsgEnabled == true && isForBot == false) PrintAllEnabledCommands(player);
+                playerTimers[player.Slot].MovementService = new CCSPlayer_MovementServices(player.PlayerPawn.Value.MovementServices!.Handle);
+                playerTimers[player.Slot].StageTimes = new Dictionary<int, int>();
+                playerTimers[player.Slot].StageVelos = new Dictionary<int, string>();
+                if(AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimers[player.Slot].ZoneToolWire = new Dictionary<int, CBeam>();
+                playerTimers[player.Slot].CurrentMapStage = 0;
+                playerTimers[player.Slot].CurrentMapCheckpoint = 0;
+                playerTimers[player.Slot].IsRecordingReplay = false;
+                playerTimers[player.Slot].SetRespawnPos = null;
+                playerTimers[player.Slot].SetRespawnAng = null;
 
-                if (playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo playerTimer) && IsAllowedPlayer(player))
+                if (isForBot == false) _ = IsPlayerATester(player.SteamID.ToString(), player.Slot);
+
+                if (isForBot == true || hideAllPlayers == true)
+                    player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
+                else if (removeLegsEnabled == true)
+                    player.PlayerPawn.Value.Render = Color.FromArgb(254, 254, 254, 254);
+
+                //PlayerSettings
+                if (useMySQL == true && isForBot == false) _ = GetPlayerStats(player, player.SteamID.ToString(), player.PlayerName, player.Slot, true);
+
+                if (connectMsgEnabled == true && useMySQL == false) Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{player.PlayerName} {ChatColors.White}connected!");
+
+                SharpTimerDebug($"Added player {player.PlayerName} with UserID {player.UserId} to connectedPlayers");
+                SharpTimerDebug($"Total players connected: {connectedPlayers.Count}");
+                SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
+                SharpTimerDebug($"Total playerCheckpoints: {playerCheckpoints.Count}");
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in OnPlayerConnect (probably replay bot related lolxd): {ex.Message}");
+            }
+        }
+
+        private void OnPlayerDisconnect(CCSPlayerController? player, bool isForBot = false)
+        {
+            if (player == null) return;
+
+            try
+            {
+                if (isForBot == true && connectedReplayBots.TryGetValue(player.Slot, out var connectedReplayBot))
                 {
-                    if (!IsAllowedPlayer(player))
+                    connectedReplayBots.Remove(player.Slot);
+                    SharpTimerDebug($"Removed bot {connectedReplayBot.PlayerName} with UserID {connectedReplayBot.UserId} from connectedReplayBots.");
+                }
+
+                if (connectedPlayers.TryGetValue(player.Slot, out var connectedPlayer))
+                {
+                    connectedPlayers.Remove(player.Slot);
+
+                    //schizo removing data from memory
+                    playerTimers[player.Slot] = new PlayerTimerInfo();
+                    playerTimers.Remove(player.Slot);
+
+                    //schizo removing data from memory
+                    playerCheckpoints[player.Slot] = new List<PlayerCheckpoint>();
+                    playerCheckpoints.Remove(player.Slot);
+
+                    specTargets.Remove(player.Pawn.Value.EntityHandle.Index);
+
+                    if (enableReplays)
                     {
-                        playerTimer.IsTimerRunning = false;
-                        playerTimer.TimerTicks = 0;
-                        playerCheckpoints.Remove(player.Slot);
-                        playerTimer.TicksSinceLastCmd++;
-                        return;
+                        //schizo removing data from memory
+                        playerReplays[player.Slot] = new PlayerReplays();
+                        playerReplays.Remove(player.Slot);
                     }
 
+                    SharpTimerDebug($"Removed player {connectedPlayer.PlayerName} with UserID {connectedPlayer.UserId} from connectedPlayers.");
+                    SharpTimerDebug($"Removed specTarget index {player.Pawn.Value.EntityHandle.Index} from specTargets.");
+                    SharpTimerDebug($"Total players connected: {connectedPlayers.Count}");
+                    SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
+                    SharpTimerDebug($"Total specTargets: {specTargets.Count}");
+
+                    if (connectMsgEnabled == true && isForBot == false)
+                    {
+                        Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{connectedPlayer.PlayerName} {ChatColors.White}disconnected!");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in OnPlayerDisconnect (probably replay bot related lolxd): {ex.Message}");
+            }
+        }
+
+        private HookResult OnPlayerChatTeam(CCSPlayerController? player, CommandInfo message)
+        {
+            if (displayChatTags == false) return HookResult.Continue;
+            if (player == null || !player.IsValid || player.IsBot || string.IsNullOrEmpty(message.GetArg(1))) return HookResult.Handled;
+
+            if (message.GetArg(1).StartsWith("!") || message.GetArg(1).StartsWith("/") || message.GetArg(1).StartsWith("."))
+            {
+                return HookResult.Continue;
+            }
+            else
+            {
+                char rankColor = GetRankColorForChat(player);
+
+                Server.PrintToChatAll($" {primaryChatColor}● {(playerTimers[player.Slot].IsVip ? $"{ChatColors.Magenta}[{customVIPTag}] " : "")}{rankColor}[{playerTimers[player.Slot].CachedRank}]{ChatColors.Default} {player.PlayerName}: {message.GetArg(1)}");
+                return HookResult.Handled;
+            }
+        }
+
+        private HookResult OnPlayerChatAll(CCSPlayerController? player, CommandInfo message)
+        {
+            if (displayChatTags == false) return HookResult.Continue;
+            if (player == null || !player.IsValid || player.IsBot || string.IsNullOrEmpty(message.GetArg(1))) return HookResult.Handled;
+
+            if (message.GetArg(1).StartsWith("!") || message.GetArg(1).StartsWith("/") || message.GetArg(1).StartsWith("."))
+            {
+                return HookResult.Continue;
+            }
+            else
+            {
+                char rankColor = GetRankColorForChat(player);
+
+                Server.PrintToChatAll($" {ChatColors.Grey}[ALL] {primaryChatColor}● {(playerTimers[player.Slot].IsVip ? $"{ChatColors.Magenta}[{customVIPTag}] " : "")}{rankColor}[{playerTimers[player.Slot].CachedRank}]{ChatColors.Default} {player.PlayerName}: {message.GetArg(1)}");
+                return HookResult.Handled;
+            }
+        }
+
+        public void TimerOnTick()
+        {
+            try
+            {
+                var updates = new Dictionary<int, PlayerTimerInfo>();
+                foreach (CCSPlayerController player in connectedPlayers.Values)
+                {
+                    if (player == null || !player.IsValid) continue;
+
+                    if ((CsTeam)player.TeamNum == CsTeam.Spectator)
+                    {
+                        SpectatorOnTick(player);
+                        continue;
+                    }
+
+                    if(playerTimers[player.Slot].IsAddingStartZone || playerTimers[player.Slot].IsAddingEndZone)
+                    {
+                        OnTickZoneTool(player);
+                        continue;
+                    }
+
+                    if (playerTimers[player.Slot].TicksSinceLastRankUpdate > 511 && connectedReplayBots.ContainsKey(player.Slot))
+                    {
+                        if (player.PlayerPawn.Value.Render != Color.FromArgb(0, 0, 0, 0))
+                            player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
+
+                        if (player.PlayerName != "SERVER RECORD REPLAY")
+                            ChangePlayerName(player, "SERVER RECORD REPLAY");
+
+                        if (playerTimers[player.Slot].IsReplaying == false)
+                            _ = ReplaySRHandler(player);
+
+                        playerTimers[player.Slot].TicksSinceLastRankUpdate = 0;
+                    }
+
+                    if (playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo playerTimer) && IsAllowedPlayer(player))
+                    {
+                        if (!IsAllowedPlayer(player))
+                        {
+                            playerTimer.IsTimerRunning = false;
+                            playerTimer.TimerTicks = 0;
+                            playerCheckpoints.Remove(player.Slot);
+                            playerTimer.TicksSinceLastCmd++;
+                            continue;
+                        }
+
+                        //SharpTimerDebug($"Player Pawn Value.EntHandle.Index {player.Pawn.Value.EntityHandle.Index}");
+                        //SharpTimerDebug($"Player Pawn Index {player.Pawn.Index}");
+                        //SharpTimerDebug($"Player Pawn Value.Index {player.Pawn.Value.Index}");
+
+                        bool isTimerRunning = playerTimer.IsTimerRunning;
+                        int timerTicks = playerTimer.TimerTicks;
+                        PlayerButtons? playerButtons = player.Buttons;
+
+                        string formattedPlayerVel = Math.Round(use2DSpeed ? player.PlayerPawn.Value.AbsVelocity.Length2D()
+                                                                            : player.PlayerPawn.Value.AbsVelocity.Length())
+                                                                            .ToString("0000");
+                        string formattedPlayerPre = Math.Round(ParseVector(playerTimer.PreSpeed ?? "0 0 0").Length2D()).ToString("000");
+                        string playerTime = FormatTime(timerTicks);
+                        string playerBonusTime = FormatTime(playerTimer.BonusTimerTicks);
+                        string timerLine = playerTimer.IsBonusTimerRunning
+                                            ? $" <font color='gray' class='fontSize-s horizontal-center'>Bonus: {playerTimer.BonusStage}</font> <i><font class='fontSize-l horizontal-center' color='{primaryHUDcolor}'>{playerBonusTime}</font></i> <br>"
+                                            : isTimerRunning
+                                                ? $" <font color='gray' class='fontSize-s horizontal-center'>{GetPlayerPlacement(player)}</font> <i><font class='fontSize-l horizontal-center' color='{primaryHUDcolor}'>{playerTime}</font></i>{((playerTimer.CurrentMapStage != 0 && useStageTriggers == true) ? $"<font color='gray' class='fontSize-s horizontal-center'> {playerTimer.CurrentMapStage}/{stageTriggerCount}</font>" : "")} <br>"
+                                                : playerTimer.IsReplaying
+                                                    ? $" <font class='horizontal-center' color='red'>◉ REPLAY {FormatTime(playerReplays[player.Slot].CurrentPlaybackFrame)}</font> <br>"
+                                                    : "";
+
+                        //string veloLine = $" {(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")}<font class='fontSize-s' color='{tertiaryHUDcolor}'>Speed:</font> <font class='stratum-black-italic fontSize-l' color='{secondaryHUDcolor}'>{formattedPlayerVel}</font> <font class='fontSize-s' color='gray'>({formattedPlayerPre})</font>{(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")} <br>";
+                        string veloLine = $" {(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")}<font class='fontSize-s horizontal-center' color='{tertiaryHUDcolor}'>Speed:</font> <i>{(playerTimer.IsReplaying ? "<font class=''" : "<font class='fontSize-l horizontal-center'")} color='{secondaryHUDcolor}'>{formattedPlayerVel}</font></i> <font class='fontSize-s horizontal-center' color='gray'>({formattedPlayerPre})</font>{(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")} <br>";
+                        string infoLine = !playerTimer.IsReplaying
+                                            ? $"<font class='fontSize-s horizontal-center' color='gray'>{playerTimer.CachedPB} " + $"({playerTimer.CachedMapPlacement}) | </font>" + $"{playerTimer.RankHUDIcon} <font class='fontSize-s horizontal-center' color='gray'>" +
+                                              $"{(currentMapTier != null ? $" | Tier: {currentMapTier}" : "")}" +
+                                              $"{(currentMapType != null ? $" | {currentMapType}" : "")}" +
+                                              $"{((currentMapType == null && currentMapTier == null) ? $" | {currentMapName} " : "")}  "
+                                            : $" <font class='fontSize-s horizontal-center' color='gray'>{playerTimers[player.Slot].ReplayHUDString}</font>";
+
+                        string keysLineNoHtml = $"{((playerButtons & PlayerButtons.Moveleft) != 0 ? "A" : "_")} " +
+                                                $"{((playerButtons & PlayerButtons.Forward) != 0 ? "W" : "_")} " +
+                                                $"{((playerButtons & PlayerButtons.Moveright) != 0 ? "D" : "_")} " +
+                                                $"{((playerButtons & PlayerButtons.Back) != 0 ? "S" : "_")} " +
+                                                $"{((playerButtons & PlayerButtons.Jump) != 0 || playerTimer.MovementService.OldJumpPressed ? "J" : "_")} " +
+                                                $"{((playerButtons & PlayerButtons.Duck) != 0 ? "C" : "_")}";
+
+                        if (playerTimer.MovementService.OldJumpPressed == true) playerTimer.MovementService.OldJumpPressed = false;
+
+                        string hudContent = timerLine +
+                                            veloLine +
+                                            infoLine +
+                                            ((playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? playerTimer.TesterPausedGif : "") +
+                                            ((playerTimer.IsVip && !playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? $"<br><img src='https://i.imgur.com/{playerTimer.VipPausedGif}.gif'><br>" : "") +
+                                            ((playerTimer.IsReplaying && playerTimer.VipReplayGif != "x") ? $"<br><img src='https://i.imgur.com/{playerTimer.VipReplayGif}.gif'><br>" : "");
+
+                        updates[player.Slot] = playerTimer;
+
+                        var @event = new EventShowSurvivalRespawnStatus(false)
+                        {
+                            LocToken = hudContent,
+                            Duration = 999,
+                            Userid = player
+                        };
+
+                        if (playerTimer.HideTimerHud != true && hudOverlayEnabled == true)
+                        {
+                            @event.FireEvent(false);
+                        }
+
+                        if (playerTimer.HideKeys != true && playerTimer.IsReplaying != true && keysOverlayEnabled == true)
+                        {
+                            //VirtualFunctions.ClientPrint(player.Handle, HudDestination.Center, "#SFUI_Notice_DM_BuyMenu_RandomON", 0, 0, 0, 0);
+                            player.PrintToCenter(keysLineNoHtml);
+                        }
+
+                        if (isTimerRunning)
+                        {
+                            playerTimer.TimerTicks++;
+                        }
+                        else if (playerTimer.IsBonusTimerRunning)
+                        {
+                            playerTimer.BonusTimerTicks++;
+                        }
+
+                        if (!useTriggers && !playerTimer.IsTimerBlocked)
+                        {
+                            CheckPlayerCoords(player);
+                        }
+
+                        if (forcePlayerSpeedEnabled == true) ForcePlayerSpeed(player, player.Pawn.Value.WeaponServices.ActiveWeapon.Value.DesignerName);
+
+                        if (playerTimer.IsRankPbCached == false)
+                        {
+                            SharpTimerDebug($"{player.PlayerName} has rank and pb null... calling handler");
+                            _ = RankCommandHandler(player, player.SteamID.ToString(), player.Slot, player.PlayerName, true);
+                            playerTimer.IsRankPbCached = true;
+                        }
+
+                        if (displayScoreboardTags == true &&
+                            playerTimer.TicksSinceLastRankUpdate > 511 &&
+                            playerTimer.CachedRank != null &&
+                            (player.Clan == null || !player.Clan.Contains($"[{playerTimer.CachedRank}]")))
+                        {
+                            AddScoreboardTagToPlayer(player, playerTimer.CachedRank);
+                            playerTimer.TicksSinceLastRankUpdate = 0;
+                            SharpTimerDebug($"Setting Scoreboard Tag for {player.PlayerName} from TimerOnTick");
+                        }
+
+                        if (playerTimer.IsSpecTargetCached == false || specTargets.ContainsKey(player.Pawn.Value.EntityHandle.Index) == false)
+                        {
+                            specTargets[player.Pawn.Value.EntityHandle.Index] = new CCSPlayerController(player.Handle);
+                            playerTimer.IsSpecTargetCached = true;
+                            SharpTimerDebug($"{player.PlayerName} was not in specTargets, adding...");
+                        }
+
+                        if (removeCollisionEnabled == true)
+                        {
+                            if (player.PlayerPawn.Value.Collision.CollisionGroup != (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING || player.PlayerPawn.Value.Collision.CollisionAttribute.CollisionGroup != (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING)
+                            {
+                                SharpTimerDebug($"{player.PlayerName} has wrong collision group... RemovePlayerCollision");
+                                RemovePlayerCollision(player);
+                            }
+                        }
+
+                        if (playerTimer.MovementService != null && removeCrouchFatigueEnabled == true)
+                        {
+                            if (playerTimer.MovementService.DuckSpeed != 7.0f)
+                            {
+                                playerTimer.MovementService.DuckSpeed = 7.0f;
+                            }
+                        }
+
+                        if (hideAllPlayers == true && player.PlayerPawn.Value.Render != Color.FromArgb(0, 0, 0, 0))
+                        {
+                            player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
+                        }
+
+                        if (((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) != PlayerFlags.FL_ONGROUND)
+                        {
+                            playerTimer.TicksInAir++;
+                            if (playerTimer.TicksInAir == 1)
+                            {
+                                playerTimer.PreSpeed = $"{player.PlayerPawn.Value.AbsVelocity.X.ToString()} {player.PlayerPawn.Value.AbsVelocity.Y.ToString()} {player.PlayerPawn.Value.AbsVelocity.Z.ToString()}";
+                            }
+                        }
+                        else
+                        {
+                            playerTimer.TicksInAir = 0;
+                        }
+
+                        if (enableReplays && !playerTimer.IsReplaying && timerTicks > 0 && playerTimer.IsRecordingReplay && !playerTimer.IsTimerBlocked) ReplayUpdate(player, timerTicks);
+                        if (enableReplays && playerTimer.IsReplaying && !playerTimer.IsRecordingReplay && playerTimer.IsTimerBlocked)
+                        {
+                            ReplayPlay(player);
+                        }
+                        else
+                        {
+                            if (!playerTimer.IsTimerBlocked && player.PlayerPawn.Value.MoveType == MoveType_t.MOVETYPE_OBSERVER) player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
+                        }
+
+                        if (playerTimer.TicksSinceLastCmd < cmdCooldown) playerTimer.TicksSinceLastCmd++;
+                        if (playerTimer.TicksSinceLastRankUpdate < 511) playerTimer.TicksSinceLastRankUpdate++;
+
+                        playerButtons = null;
+                        formattedPlayerVel = null;
+                        formattedPlayerPre = null;
+                        playerTime = null;
+                        playerBonusTime = null;
+                        keysLineNoHtml = null;
+                        hudContent = null;
+                        @event = null;
+                    }
+                }
+
+                foreach (var update in updates)
+                {
+                    playerTimers[update.Key] = update.Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex.Message != "Invalid game event") SharpTimerError($"Error in TimerOnTick: {ex.Message}");
+            }
+        }
+
+        public void SpectatorOnTick(CCSPlayerController player)
+        {
+            if (!IsAllowedSpectator(player)) return;
+
+            try
+            {
+                var target = specTargets[player.Pawn.Value.ObserverServices.ObserverTarget.Index];
+                if (playerTimers.TryGetValue(target.Slot, out PlayerTimerInfo playerTimer) && IsAllowedPlayer(target))
+                {
                     bool isTimerRunning = playerTimer.IsTimerRunning;
                     int timerTicks = playerTimer.TimerTicks;
-                    PlayerButtons? playerButtons = player.Buttons;
-                    StringBuilder stringBuilder = new StringBuilder();
+                    PlayerButtons? playerButtons;
+                    if (playerTimer.IsReplaying && playerReplays[target.Slot].replayFrames.Count > 0 &&
+                        playerReplays[target.Slot].CurrentPlaybackFrame >= 0 &&
+                        playerReplays[target.Slot].CurrentPlaybackFrame < playerReplays[target.Slot].replayFrames.Count)
+                    {
+                        playerButtons = playerReplays[target.Slot].replayFrames[playerReplays[target.Slot].CurrentPlaybackFrame].Buttons;
+                    }
+                    else
+                    {
+                        playerButtons = target.Buttons;
+                    }
 
-                    stringBuilder.Clear();
-                    string formattedPlayerVel = Math.Round(use2DSpeed   ? player.PlayerPawn.Value.AbsVelocity.Length2D()
-                                                                        : player.PlayerPawn.Value.AbsVelocity.Length())
+                    string formattedPlayerVel = Math.Round(use2DSpeed ? target.PlayerPawn.Value.AbsVelocity.Length2D()
+                                                                        : target.PlayerPawn.Value.AbsVelocity.Length())
                                                                         .ToString("0000");
                     string formattedPlayerPre = Math.Round(ParseVector(playerTimer.PreSpeed ?? "0 0 0").Length2D()).ToString("000");
                     string playerTime = FormatTime(timerTicks);
@@ -90,120 +459,63 @@ namespace SharpTimer
                     string timerLine = playerTimer.IsBonusTimerRunning
                                         ? $" <font color='gray' class='fontSize-s'>Bonus: {playerTimer.BonusStage}</font> <font class='fontSize-l' color='{primaryHUDcolor}'>{playerBonusTime}</font> <br>"
                                         : isTimerRunning
-                                            ? $" <font color='gray' class='fontSize-s'>{GetPlayerPlacement(player)}</font> <font class='fontSize-l' color='{primaryHUDcolor}'>{playerTime}</font>{((playerTimer.CurrentMapStage != 0 && useStageTriggers == true) ? $"<font color='gray' class='fontSize-s'> {playerTimer.CurrentMapStage}/{stageTriggerCount}</font>" : "")} <br>"
-                                            : "";
-                    string veloLine = $" {(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")}<font class='fontSize-s' color='{tertiaryHUDcolor}'>Speed:</font> <font class='fontSize-l' color='{secondaryHUDcolor}'>{formattedPlayerVel}</font> <font class='fontSize-s' color='gray'>({formattedPlayerPre})</font>{(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")} <br>";
-                    string infoLine = $"{playerTimer.RankHUDString}" +
-                                        $"{(currentMapTier != null ? $" | Tier: {currentMapTier}" : "")}" +
-                                        $"{(currentMapType != null ? $" | {currentMapType}" : "")}" +
-                                        $"{((currentMapType == null && currentMapTier == null) ? $" {currentMapName} " : "")} </font> ";
+                                            ? $" <font color='gray' class='fontSize-s'>{GetPlayerPlacement(target)}</font> <font class='fontSize-l' color='{primaryHUDcolor}'>{playerTime}</font>{((playerTimer.CurrentMapStage != 0 && useStageTriggers == true) ? $"<font color='gray' class='fontSize-s'> {playerTimer.CurrentMapStage}/{stageTriggerCount}</font>" : "")} <br>"
+                                            : playerTimer.IsReplaying
+                                                ? $" <font class='' color='red'>◉ REPLAY {FormatTime(playerReplays[target.Slot].CurrentPlaybackFrame)}</font> <br>"
+                                                : "";
 
-                    stringBuilder.Clear();
-                    stringBuilder.Append($"{((playerButtons & PlayerButtons.Moveleft) != 0 ? "A" : "_")} " +
-                                        $"{((playerButtons & PlayerButtons.Forward) != 0 ? "W" : "_")} " +
-                                        $"{((playerButtons & PlayerButtons.Moveright) != 0 ? "D" : "_")} " +
-                                        $"{((playerButtons & PlayerButtons.Back) != 0 ? "S" : "_")} " +
-                                        $"{((playerButtons & PlayerButtons.Jump) != 0 ? "J" : "_")} " +
-                                        $"{((playerButtons & PlayerButtons.Duck) != 0 ? "C" : "_")}");
+                    //string veloLine = $" {(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")}<font class='fontSize-s' color='{tertiaryHUDcolor}'>Speed:</font> <font class='' color='{secondaryHUDcolor}'>{formattedPlayerVel}</font> <font class='fontSize-s' color='gray'>({formattedPlayerPre})</font>{(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")} <br>";
+                    string veloLine = $" {(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")}<font class='fontSize-s' color='{tertiaryHUDcolor}'>Speed:</font> <font class='' color='{secondaryHUDcolor}'>{formattedPlayerVel}</font> <font class='fontSize-s' color='gray'>({formattedPlayerPre})</font>{(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")} <br>";
+                    string infoLine = !playerTimer.IsReplaying
+                                        ? $"<font class='fontSize-s' color='gray'>{playerTimer.CachedPB} " + $"{playerTimer.CachedMapPlacement} | </font>" + $"{playerTimer.RankHUDIcon} <font class='fontSize-s' color='gray'>" +
+                                          $"{(currentMapTier != null ? $" | Tier: {currentMapTier}" : "")}" +
+                                          $"{(currentMapType != null ? $" | {currentMapType}" : "")}" +
+                                          $"{((currentMapType == null && currentMapTier == null) ? $" {currentMapName} " : "")} </font> <br>"
+                                        : $" <font class='fontSize-s' color='gray'>{playerTimers[target.Slot].ReplayHUDString}</font> <br>";
 
-                    string keysLineNoHtml = stringBuilder.ToString();
+                    string keysLine = $"<font class='fontSize-l' color='{secondaryHUDcolor}'>{((playerButtons & PlayerButtons.Moveleft) != 0 ? "A" : "_")} " +
+                                            $"{((playerButtons & PlayerButtons.Forward) != 0 ? "W" : "_")} " +
+                                            $"{((playerButtons & PlayerButtons.Moveright) != 0 ? "D" : "_")} " +
+                                            $"{((playerButtons & PlayerButtons.Back) != 0 ? "S" : "_")} " +
+                                            $"{((playerButtons & PlayerButtons.Jump) != 0 || playerTimer.MovementService.OldJumpPressed ? "J" : "_")} " +
+                                            $"{((playerButtons & PlayerButtons.Duck) != 0 ? "C" : "_")}</font>";
 
-                    stringBuilder.Clear();
-                    stringBuilder.Append(timerLine)
-                                .Append(veloLine)
-                                .Append(infoLine)
-                                .Append(playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning ? playerTimer.TesterPausedGif : "");
+                    string hudContent = timerLine +
+                                        veloLine +
+                                        infoLine +
+                                        (keysOverlayEnabled == true ? keysLine : "") +
+                                        ((playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? playerTimer.TesterPausedGif : "") +
+                                        ((playerTimer.IsVip && !playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? $"<br><img src='https://i.imgur.com/{playerTimer.VipPausedGif}.gif'><br>" : "");
 
-                    string hudContent = stringBuilder.ToString();
-
-                    updates[player.Slot] = playerTimer;
-
-                    var @event = new EventShowSurvivalRespawnStatus(false)
+                    if (playerTimer.HideTimerHud != true && hudOverlayEnabled == true)
                     {
-                        LocToken = hudContent,
-                        Duration = 999,
-                        Userid = player
-                    };
-
-                    if (playerTimer.HideTimerHud != true)
-                    {
+                        var @event = new EventShowSurvivalRespawnStatus(false)
+                        {
+                            LocToken = hudContent,
+                            Duration = 999,
+                            Userid = player
+                        };
                         @event.FireEvent(false);
+                        @event = null;
                     }
 
-                    if (playerTimer.HideKeys != true)
+                    /* if (playerTimer.HideKeys != true && playerTimer.IsReplaying != true)
                     {
-                        player.PrintToCenter(keysLineNoHtml);
-                    }
-
-                    if (isTimerRunning)
-                    {
-                        playerTimer.TimerTicks++;
-                    }
-                    else if (playerTimer.IsBonusTimerRunning)
-                    {
-                        playerTimer.BonusTimerTicks++;
-                    }
-
-                    if (!useTriggers)
-                    {
-                        CheckPlayerCoords(player);
-                    }
-
-                    if (forcePlayerSpeedEnabled == true) ForcePlayerSpeed(player, player.Pawn.Value.WeaponServices.ActiveWeapon.Value.DesignerName);
-
-                    if (playerTimer.RankHUDString == null && playerTimer.IsRankPbCached == false)
-                    {
-                        SharpTimerDebug($"{player.PlayerName} has rank and pb null... calling handler");
-                        _ = RankCommandHandler(player, player.SteamID.ToString(), player.Slot, player.PlayerName, true);
-                        playerTimer.IsRankPbCached = true;
-                    }
-
-                    if (removeCollisionEnabled == true)
-                    {
-                        if (player.PlayerPawn.Value.Collision.CollisionGroup != (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING || player.PlayerPawn.Value.Collision.CollisionAttribute.CollisionGroup != (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING)
-                        {
-                            SharpTimerDebug($"{player.PlayerName} has wrong collision group... RemovePlayerCollision");
-                            RemovePlayerCollision(player);
-                        }
-                    }
-
-                    if (playerTimer.MovementService != null && removeCrouchFatigueEnabled == true)
-                    {
-                        if (playerTimer.MovementService.DuckSpeed != 7.0f)
-                        {
-                            playerTimer.MovementService.DuckSpeed = 7.0f;
-                        }
-                    }
-
-                    if (!player.PlayerPawn.Value.OnGroundLastTick)
-                    {
-                        playerTimer.TicksInAir++;
-                        if (playerTimer.TicksInAir == 1)
-                        {
-                            playerTimer.PreSpeed = $"{player.PlayerPawn.Value.AbsVelocity.X.ToString()} {player.PlayerPawn.Value.AbsVelocity.Y.ToString()} {player.PlayerPawn.Value.AbsVelocity.Z.ToString()}";
-                        }
-                    }
-                    else
-                    {
-                        playerTimer.TicksInAir = 0;
-                    }
-
-                    if (playerTimer.TicksSinceLastCmd < cmdCooldown) playerTimer.TicksSinceLastCmd++;
+                        player.PrintToCenter(keysLine);
+                    } */
 
                     playerButtons = null;
                     formattedPlayerVel = null;
                     formattedPlayerPre = null;
                     playerTime = null;
                     playerBonusTime = null;
-                    keysLineNoHtml = null;
+                    keysLine = null;
                     hudContent = null;
-                    @event = null;
                 }
             }
-
-            foreach (var update in updates)
+            catch (Exception ex)
             {
-                playerTimers[update.Key] = update.Value;
+                if (ex.Message != "Invalid game event") SharpTimerError($"Error in SpectatorOnTick: {ex.Message}");
             }
         }
 
@@ -213,19 +525,20 @@ namespace SharpTimer
             player.PrintToChat($"{msgPrefix}Available Commands:");
 
             if (respawnEnabled) player.PrintToChat($"{msgPrefix}!r (css_r) - Respawns you");
-            if (respawnEnabled && bonusRespawnPoses.Any()) player.PrintToChat($"{msgPrefix}!rb <#> (css_rb) - Respawns you to a bonus");
+            if (respawnEnabled && bonusRespawnPoses.Any()) player.PrintToChat($"{msgPrefix}!rb <#> / !b <#> (css_rb / css_b) - Respawns you to a bonus");
             if (topEnabled) player.PrintToChat($"{msgPrefix}!top (css_top) - Lists top 10 records on this map");
             if (topEnabled && bonusRespawnPoses.Any()) player.PrintToChat($"{msgPrefix}!topbonus <#> (css_topbonus) - Lists top 10 records of a bonus");
             if (rankEnabled) player.PrintToChat($"{msgPrefix}!rank (css_rank) - Shows your current rank and pb");
+            if (globalRanksEnabled) player.PrintToChat($"{msgPrefix}!points (css_points) - Prints top 10 points");
             if (goToEnabled) player.PrintToChat($"{msgPrefix}!goto <name> (css_goto) - Teleports you to a player");
             if (stageTriggerPoses.Any()) player.PrintToChat($"{msgPrefix}!stage <#> (css_goto) - Teleports you to a stage");
 
             if (cpEnabled)
             {
-                player.PrintToChat($"{msgPrefix}!cp (css_cp) - Sets a Checkpoint");
-                player.PrintToChat($"{msgPrefix}!tp (css_tp) - Teleports you to the last Checkpoint");
-                player.PrintToChat($"{msgPrefix}!prevcp (css_prevcp) - Teleports you one Checkpoint back");
-                player.PrintToChat($"{msgPrefix}!nextcp (css_nextcp) - Teleports you one Checkpoint forward");
+                player.PrintToChat($"{msgPrefix}{(currentMapName.Contains("surf_") ? "!saveloc (css_saveloc) - Saves a Loc" : "!cp (css_cp) - Sets a Checkpoint")}");
+                player.PrintToChat($"{msgPrefix}{(currentMapName.Contains("surf_") ? "!loadloc (css_loadloc) - Teleports you to the last Loc" : "!tp (css_tp) - Teleports you to the last Checkpoint")}");
+                player.PrintToChat($"{msgPrefix}{(currentMapName.Contains("surf_") ? "!prevloc (css_prevloc) - Teleports you one Loc back" : "!prevcp (css_prevcp) - Teleports you one Checkpoint back")}");
+                player.PrintToChat($"{msgPrefix}{(currentMapName.Contains("surf_") ? "!nextloc (css_nextloc) - Teleports you one Loc forward" : "!nextcp (css_nextcp) - Teleports you one Checkpoint forward")}");
             }
         }
 
@@ -251,13 +564,15 @@ namespace SharpTimer
             if (!isInsideStartBox && isInsideEndBox)
             {
                 OnTimerStop(player);
+                if (enableReplays) OnRecordingStop(player);
             }
             else if (isInsideStartBox)
             {
                 OnTimerStart(player);
+                if (enableReplays) OnRecordingStart(player);
 
                 if ((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
-                    (maxStartingSpeedEnabled == true && use2DSpeed == true  && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
+                    (maxStartingSpeedEnabled == true && use2DSpeed == true && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
                 {
                     Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
                     adjustVelocity(player, maxStartingSpeed, true);
@@ -326,72 +641,202 @@ namespace SharpTimer
             SharpTimerDebug($"Removed Collison for {player.PlayerName}");
         }
 
-        private void HandlePlayerStageTimes(CCSPlayerController player, nint triggerHandle)
+        private async Task HandlePlayerStageTimes(CCSPlayerController player, nint triggerHandle)
         {
-            if (!IsAllowedPlayer(player) || playerTimers[player.Slot].CurrentMapStage == stageTriggers[triggerHandle])
+            try
             {
-                return;
+                if (!IsAllowedPlayer(player))
+                {
+                    return;
+                }
+
+                SharpTimerDebug($"Player {player.PlayerName} has a stage trigger with handle {triggerHandle}");
+
+                if (stageTriggers.TryGetValue(triggerHandle, out int stageTrigger))
+                {
+                    var playerSlot = player.Slot;
+                    var playerSteamID = player.SteamID.ToString();
+                    var playerName = player.PlayerName;
+                    var playerTimerTicks = playerTimers[playerSlot].TimerTicks; // store so its in sync with player
+
+                    var (srSteamID, srPlayerName, srTime) = ("null", "null", "null");
+                    if (useMySQL == true)
+                    {
+                        (srSteamID, srPlayerName, srTime) = await GetMapRecordSteamIDFromDatabase();
+                    }
+                    else
+                    {
+                        (srSteamID, srPlayerName, srTime) = GetMapRecordSteamID();
+                    }
+
+                    if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? playerTimer))
+                    {
+
+                        if (playerTimer.CurrentMapStage == stageTrigger || playerTimer == null) return;
+
+                        var (previousStageTime, previousStageSpeed) = GetStageTime(playerSteamID, stageTrigger);
+                        var (srStageTime, srStageSpeed) = GetStageTime(srSteamID, stageTrigger);
+
+                        string currentStageSpeed = Math.Round(use2DSpeed ? Math.Sqrt(player.PlayerPawn.Value.AbsVelocity.X * player.PlayerPawn.Value.AbsVelocity.X + player.PlayerPawn.Value.AbsVelocity.Y * player.PlayerPawn.Value.AbsVelocity.Y)
+                                                                            : Math.Sqrt(player.PlayerPawn.Value.AbsVelocity.X * player.PlayerPawn.Value.AbsVelocity.X + player.PlayerPawn.Value.AbsVelocity.Y * player.PlayerPawn.Value.AbsVelocity.Y + player.PlayerPawn.Value.AbsVelocity.Z * player.PlayerPawn.Value.AbsVelocity.Z))
+                                                                            .ToString("0000");
+
+                        if (previousStageTime != 0)
+                        {
+                            Server.NextFrame(() =>
+                            {
+                                if (!IsAllowedPlayer(player)) return;
+                                player.PrintToChat(msgPrefix + $" Entering Stage: {stageTrigger}");
+                                player.PrintToChat(msgPrefix + $" Time: {ChatColors.White}[{primaryChatColor}{FormatTime(playerTimerTicks)}{ChatColors.White}] " +
+                                                               $" [{FormatTimeDifference(playerTimerTicks, previousStageTime)}{ChatColors.White}]" +
+                                                               $" {(previousStageTime != srStageTime ? $"[SR {FormatTimeDifference(playerTimerTicks, srStageTime)}{ChatColors.White}]" : "")}");
+
+                                if (float.TryParse(currentStageSpeed, out float speed) && speed >= 100) //workaround for staged maps with not telehops
+                                    player.PrintToChat(msgPrefix + $" Speed: {ChatColors.White}[{primaryChatColor}{currentStageSpeed}u/s{ChatColors.White}]" +
+                                                                    $" [{FormatSpeedDifferenceFromString(currentStageSpeed, previousStageSpeed)}u/s{ChatColors.White}]" +
+                                                                    $" {(previousStageSpeed != srStageSpeed ? $"[SR {FormatSpeedDifferenceFromString(currentStageSpeed, srStageSpeed)}u/s{ChatColors.White}]" : "")}");
+                            });
+                        }
+
+                        if (playerTimer.StageVelos != null && playerTimer.StageTimes != null && playerTimer.IsTimerRunning == true && IsAllowedPlayer(player))
+                        {
+                            if (!playerTimer.StageTimes.ContainsKey(stageTrigger))
+                            {
+                                SharpTimerDebug($"Player {playerName} cleared StageTimes before (stageTrigger)");
+                                playerTimer.StageTimes.Add(stageTrigger, playerTimerTicks);
+                                playerTimer.StageVelos.Add(stageTrigger, $"{currentStageSpeed}");
+                            }
+                            else
+                            {
+                                playerTimer.StageTimes[stageTrigger] = playerTimerTicks;
+                                playerTimer.StageVelos[stageTrigger] = $"{currentStageSpeed}";
+                            }
+
+                            Server.NextFrame(() =>
+                            {
+                                if (!IsAllowedPlayer(player)) return;
+                                SharpTimerDebug($"Player {playerName} Entering stage {stageTrigger} Time {playerTimer.StageTimes[stageTrigger]}");
+                            });
+                        }
+
+                        if (IsAllowedPlayer(player)) playerTimer.CurrentMapStage = stageTrigger;
+                    }
+                }
             }
-
-            SharpTimerDebug($"Player {player.PlayerName} has a stage trigger with handle {triggerHandle}");
-            var (previousStageTime, previousStageSpeed) = GetStageTime(player.SteamID.ToString(), stageTriggers[triggerHandle]);
-
-            string currentStageSpeed = Math.Round(use2DSpeed    ? player.PlayerPawn.Value.AbsVelocity.Length2D()
-                                                                : player.PlayerPawn.Value.AbsVelocity.Length())
-                                                                .ToString("0000");
-
-            if (previousStageTime != 0)
+            catch (Exception ex)
             {
-                player.PrintToChat(msgPrefix + $" Entering Stage: {stageTriggers[triggerHandle]}");
-                player.PrintToChat(msgPrefix + $" Time: {ChatColors.White}[{primaryChatColor}{FormatTime(playerTimers[player.Slot].TimerTicks)}{ChatColors.White}] [{FormatTimeDifference(playerTimers[player.Slot].TimerTicks, previousStageTime)}{ChatColors.White}]");
-                player.PrintToChat(msgPrefix + $" Speed: {ChatColors.White}[{primaryChatColor}{currentStageSpeed}u/s{ChatColors.White}] [{FormatSpeedDifferenceFromString(currentStageSpeed, previousStageSpeed)}u/s{ChatColors.White}]");
+                SharpTimerError($"Error in HandlePlayerStageTimes: {ex.Message}");
             }
-
-            if (playerTimers[player.Slot].StageVelos != null && playerTimers[player.Slot].StageTimes != null && playerTimers[player.Slot].IsTimerRunning == true)
-            {
-                playerTimers[player.Slot].StageTimes[stageTriggers[triggerHandle]] = playerTimers[player.Slot].TimerTicks;
-                playerTimers[player.Slot].StageVelos[stageTriggers[triggerHandle]] = $"{currentStageSpeed}";
-                SharpTimerDebug($"Player {player.PlayerName} Entering stage {stageTriggers[triggerHandle]} Time {playerTimers[player.Slot].StageTimes[stageTriggers[triggerHandle]]}");
-            }
-
-            playerTimers[player.Slot].CurrentMapStage = stageTriggers[triggerHandle];
         }
 
-        private void HandlePlayerCheckpointTimes(CCSPlayerController player, nint triggerHandle)
+        private async Task HandlePlayerCheckpointTimes(CCSPlayerController player, nint triggerHandle)
         {
-            if (!IsAllowedPlayer(player) || playerTimers[player.Slot].CurrentMapCheckpoint == cpTriggers[triggerHandle])
+            try
             {
-                return;
-            }
+                if (!IsAllowedPlayer(player))
+                {
+                    return;
+                }
 
-            if (useStageTriggers == true) //use stagetime instead
+                if (cpTriggers.TryGetValue(triggerHandle, out int cpTrigger))
+                {
+
+                    var playerSlot = player.Slot;
+                    var playerSteamID = player.SteamID.ToString();
+                    var playerName = player.PlayerName;
+                    if (useStageTriggers == true) //use stagetime instead
+                    {
+                        playerTimers[playerSlot].CurrentMapCheckpoint = cpTrigger;
+                        return;
+                    }
+
+                    SharpTimerDebug($"Player {playerName} has a checkpoint trigger with handle {triggerHandle}");
+
+                    var playerTimerTicks = playerTimers[playerSlot].TimerTicks; // store so its in sync with player
+
+                    var (srSteamID, srPlayerName, srTime) = ("null", "null", "null");
+                    if (useMySQL == true)
+                    {
+                        (srSteamID, srPlayerName, srTime) = await GetMapRecordSteamIDFromDatabase();
+                    }
+                    else
+                    {
+                        (srSteamID, srPlayerName, srTime) = GetMapRecordSteamID();
+                    }
+
+                    if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? playerTimer))
+                    {
+
+                        if (playerTimer.CurrentMapCheckpoint == cpTrigger || playerTimer == null) return;
+
+                        var (previousStageTime, previousStageSpeed) = GetStageTime(playerSteamID, cpTrigger);
+                        var (srStageTime, srStageSpeed) = GetStageTime(srSteamID, cpTrigger);
+
+                        string currentStageSpeed = Math.Round(use2DSpeed ? Math.Sqrt(player.PlayerPawn.Value.AbsVelocity.X * player.PlayerPawn.Value.AbsVelocity.X + player.PlayerPawn.Value.AbsVelocity.Y * player.PlayerPawn.Value.AbsVelocity.Y)
+                                                                            : Math.Sqrt(player.PlayerPawn.Value.AbsVelocity.X * player.PlayerPawn.Value.AbsVelocity.X + player.PlayerPawn.Value.AbsVelocity.Y * player.PlayerPawn.Value.AbsVelocity.Y + player.PlayerPawn.Value.AbsVelocity.Z * player.PlayerPawn.Value.AbsVelocity.Z))
+                                                                            .ToString("0000");
+
+                        if (previousStageTime != 0)
+                        {
+                            Server.NextFrame(() =>
+                            {
+                                if (!IsAllowedPlayer(player)) return;
+                                player.PrintToChat(msgPrefix + $" Checkpoint: {cpTrigger}");
+                                player.PrintToChat(msgPrefix + $" Time: {ChatColors.White}[{primaryChatColor}{FormatTime(playerTimerTicks)}{ChatColors.White}] " +
+                                                               $" [{FormatTimeDifference(playerTimerTicks, previousStageTime)}{ChatColors.White}]" +
+                                                               $" {(previousStageTime != srStageTime ? $"[SR {FormatTimeDifference(playerTimerTicks, srStageTime)}{ChatColors.White}]" : "")}");
+
+                                if (float.TryParse(currentStageSpeed, out float speed) && speed >= 100) //workaround for staged maps with not telehops
+                                    player.PrintToChat(msgPrefix + $" Speed: {ChatColors.White}[{primaryChatColor}{currentStageSpeed}u/s{ChatColors.White}]" +
+                                                                   $" [{FormatSpeedDifferenceFromString(currentStageSpeed, previousStageSpeed)}u/s{ChatColors.White}]" +
+                                                                   $" {(previousStageSpeed != srStageSpeed ? $"[SR {FormatSpeedDifferenceFromString(currentStageSpeed, srStageSpeed)}u/s{ChatColors.White}]" : "")}");
+                            });
+                        }
+
+                        if (playerTimer.StageVelos != null && playerTimer.StageTimes != null && playerTimer.IsTimerRunning == true && IsAllowedPlayer(player))
+                        {
+                            if (!playerTimer.StageTimes.ContainsKey(cpTrigger))
+                            {
+                                SharpTimerDebug($"Player {playerName} cleared StageTimes before (cpTrigger)");
+                                playerTimer.StageTimes.Add(cpTrigger, playerTimerTicks);
+                                playerTimer.StageVelos.Add(cpTrigger, $"{currentStageSpeed}");
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    playerTimer.StageTimes[cpTrigger] = playerTimerTicks;
+                                    playerTimer.StageVelos[cpTrigger] = $"{currentStageSpeed}";
+                                }
+                                catch (Exception ex)
+                                {
+                                    SharpTimerError($"Error updating StageTimes dictionary: {ex.Message}");
+                                    SharpTimerDebug($"Player {playerName} dictionary keys: {string.Join(", ", playerTimer.StageTimes.Keys)}");
+                                }
+
+                                Server.NextFrame(() =>
+                                {
+                                    if (!IsAllowedPlayer(player)) return;
+                                    try
+                                    {
+                                        SharpTimerDebug($"Player {playerName} Entering checkpoint {cpTrigger} Time {playerTimer.StageTimes[cpTrigger]}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        SharpTimerError($"Error accessing StageTimes dictionary: {ex.Message}");
+                                        SharpTimerDebug($"Player {playerName} dictionary keys: {string.Join(", ", playerTimer.StageTimes.Keys)}");
+                                    }
+                                });
+                            }
+                        }
+                        if (IsAllowedPlayer(player)) playerTimer.CurrentMapCheckpoint = cpTrigger;
+                    }
+                }
+            }
+            catch (Exception ex)
             {
-                playerTimers[player.Slot].CurrentMapCheckpoint = cpTriggers[triggerHandle];
-                return;
+                SharpTimerError($"Error in HandlePlayerCheckpointTimes: {ex.Message}");
             }
-
-            SharpTimerDebug($"Player {player.PlayerName} has a checkpoint trigger with handle {triggerHandle}");
-            var (previousStageTime, previousStageSpeed) = GetStageTime(player.SteamID.ToString(), cpTriggers[triggerHandle]);
-
-            string currentStageSpeed = Math.Round(use2DSpeed    ? player.PlayerPawn.Value.AbsVelocity.Length2D()
-                                                                : player.PlayerPawn.Value.AbsVelocity.Length())
-                                                                .ToString("0000");
-
-            if (previousStageTime != 0)
-            {
-                player.PrintToChat(msgPrefix + $" Checkpoint: {cpTriggers[triggerHandle]}");
-                player.PrintToChat(msgPrefix + $" Time: {ChatColors.White}[{primaryChatColor}{FormatTime(playerTimers[player.Slot].TimerTicks)}{ChatColors.White}] [{FormatTimeDifference(playerTimers[player.Slot].TimerTicks, previousStageTime)}{ChatColors.White}]");
-                player.PrintToChat(msgPrefix + $" Speed: {ChatColors.White}[{primaryChatColor}{currentStageSpeed}u/s{ChatColors.White}] [{FormatSpeedDifferenceFromString(currentStageSpeed, previousStageSpeed)}u/s{ChatColors.White}]");
-            }
-
-            if (playerTimers[player.Slot].StageVelos != null && playerTimers[player.Slot].StageTimes != null && playerTimers[player.Slot].IsTimerRunning == true)
-            {
-                playerTimers[player.Slot].StageTimes[cpTriggers[triggerHandle]] = playerTimers[player.Slot].TimerTicks;
-                playerTimers[player.Slot].StageVelos[cpTriggers[triggerHandle]] = $"{currentStageSpeed}";
-                SharpTimerDebug($"Player {player.PlayerName} Entering checkpoint {cpTriggers[triggerHandle]} Time {playerTimers[player.Slot].StageTimes[cpTriggers[triggerHandle]]}");
-            }
-
-            playerTimers[player.Slot].CurrentMapCheckpoint = cpTriggers[triggerHandle];
         }
 
         public (int time, string speed) GetStageTime(string steamId, int stageIndex)
@@ -468,8 +913,15 @@ namespace SharpTimer
                             playerData[playerId] = new PlayerStageData();
                         }
 
-                        playerData[playerId].StageTimes = playerTimers[player.Slot].StageTimes;
-                        playerData[playerId].StageVelos = playerTimers[player.Slot].StageVelos;
+                        if (playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? playerTimer))
+                        {
+                            playerData[playerId].StageTimes = playerTimer.StageTimes;
+                            playerData[playerId].StageVelos = playerTimer.StageVelos;
+                        }
+                        else
+                        {
+                            SharpTimerError($"Error in DumpPlayerStageTimesToJson: playerTimers does not have the requested playerSlot");
+                        }
 
                         string updatedJson = JsonSerializer.Serialize(playerData, new JsonSerializerOptions { WriteIndented = true });
                         File.WriteAllText(playerStageRecordsPath, updatedJson);
@@ -480,11 +932,18 @@ namespace SharpTimer
 
                         string playerId = player.SteamID.ToString();
 
-                        playerData[playerId] = new PlayerStageData
+                        if (playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? playerTimer))
                         {
-                            StageTimes = playerTimers[player.Slot].StageTimes,
-                            StageVelos = playerTimers[player.Slot].StageVelos
-                        };
+                            playerData[playerId] = new PlayerStageData
+                            {
+                                StageTimes = playerTimers[player.Slot].StageTimes,
+                                StageVelos = playerTimers[player.Slot].StageVelos
+                            };
+                        }
+                        else
+                        {
+                            SharpTimerError($"Error in DumpPlayerStageTimesToJson: playerTimers does not have the requested playerSlot");
+                        }
 
                         string updatedJson = JsonSerializer.Serialize(playerData, new JsonSerializerOptions { WriteIndented = true });
                         File.WriteAllText(playerStageRecordsPath, updatedJson);
@@ -564,104 +1023,338 @@ namespace SharpTimer
             }
         }
 
-        public async Task<string> GetPlayerPlacementWithTotal(CCSPlayerController? player, string steamId, string playerName, bool getRankImg = false)
+        public async Task<string> GetPlayerMapPlacementWithTotal(CCSPlayerController? player, string steamId, string playerName, bool getRankImg = false, bool getPlacementOnly = false)
         {
-            if (!IsAllowedPlayer(player))
+            if (IsAllowedPlayer(player) || IsAllowedSpectator(player))
             {
-                return "";
-            }
-
-            int savedPlayerTime;
-            if (useMySQL == true)
-            {
-                savedPlayerTime = await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName, playerName);
-            }
-            else
-            {
-                savedPlayerTime = GetPreviousPlayerRecord(player);
-            }
-
-            if (savedPlayerTime == 0 && getRankImg == false)
-            {
-                return "Unranked";
-            }
-            else if (savedPlayerTime == 0)
-            {
-                return "";
-            }
-
-            Dictionary<string, PlayerRecord> sortedRecords;
-            if (useMySQL == true)
-            {
-                sortedRecords = await GetSortedRecordsFromDatabase();
-            }
-            else
-            {
-                sortedRecords = GetSortedRecords();
-            }
-
-            int placement = 1;
-
-            foreach (var kvp in sortedRecords)
-            {
-                int recordTimerTicks = kvp.Value.TimerTicks; // Get the timer ticks from the dictionary value
-
-                if (savedPlayerTime > recordTimerTicks)
+                int savedPlayerTime;
+                if (useMySQL == true)
                 {
-                    placement++;
+                    savedPlayerTime = await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName, playerName);
                 }
                 else
                 {
-                    break;
+                    savedPlayerTime = GetPreviousPlayerRecord(player);
                 }
-            }
 
-            int totalPlayers = sortedRecords.Count;
+                if (savedPlayerTime == 0 && getRankImg == false)
+                {
+                    return "Unranked";
+                }
+                else if (savedPlayerTime == 0)
+                {
+                    return "<img src='https://files.catbox.moe/h3zqzd.png' class=''>";
+                }
 
-            string rank;
+                Dictionary<string, PlayerRecord> sortedRecords;
+                if (useMySQL == true)
+                {
+                    sortedRecords = await GetSortedRecordsFromDatabase();
+                }
+                else
+                {
+                    sortedRecords = GetSortedRecords();
+                }
 
-            if (getRankImg)
-            {
-                //if(totalPlayers < 100) return "";
+                int placement = 1;
+
+                foreach (var kvp in sortedRecords)
+                {
+                    int recordTimerTicks = kvp.Value.TimerTicks; // Get the timer ticks from the dictionary value
+
+                    if (savedPlayerTime > recordTimerTicks)
+                    {
+                        placement++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                int totalPlayers = sortedRecords.Count;
 
                 double percentage = (double)placement / totalPlayers * 100;
 
-                if (percentage <= 1)
-                    rank = "<img src='https://i.imgur.com/mL4Z8ZW.png' class=''>";
-                else if (percentage <= 2)
-                    rank = "<img src='https://i.imgur.com/ZOC1Knl.png' class=''>";
-                else if (percentage <= 3)
-                    rank = "<img src='https://i.imgur.com/ZbXHaik.png' class=''>";
-                else if (percentage <= 4)
-                    rank = "<img src='https://i.imgur.com/JzofMpi.png' class=''>";
-                else if (percentage <= 5)
-                    rank = "<img src='https://i.imgur.com/PgRSBWk.png' class=''>";
-                else if (percentage <= 6)
-                    rank = "<img src='https://i.imgur.com/0OF3ij0.png' class=''>";
-                else if (percentage <= 15)
-                    rank = "<img src='https://i.imgur.com/6e3cSwY.png' class=''>";
-                else if (percentage <= 20)
-                    rank = "<img src='https://i.imgur.com/6pysO2O.png' class=''>";
-                else if (percentage <= 25)
-                    rank = "<img src='https://i.imgur.com/EgqfpFR.png' class=''>";
-                else if (percentage <= 30)
-                    rank = "<img src='https://i.imgur.com/IGa9B0o.png' class=''>";
-                else if (percentage <= 35)
-                    rank = "<img src='https://i.imgur.com/ObC3Y9Z.png' class=''>";
-                else if (percentage <= 40)
-                    rank = "<img src='https://i.imgur.com/9vPImVK.png' class=''>";
-                else if (percentage <= 45)
-                    rank = "<img src='https://i.imgur.com/lklvcW2.png' class=''>";
-                else
-                    rank = "<img src='https://i.imgur.com/HZf9EqX.png' class=''>";
+                return CalculateRankStuff(totalPlayers, placement, percentage, getRankImg, getPlacementOnly);
             }
             else
             {
-                rank = $"Rank: {placement}/{totalPlayers}";
+                return "";
             }
+        }
 
+        public async Task<string> GetPlayerServerPlacement(CCSPlayerController? player, string steamId, string playerName, bool getRankImg = false, bool getPlacementOnly = false, bool getPointsOnly = false)
+        {
+            if (IsAllowedPlayer(player) || IsAllowedSpectator(player))
+            {
+                int savedPlayerPoints;
+                if (useMySQL == true)
+                {
+                    savedPlayerPoints = await GetPlayerPointsFromDatabase(player, steamId, playerName);
+                }
+                else
+                {
+                    savedPlayerPoints = 0;
+                }
 
-            return rank;
+                if (savedPlayerPoints == 0 && getRankImg == false)
+                {
+                    return "Unranked";
+                }
+                else if (savedPlayerPoints == 0)
+                {
+                    return "<img src='https://files.catbox.moe/h3zqzd.png' class=''>";
+                }
+
+                if (getPointsOnly == true)
+                {
+                    return savedPlayerPoints.ToString();
+                }
+
+                Dictionary<string, PlayerPoints> sortedPoints;
+                if (useMySQL == true)
+                {
+                    sortedPoints = await GetSortedPointsFromDatabase();
+                }
+                else
+                {
+                    //sortedRecords = GetSortedRecords();
+                    sortedPoints = new Dictionary<string, PlayerPoints>();
+                }
+
+                int placement = 1;
+
+                foreach (var kvp in sortedPoints)
+                {
+                    int recordPoints = kvp.Value.GlobalPoints;
+
+                    if (savedPlayerPoints < recordPoints)
+                    {
+                        placement++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                int totalPlayers = sortedPoints.Count;
+
+                double percentage = (double)placement / totalPlayers * 100;
+
+                return CalculateRankStuff(totalPlayers, placement, percentage, getRankImg, getPlacementOnly);
+            }
+            else
+            {
+                return "";
+            }
+        }
+
+        public string CalculateRankStuff(int totalPlayers, int placement, double percentage, bool getRankImg = false, bool getPlacementOnly = false)
+        {
+            if (getRankImg)
+            {
+                if (totalPlayers < 100)
+                {
+                    if (placement <= 1)
+                        return god3Icon; // God 3
+                    else if (placement <= 2)
+                        return god2Icon; // God 2
+                    else if (placement <= 3)
+                        return god1Icon; // God 1
+                    else if (placement <= 10)
+                        return royalty3Icon; // Royal 3
+                    else if (placement <= 15)
+                        return royalty2Icon; // Royal 2
+                    else if (placement <= 20)
+                        return royalty1Icon; // Royal 1
+                    else if (placement <= 25)
+                        return legend3Icon; // Legend 3
+                    else if (placement <= 30)
+                        return legend2Icon; // Legend 2
+                    else if (placement <= 35)
+                        return legend1Icon; // Legend 1
+                    else if (placement <= 40)
+                        return master3Icon; // Master 3
+                    else if (placement <= 45)
+                        return master2Icon; // Master 2
+                    else if (placement <= 50)
+                        return master1Icon; // Master 1
+                    else if (placement <= 55)
+                        return diamond3Icon; // Diamond 3
+                    else if (placement <= 60)
+                        return diamond2Icon; // Diamond 2
+                    else if (placement <= 65)
+                        return diamond1Icon; // Diamond 1
+                    else if (placement <= 70)
+                        return platinum3Icon; // Platinum 3
+                    else if (placement <= 75)
+                        return platinum2Icon; // Platinum 2
+                    else if (placement <= 80)
+                        return platinum1Icon; // Platinum 1
+                    else if (placement <= 85)
+                        return gold3Icon; // Gold 3
+                    else if (placement <= 90)
+                        return gold2Icon; // Gold 2
+                    else if (placement <= 95)
+                        return gold1Icon; // Gold 1
+                    else
+                        return silver1Icon; // Silver 1
+                }
+                else
+                {
+                    if (placement <= 1)
+                        return god3Icon; // God 3
+                    else if (placement <= 2)
+                        return god2Icon; // God 2
+                    else if (placement <= 3)
+                        return god1Icon; // God 1
+                    else if (percentage <= 1)
+                        return royalty3Icon; // Royal 3
+                    else if (percentage <= 5.0)
+                        return royalty2Icon; // Royalty 2
+                    else if (percentage <= 10.0)
+                        return royalty1Icon; // Royalty 1
+                    else if (percentage <= 15.0)
+                        return legend3Icon; // Legend 3
+                    else if (percentage <= 20.0)
+                        return legend2Icon; // Legend 2
+                    else if (percentage <= 25.0)
+                        return legend1Icon; // Legend 1
+                    else if (percentage <= 30.0)
+                        return master3Icon; // Master 3
+                    else if (percentage <= 35.0)
+                        return master2Icon; // Master 2
+                    else if (percentage <= 40.0)
+                        return master1Icon; // Master 1
+                    else if (percentage <= 45.0)
+                        return diamond3Icon; // Diamond 3
+                    else if (percentage <= 50.0)
+                        return diamond2Icon; // Diamond 2
+                    else if (percentage <= 55.0)
+                        return diamond1Icon; // Diamond 1
+                    else if (percentage <= 60.0)
+                        return platinum3Icon; // Platinum 3
+                    else if (percentage <= 65.0)
+                        return platinum2Icon; // Platinum 2
+                    else if (percentage <= 70.0)
+                        return platinum1Icon; // Platinum 1
+                    else if (percentage <= 75.0)
+                        return gold3Icon; // Gold 3
+                    else if (percentage <= 80.0)
+                        return gold2Icon; // Gold 2
+                    else if (percentage <= 85.0)
+                        return gold1Icon; // Gold 1
+                    else if (percentage <= 90.0)
+                        return silver3Icon; // Silver 3
+                    else if (percentage <= 95.0)
+                        return silver2Icon; // Silver 2
+                    else
+                        return silver1Icon; // Silver 1
+                }
+            }
+            else
+            {
+                if (totalPlayers < 100)
+                {
+                    if (placement <= 1)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God III";
+                    else if (placement <= 2)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God II";
+                    else if (placement <= 3)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God I";
+                    else if (placement <= 10)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty III";
+                    else if (placement <= 15)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty II";
+                    else if (placement <= 20)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty I";
+                    else if (placement <= 25)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend III";
+                    else if (placement <= 30)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend II";
+                    else if (placement <= 35)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend I";
+                    else if (placement <= 40)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master III";
+                    else if (placement <= 45)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master II";
+                    else if (placement <= 50)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master I";
+                    else if (placement <= 55)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond III";
+                    else if (placement <= 60)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond II";
+                    else if (placement <= 65)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond I";
+                    else if (placement <= 70)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum III";
+                    else if (placement <= 75)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum II";
+                    else if (placement <= 80)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum I";
+                    else if (placement <= 85)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold III";
+                    else if (placement <= 90)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold II";
+                    else if (placement <= 95)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold I";
+                    else
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver I";
+                }
+                else
+                {
+                    if (placement <= 1)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God III";
+                    else if (placement <= 2)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God II";
+                    else if (placement <= 3)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God I";
+                    else if (percentage <= 1)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty III";
+                    else if (percentage <= 5.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty II";
+                    else if (percentage <= 10.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty I";
+                    else if (percentage <= 15.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend III";
+                    else if (percentage <= 20.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend II";
+                    else if (percentage <= 25.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend I";
+                    else if (percentage <= 30.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master III";
+                    else if (percentage <= 35.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master II";
+                    else if (percentage <= 40.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master I";
+                    else if (percentage <= 45.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond III";
+                    else if (percentage <= 50.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond II";
+                    else if (percentage <= 55.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond I";
+                    else if (percentage <= 60.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum III";
+                    else if (percentage <= 65.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum II";
+                    else if (percentage <= 70.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum I";
+                    else if (percentage <= 75.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold III";
+                    else if (percentage <= 80.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold II";
+                    else if (percentage <= 85.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold I";
+                    else if (percentage <= 90.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver III";
+                    else if (percentage <= 95.0)
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver II";
+                    else
+                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver I";
+                }
+            }
         }
 
         public void OnTimerStart(CCSPlayerController? player, int bonusX = 0)
@@ -697,18 +1390,21 @@ namespace SharpTimer
                 playerTimers[player.Slot].BonusStage = bonusX;
             }
 
+            playerTimers[player.Slot].IsRecordingReplay = true;
+
         }
 
-        public void OnTimerStop(CCSPlayerController? player)
+        public async void OnTimerStop(CCSPlayerController? player)
         {
             if (!IsAllowedPlayer(player) || playerTimers[player.Slot].IsTimerRunning == false) return;
 
             if (useStageTriggers == true && useCheckpointTriggers == true)
             {
-                if (playerTimers[player.Slot].CurrentMapStage != stageTriggerCount)
+                if (playerTimers[player.Slot].CurrentMapStage != stageTriggerCount && currentMapOverrideStageRequirement == true)
                 {
                     player.PrintToChat(msgPrefix + $"{ChatColors.LightRed} Error Saving Time: Player current stage does not match final one ({stageTriggerCount})");
                     playerTimers[player.Slot].IsTimerRunning = false;
+                    playerTimers[player.Slot].IsRecordingReplay = false;
                     return;
                 }
 
@@ -716,16 +1412,18 @@ namespace SharpTimer
                 {
                     player.PrintToChat(msgPrefix + $"{ChatColors.LightRed} Error Saving Time: Player current checkpoint does not match final one ({cpTriggerCount})");
                     playerTimers[player.Slot].IsTimerRunning = false;
+                    playerTimers[player.Slot].IsRecordingReplay = false;
                     return;
                 }
             }
 
             if (useStageTriggers == true && useCheckpointTriggers == false)
             {
-                if (playerTimers[player.Slot].CurrentMapStage != stageTriggerCount)
+                if (playerTimers[player.Slot].CurrentMapStage != stageTriggerCount && currentMapOverrideStageRequirement == true)
                 {
                     player.PrintToChat(msgPrefix + $"{ChatColors.LightRed} Error Saving Time: Player current stage does not match final one ({stageTriggerCount})");
                     playerTimers[player.Slot].IsTimerRunning = false;
+                    playerTimers[player.Slot].IsRecordingReplay = false;
                     return;
                 }
             }
@@ -736,6 +1434,7 @@ namespace SharpTimer
                 {
                     player.PrintToChat(msgPrefix + $"{ChatColors.LightRed} Error Saving Time: Player current checkpoint does not match final one ({cpTriggerCount})");
                     playerTimers[player.Slot].IsTimerRunning = false;
+                    playerTimers[player.Slot].IsRecordingReplay = false;
                     return;
                 }
             }
@@ -748,15 +1447,9 @@ namespace SharpTimer
             SavePlayerTime(player, currentTicks);
             if (useMySQL == true) _ = SavePlayerTimeToDatabase(player, currentTicks, player.SteamID.ToString(), player.PlayerName, player.Slot);
             playerTimers[player.Slot].IsTimerRunning = false;
-
-            string timeDifference = "";
-            if (previousRecordTicks != 0) timeDifference = FormatTimeDifference(currentTicks, previousRecordTicks);
-
-            Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{player.PlayerName} {ChatColors.White}just finished the map in: {primaryChatColor}[{FormatTime(currentTicks)}]{ChatColors.White}! {timeDifference}");
+            playerTimers[player.Slot].IsRecordingReplay = false;
 
             if (useMySQL == false) _ = RankCommandHandler(player, player.SteamID.ToString(), player.Slot, player.PlayerName, true);
-
-            if (playerTimers[player.Slot].SoundsEnabled != false) player.ExecuteClientCommand($"play {beepSound}");
         }
 
         public void OnBonusTimerStop(CCSPlayerController? player, int bonusX)
@@ -771,13 +1464,7 @@ namespace SharpTimer
             SavePlayerTime(player, currentTicks, bonusX);
             if (useMySQL == true) _ = SavePlayerTimeToDatabase(player, currentTicks, player.SteamID.ToString(), player.PlayerName, player.Slot, bonusX);
             playerTimers[player.Slot].IsBonusTimerRunning = false;
-
-            string timeDifference = "";
-            if (previousRecordTicks != 0) timeDifference = FormatTimeDifference(currentTicks, previousRecordTicks);
-
-            Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{player.PlayerName} {ChatColors.White}just finished the Bonus{bonusX} in: {primaryChatColor}[{FormatTime(currentTicks)}]{ChatColors.White}! {timeDifference}");
-
-            if (playerTimers[player.Slot].SoundsEnabled != false) player.ExecuteClientCommand($"play {beepSound}");
+            playerTimers[player.Slot].IsRecordingReplay = false;
         }
 
         public void SavePlayerTime(CCSPlayerController? player, int timerTicks, int bonusX = 0)
@@ -809,6 +1496,7 @@ namespace SharpTimer
 
                     if (!records.ContainsKey(steamId) || records[steamId].TimerTicks > timerTicks)
                     {
+                        if (!useMySQL) _ = PrintMapTimeToChat(player, records[steamId].TimerTicks, timerTicks, bonusX);
                         records[steamId] = new PlayerRecord
                         {
                             PlayerName = playerName,
@@ -817,7 +1505,12 @@ namespace SharpTimer
 
                         string updatedJson = JsonSerializer.Serialize(records, new JsonSerializerOptions { WriteIndented = true });
                         File.WriteAllText(mapRecordsPath, updatedJson);
-                        if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0) DumpPlayerStageTimesToJson(player);
+                        if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == false) DumpPlayerStageTimesToJson(player);
+                        if (enableReplays == true && useMySQL == false) DumpReplayToJson(player, bonusX);
+                    }
+                    else
+                    {
+                        if (!useMySQL) _ = PrintMapTimeToChat(player, records[steamId].TimerTicks, timerTicks, bonusX);
                     }
                 }
             }
@@ -825,6 +1518,207 @@ namespace SharpTimer
             {
                 SharpTimerError($"Error in SavePlayerTime: {ex.Message}");
             }
+        }
+
+        public async Task PrintMapTimeToChat(CCSPlayerController player, int oldticks, int newticks, int bonusX = 0, int timesFinished = 0)
+        {
+            string ranking = await GetPlayerMapPlacementWithTotal(player, player.SteamID.ToString(), player.PlayerName, false, true);
+
+            string timeDifference = "";
+            if (oldticks != 0) timeDifference = $"[{FormatTimeDifference(newticks, oldticks)}{ChatColors.White}] ";
+
+            Server.NextFrame(() =>
+            {
+                if (timesFinished > maxGlobalFreePoints && globalRanksFreePointsEnabled == true && oldticks < newticks)
+                    player.PrintToChat(msgPrefix + $"{ChatColors.White} You reached your maximum free points rewards of {primaryChatColor}{maxGlobalFreePoints}{ChatColors.White}!");
+
+                if (GetNumberBeforeSlash(ranking) == 1 && oldticks > newticks)
+                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{player.PlayerName}{ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} SR!" : "SR!")}");
+                else if (oldticks > newticks)
+                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{player.PlayerName}{ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} PB!" : "Map PB!")}");
+                else
+                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{player.PlayerName}{ChatColors.White}finished the {(bonusX != 0 ? $"Bonus {bonusX}!" : "Map!")}");
+
+                if (useMySQL != false || bonusX != 0)
+                    Server.PrintToChatAll(msgPrefix + $"{(bonusX != 0 ? $"" : $"Rank: [{primaryChatColor}{ranking}{ChatColors.White}] ")}{(timesFinished != 0 && useMySQL == true ? $"Times Finished: [{primaryChatColor}{timesFinished}{ChatColors.White}]" : "")}");
+
+                Server.PrintToChatAll(msgPrefix + $"Time: [{primaryChatColor}{FormatTime(newticks)}{ChatColors.White}] {timeDifference}");
+
+                if (playerTimers[player.Slot].SoundsEnabled != false) player.ExecuteClientCommand($"play {beepSound}");
+
+                if (enableReplays == true && enableSRreplayBot == true && GetNumberBeforeSlash(ranking) == 1 && (oldticks > newticks || oldticks == 0))
+                {
+                    _ = SpawnReplayBot();
+                }
+            });
+        }
+
+        public void AddScoreboardTagToPlayer(CCSPlayerController player, string tag)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(tag))
+                    return;
+
+                if (player == null || !player.IsValid)
+                    return;
+
+                string originalPlayerName = player.PlayerName;
+
+                string stripedClanTag = RemovePlayerTags(player.Clan ?? "");
+
+                player.Clan = $"{stripedClanTag}{(playerTimers[player.Slot].IsVip ? $"[{customVIPTag}]" : "")}[{tag}]";
+                //player.Clan = $"{stripedClanTag}[{tag}]";
+
+                SchemaString<CBasePlayerController> playerName = new SchemaString<CBasePlayerController>(player, "m_iszPlayerName");
+                playerName.Set(originalPlayerName + " ");
+
+                AddTimer(0.1f, () =>
+                {
+                    Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
+                    Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                });
+
+                AddTimer(0.2f, () =>
+                {
+                    playerName.Set(originalPlayerName);
+                });
+
+                AddTimer(0.3f, () =>
+                {
+                    Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                });
+
+                SharpTimerDebug($"Set Scoreboard Tag for {player.Clan} {player.PlayerName}");
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in AddScoreboardTagToPlayer: {ex.Message}");
+            }
+        }
+
+        public void ChangePlayerName(CCSPlayerController player, string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return;
+
+            if (player == null || !player.IsValid)
+                return;
+
+            SchemaString<CBasePlayerController> playerName = new SchemaString<CBasePlayerController>(player, "m_iszPlayerName");
+            playerName.Set(name + " ");
+
+            AddTimer(0.1f, () =>
+            {
+                Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
+                Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+            });
+
+            AddTimer(0.2f, () =>
+            {
+                playerName.Set(name);
+            });
+
+            AddTimer(0.3f, () =>
+            {
+                Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+            });
+
+            SharpTimerDebug($"Changed PlayerName to {player.PlayerName}");
+        }
+
+        public char GetRankColorForChat(CCSPlayerController player)
+        {
+            char color = ChatColors.Default;
+
+            if (playerTimers[player.Slot].CachedRank.Contains("Unranked"))
+                color = ChatColors.Default;
+            else if (playerTimers[player.Slot].CachedRank.Contains("Silver"))
+                color = ChatColors.Silver;
+            else if (playerTimers[player.Slot].CachedRank.Contains("Gold"))
+                color = ChatColors.LightYellow;
+            else if (playerTimers[player.Slot].CachedRank.Contains("Platinum"))
+                color = ChatColors.Green;
+            else if (playerTimers[player.Slot].CachedRank.Contains("Diamond"))
+                color = ChatColors.LightBlue;
+            else if (playerTimers[player.Slot].CachedRank.Contains("Master"))
+                color = ChatColors.Purple;
+            else if (playerTimers[player.Slot].CachedRank.Contains("Legend"))
+                color = ChatColors.Lime;
+            else if (playerTimers[player.Slot].CachedRank.Contains("Royalty"))
+                color = ChatColors.Orange;
+            else if (playerTimers[player.Slot].CachedRank.Contains("God"))
+                color = ChatColors.LightRed;
+
+            return color;
+        }
+
+        /* public void AddScoreboardTagToPlayer(CCSPlayerController player, string tag)
+        {
+            if (string.IsNullOrEmpty(tag))
+                return;
+
+            if (player == null || !player.IsValid)
+                return;
+
+            string originalPlayerName = player.PlayerName;
+
+            string stripedName = RemovePlayerTags(player.PlayerName == null ? "" : player.PlayerName);
+
+            //player.Clan = $"{(playerTimers[player.Slot].IsVip ? "[VIP] " : "")}[{tag}]{(!string.IsNullOrEmpty(stripedName) ? $"{stripedName} " : "")}";
+            char color = ChatColors.Default;
+            
+            if(tag.Contains("Unranked"))
+                    color = ChatColors.Default;
+                else if(tag.Contains("Silver"))
+                    color = ChatColors.Silver;
+                else if(tag.Contains("Gold"))
+                    color = ChatColors.LightYellow;
+                else if(tag.Contains("Platinum"))
+                    color = ChatColors.Green;
+                else if(tag.Contains("Diamond"))
+                    color = ChatColors.LightBlue;
+                else if(tag.Contains("Master"))
+                    color = ChatColors.Purple;
+                else if(tag.Contains("Legend"))
+                    color = ChatColors.Lime;
+                else if(tag.Contains("Royalty"))
+                    color = ChatColors.Orange;
+                else if(tag.Contains("God"))
+                    color = ChatColors.LightRed;
+
+            SchemaString<CBasePlayerController> playerName = new SchemaString<CBasePlayerController>(player, "m_iszPlayerName");
+            playerName.Set($"{(playerTimers[player.Slot].IsVip ? $" {color}[VIP]" : " " + color)}[{tag}] {(!string.IsNullOrEmpty(stripedName) ? $"{stripedName}" : "")}");
+
+            AddTimer(0.1f, () =>
+            {
+                Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
+                Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+            });
+
+            AddTimer(0.2f, () =>
+            {
+                playerName.Set($"{(playerTimers[player.Slot].IsVip ? $" {color}[VIP]" : " " + color)}[{tag}] {(!string.IsNullOrEmpty(stripedName) ? $"{stripedName}" : "")}");
+
+            });
+
+            AddTimer(0.3f, () =>
+            {
+                Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+            });
+
+            SharpTimerDebug($"Set Scoreboard Tag for {player.PlayerName}");
+        } */
+
+        public static void SendCommandToEveryone(string command)
+        {
+            Utilities.GetPlayers().ForEach(player =>
+            {
+                if (player is { PawnIsAlive: true, IsValid: true })
+                {
+                    player.ExecuteClientCommand(command);
+                }
+            });
         }
     }
 }

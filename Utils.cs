@@ -6,6 +6,7 @@ using CounterStrikeSharp.API.Modules.Utils;
 using System.Drawing;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
 namespace SharpTimer
@@ -16,9 +17,10 @@ namespace SharpTimer
         {
             if (isADTimerRunning) return;
 
-            var timer = AddTimer(srTimer, async () =>
+            var timer = AddTimer(adTimer, async () =>
             {
                 SharpTimerDebug($"Running Server Record AD...");
+
                 Dictionary<string, PlayerRecord> sortedRecords;
                 if (useMySQL == false)
                 {
@@ -37,15 +39,33 @@ namespace SharpTimer
                     return;
                 }
 
+
                 Server.NextFrame(() => Server.PrintToChatAll($"{msgPrefix} Current Server Record on {primaryChatColor}{currentMapName}{ChatColors.White}: "));
+                var serverRecord = sortedRecords.FirstOrDefault();
+                string playerName = serverRecord.Value.PlayerName; // Get the player name from the dictionary value
+                int timerTicks = serverRecord.Value.TimerTicks; // Get the timer ticks from the dictionary value
+                Server.NextFrame(() => Server.PrintToChatAll(msgPrefix + $" {primaryChatColor}{playerName} {ChatColors.White}- {primaryChatColor}{FormatTime(timerTicks)}"));
 
-                foreach (var kvp in sortedRecords.Take(1))
-                {
-                    string playerName = kvp.Value.PlayerName; // Get the player name from the dictionary value
-                    int timerTicks = kvp.Value.TimerTicks; // Get the timer ticks from the dictionary value
+                string[] adMessages = { $"{msgPrefix} Type {primaryChatColor}!sthelp{ChatColors.Default} to see all commands!",
+                                    $"{(enableReplays ? $"{msgPrefix} Type {primaryChatColor}!replaypb{ChatColors.Default} to watch a replay of your personal best run!" : "")}",
+                                    $"{(enableReplays ? $"{msgPrefix} Type {primaryChatColor}!replaysr{ChatColors.Default} to watch a replay of the SR on {primaryChatColor}{currentMapName}{ChatColors.Default}!" : "")}",
+                                    $"{(enableReplays ? $"{msgPrefix} Type {primaryChatColor}!replaytop <#>{ChatColors.Default} to watch a replay top run on {primaryChatColor}{currentMapName}{ChatColors.Default}!" : "")}",
+                                    $"{(globalRanksEnabled ? $"{msgPrefix} Type {primaryChatColor}!points{ChatColors.Default} to see the top 10 players with the most points!" : "")}",
+                                    $"{(respawnEnabled ? $"{msgPrefix} Type {primaryChatColor}!r{ChatColors.Default} to respawn back to start!" : "")}",
+                                    $"{(topEnabled ? $"{msgPrefix} Type {primaryChatColor}!top{ChatColors.Default} to see the top 10 players on {primaryChatColor}{currentMapName}{ChatColors.Default}!" : "")}",
+                                    $"{(rankEnabled ? $"{msgPrefix} Type {primaryChatColor}!rank{ChatColors.Default} to see your current PB and Rank!" : "")}",
+                                    $"{(cpEnabled ? $"{msgPrefix} Type {primaryChatColor}{(currentMapName.Contains("surf_") ? "!saveloc" : "!cp")}{ChatColors.Default} to {(currentMapName.Contains("surf_") ? "save a new loc" : "set a new checkpoint")}!" : "")}",
+                                    $"{(cpEnabled ? $"{msgPrefix} Type {primaryChatColor}{(currentMapName.Contains("surf_") ? "!loadloc" : "!tp")}{ChatColors.Default} to {(currentMapName.Contains("surf_") ? "load the last loc" : "teleport to your last checkpoint")}!" : "")}",
+                                    $"{(goToEnabled ? $"{msgPrefix} Type {primaryChatColor}!goto <name>{ChatColors.Default} to teleport to a player!" : "")}",
+                                    $"{msgPrefix} Type {primaryChatColor}!fov <0-140>{ChatColors.Default} to change your field of view!",
+                                    $"{msgPrefix} Type {primaryChatColor}!sounds{ChatColors.Default} to toggle timer sounds!",
+                                    $"{msgPrefix} Type {primaryChatColor}!hud{ChatColors.Default} to toggle timer hud!",
+                                    $"{msgPrefix} Type {primaryChatColor}!keys{ChatColors.Default} to toggle hud keys!"};
 
-                    Server.NextFrame(() => Server.PrintToChatAll(msgPrefix + $" {primaryChatColor}{playerName} {ChatColors.White}- {primaryChatColor}{FormatTime(timerTicks)}"));
-                }
+                var nonEmptyAds = adMessages.Where(ad => !string.IsNullOrEmpty(ad)).ToArray();
+
+                Server.NextFrame(() => Server.PrintToChatAll(nonEmptyAds[new Random().Next(nonEmptyAds.Length)]));
+
 
             }, TimerFlags.REPEAT);
             isADTimerRunning = true;
@@ -113,20 +133,38 @@ namespace SharpTimer
             }
             else
             {
-                return "Invalid Speed Format";
+                return "n/a";
             }
         }
 
-        static string StringAfterPrefix(string input, string prefix)
+        public double CalculatePoints(int timerTicks)
         {
-            int prefixIndex = input.IndexOf(prefix);
-            if (prefixIndex != -1)
+            double basePoints = 10000.0;
+            double timeFactor = 0.0001;
+            double tierMult = 0.1;
+
+            if (currentMapTier != null)
             {
-                int startIndex = prefixIndex + prefix.Length;
-                string result = input.Substring(startIndex);
-                return result;
+                tierMult = (double)(currentMapTier * 0.1);
             }
-            return string.Empty;
+
+            double points = basePoints / (timerTicks * timeFactor);
+            return points * tierMult;
+        }
+
+        public double CalculatePBPoints(int timerTicks)
+        {
+            double basePoints = 10000.0;
+            double timeFactor = 0.01;
+            double tierMult = 0.1;
+
+            if (currentMapTier != null)
+            {
+                tierMult = (double)(currentMapTier * 0.1);
+            }
+
+            double points = basePoints / (timerTicks * timeFactor);
+            return points * tierMult;
         }
 
         string ParseColorToSymbol(string input)
@@ -252,7 +290,7 @@ namespace SharpTimer
         public void DrawLaserBetween(Vector startPos, Vector endPos, string _color = "")
         {
             string beamColor = "";
-            if(beamColorOverride == true)
+            if (beamColorOverride == true)
             {
                 beamColor = _color;
             }
@@ -394,6 +432,15 @@ namespace SharpTimer
             return new QAngle(0, 0, 0);
         }
 
+        public static double Distance(Vector vector1, Vector vector2)
+        {
+            double dx = vector2.X - vector1.X;
+            double dy = vector2.Y - vector1.Y;
+            double dz = vector2.Z - vector1.Z;
+
+            return Math.Sqrt(dx * dx + dy * dy + dz * dz);
+        }
+
         public Dictionary<string, PlayerRecord> GetSortedRecords(int bonusX = 0)
         {
             string mapRecordsPath = Path.Combine(playerRecordsPath, bonusX == 0 ? $"{currentMapName}.json" : $"{currentMapName}_bonus{bonusX}.json");
@@ -429,6 +476,64 @@ namespace SharpTimer
                 });
 
             return sortedRecords;
+        }
+
+        public (string, string, string) GetMapRecordSteamID(int bonusX = 0, int top10 = 0)
+        {
+            string mapRecordsPath = Path.Combine(playerRecordsPath, bonusX == 0 ? $"{currentMapName}.json" : $"{currentMapName}_bonus{bonusX}.json");
+
+            Dictionary<string, PlayerRecord> records;
+
+            try
+            {
+                using (JsonDocument jsonDocument = LoadJson(mapRecordsPath))
+                {
+                    if (jsonDocument != null)
+                    {
+                        records = JsonSerializer.Deserialize<Dictionary<string, PlayerRecord>>(jsonDocument.RootElement.GetRawText()) ?? new Dictionary<string, PlayerRecord>();
+                    }
+                    else
+                    {
+                        records = new Dictionary<string, PlayerRecord>();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in GetSortedRecords: {ex.Message}");
+                records = new Dictionary<string, PlayerRecord>();
+            }
+
+            string steamId64 = "null";
+            string playerName = "null";
+            string timerTicks = "null";
+
+            if (top10 != 0 && top10 <= records.Count)
+            {
+                var sortedRecords = records.OrderBy(x => x.Value.TimerTicks).ToList();
+                var record = sortedRecords[top10 - 1];
+                steamId64 = record.Key;
+                playerName = record.Value.PlayerName;
+                timerTicks = FormatTime(record.Value.TimerTicks);
+            }
+            else
+            {
+                var minTimerTicksRecord = records.OrderBy(x => x.Value.TimerTicks).FirstOrDefault();
+                if (minTimerTicksRecord.Key != null)
+                {
+                    steamId64 = minTimerTicksRecord.Key;
+                    playerName = minTimerTicksRecord.Value.PlayerName;
+                    timerTicks = FormatTime(minTimerTicksRecord.Value.TimerTicks);
+                }
+                else
+                {
+                    steamId64 = "null";
+                    playerName = "null";
+                    timerTicks = "null";
+                }
+            }
+
+            return (steamId64, playerName, timerTicks);
         }
 
         private async Task<(int? Tier, string? Type)> FindMapInfoFromHTTP(string url)
@@ -503,6 +608,21 @@ namespace SharpTimer
             };
         }
 
+        private void KillServerCommandEnts()
+        {
+            if (killServerCommands == true)
+            {
+                var pointServerCommands = Utilities.FindAllEntitiesByDesignerName<CPointServerCommand>("point_servercommand");
+
+                foreach (var servercmd in pointServerCommands)
+                {
+                    if (servercmd == null) continue;
+                    SharpTimerDebug($"Killed point_servercommand ent: {servercmd.Handle}");
+                    servercmd.Remove();
+                }
+            }
+        }
+
         private void OnMapStartHandler(string mapName)
         {
             Server.NextFrame(() =>
@@ -513,12 +633,38 @@ namespace SharpTimer
                 Server.ExecuteCommand($"execifexists SharpTimer/config.cfg");
 
                 //delay custom_exec so it executes after map exec
-                SharpTimerDebug("Creating custom_exec 2sec delay");
-                var custom_exec_delay = AddTimer(2.0f, () =>
+                SharpTimerDebug("Creating custom_exec 1sec delay");
+                var custom_exec_delay = AddTimer(1.0f, () =>
                 {
-                    SharpTimerDebug("Executing SharpTimer/custom_exec");
+                    SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
                     Server.ExecuteCommand("execifexists SharpTimer/custom_exec.cfg");
+                    if (execCustomMapCFG == true) Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{currentMapName}.cfg");
+                    if (hideAllPlayers == true) Server.ExecuteCommand($"mp_teammates_are_enemies 1");
+                    if (enableSRreplayBot)
+                    {
+                        Server.NextFrame(() =>
+                        {
+                            Server.ExecuteCommand($"sv_hibernate_when_empty 0");
+                            Server.ExecuteCommand($"bot_join_after_player 0");
+                        });
+                    }
                 });
+
+                if (enableReplays == true && enableSRreplayBot == true)
+                {
+                    AddTimer(5.0f, () =>
+                    {
+                        if (ConVar.Find("mp_force_pick_time").GetPrimitiveValue<float>() == 1.0)
+                            _ = SpawnReplayBot();
+                        else
+                        {
+                            Server.PrintToChatAll($" {ChatColors.LightRed}Couldnt Spawn Replay bot!");
+                            Server.PrintToChatAll($" {ChatColors.LightRed}Please make sure mp_force_pick_time is set to 1");
+                            Server.PrintToChatAll($" {ChatColors.LightRed}in your custom_exec.cfg");
+                            SharpTimerError("Couldnt Spawn Replay bot! Please make sure mp_force_pick_time is set to 1 in your custom_exec.cfg");
+                        }
+                    });
+                }
 
                 if (removeCrouchFatigueEnabled == true) Server.ExecuteCommand("sv_timebetweenducks 0");
 
@@ -529,12 +675,33 @@ namespace SharpTimer
                 stageTriggers.Clear();
                 stageTriggerAngs.Clear();
                 stageTriggerPoses.Clear();
+
+                _ = CheckTablesAsync();
+
+                KillServerCommandEnts();
             });
         }
 
         private void LoadMapData()
         {
             Server.ExecuteCommand($"execifexists SharpTimer/config.cfg");
+            SharpTimerDebug("Re-Executing custom_exec with 1sec delay...");
+            var custom_exec_delay = AddTimer(1.0f, () =>
+            {
+                SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
+                Server.ExecuteCommand("execifexists SharpTimer/custom_exec.cfg");
+                if (execCustomMapCFG == true) Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{currentMapName}.cfg");
+                if (hideAllPlayers == true) Server.ExecuteCommand($"mp_teammates_are_enemies 1");
+                if (enableSRreplayBot)
+                {
+                    Server.NextFrame(() =>
+                    {
+                        Server.ExecuteCommand($"sv_hibernate_when_empty 0");
+                        Server.ExecuteCommand($"bot_join_after_player 0");
+                    });
+                }
+            });
+
             if (srEnabled == true) ServerRecordADtimer();
 
             currentMapName = Server.MapName;
@@ -553,12 +720,9 @@ namespace SharpTimer
 
             SortedCachedRecords = GetSortedRecords();
 
-            currentMapTier = null; //making sure previous map tier and type are wiped
-            currentMapType = null;
+            ClearMapData();
 
             _ = GetMapInfo();
-
-            if (triggerPushFixEnabled == true) FindTriggerPushData();
 
             primaryChatColor = ParseColorToSymbol(primaryHUDcolor);
 
@@ -612,21 +776,152 @@ namespace SharpTimer
                             }
                         }
 
+                        /* if (mapInfo.OverrideDisableTelehop != null && mapInfo.OverrideDisableTelehop.Any())
+                        {
+                            try
+                            {
+                                SharpTimerConPrint($"Overriding Telehop...");
+                                currentMapOverrideDisableTelehop = mapInfo.OverrideDisableTelehop
+                                    .Split(',')
+                                    .Select(color => color.Trim())
+                                    .ToArray();
+
+                                foreach (var trigger in currentMapOverrideDisableTelehop)
+                                {
+                                    SharpTimerConPrint($"OverrideDisableTelehop for trigger: {trigger}");
+                                }
+
+                            }
+                            catch (Exception ex)
+                            {
+                                SharpTimerError($"Error parsing OverrideDisableTelehop array: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            currentMapOverrideDisableTelehop = new string[0];
+                        } */
+
                         if (!string.IsNullOrEmpty(mapInfo.OverrideDisableTelehop))
                         {
                             try
                             {
                                 currentMapOverrideDisableTelehop = bool.Parse(mapInfo.OverrideDisableTelehop);
-                                SharpTimerConPrint($"Overriding Telehop...");
+                                SharpTimerConPrint($"Overriding OverrideDisableTelehop...");
                             }
                             catch (FormatException)
                             {
-                                Console.WriteLine("Invalid boolean string format for OverrideDisableTelehop");
+                                SharpTimerError("Invalid boolean string format for OverrideDisableTelehop");
                             }
                         }
                         else
                         {
-                            currentMapOverrideDisableTelehop = false;
+                            currentMapOverrideStageRequirement = false;
+                        }
+
+                        if (mapInfo.OverrideMaxSpeedLimit != null && mapInfo.OverrideMaxSpeedLimit.Any())
+                        {
+                            try
+                            {
+                                SharpTimerConPrint($"Overriding MaxSpeedLimit...");
+                                currentMapOverrideMaxSpeedLimit = mapInfo.OverrideMaxSpeedLimit
+                                    .Split(',')
+                                    .Select(color => color.Trim())
+                                    .ToArray();
+
+                                foreach (var trigger in currentMapOverrideMaxSpeedLimit)
+                                {
+                                    SharpTimerConPrint($"OverrideMaxSpeedLimit for trigger: {trigger}");
+                                }
+
+                            }
+                            catch (Exception ex)
+                            {
+                                SharpTimerError($"Error parsing OverrideMaxSpeedLimit array: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            currentMapOverrideMaxSpeedLimit = new string[0];
+                        }
+
+                        if (!string.IsNullOrEmpty(mapInfo.OverrideStageRequirement))
+                        {
+                            try
+                            {
+                                currentMapOverrideStageRequirement = bool.Parse(mapInfo.OverrideStageRequirement);
+                                SharpTimerConPrint($"Overriding StageRequirement...");
+                            }
+                            catch (FormatException)
+                            {
+                                SharpTimerError("Invalid boolean string format for OverrideStageRequirement");
+                            }
+                        }
+                        else
+                        {
+                            currentMapOverrideStageRequirement = false;
+                        }
+
+                        if (!string.IsNullOrEmpty(mapInfo.OverrideTriggerPushFix))
+                        {
+                            try
+                            {
+                                currentMapOverrideTriggerPushFix = bool.Parse(mapInfo.OverrideTriggerPushFix);
+                                SharpTimerConPrint($"Overriding TriggerPushFix...");
+                            }
+                            catch (FormatException)
+                            {
+                                SharpTimerError("Invalid boolean string format for OverrideTriggerPushFix");
+                            }
+                        }
+                        else
+                        {
+                            currentMapOverrideTriggerPushFix = false;
+                        }
+
+                        if (!string.IsNullOrEmpty(mapInfo.GlobalPointsMultiplier))
+                        {
+                            try
+                            {
+                                globalPointsMultiplier = float.Parse(mapInfo.GlobalPointsMultiplier);
+                                SharpTimerConPrint($"Set global points multiplier to x{globalPointsMultiplier}");
+                            }
+                            catch (FormatException)
+                            {
+                                SharpTimerError("Invalid float string format for GlobalPointsMultiplier");
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(mapInfo.MapTier))
+                        {
+                            AddTimer(10.0f, () => //making sure this happens after remote_data is fetched due to github being slow sometimes
+                            {
+                                try
+                                {
+                                    currentMapTier = int.Parse(mapInfo.MapTier);
+                                    SharpTimerConPrint($"Overriding MapTier to {currentMapTier}");
+                                }
+                                catch (FormatException)
+                                {
+                                    SharpTimerError("Invalid int string format for MapTier");
+                                }
+                            });
+                        }
+
+                        if (!string.IsNullOrEmpty(mapInfo.MapType))
+                        {
+                            AddTimer(10.0f, () => //making sure this happens after remote_data is fetched due to github being slow sometimes
+                            {
+                                try
+                                {
+                                    currentMapType = mapInfo.MapType;
+                                    SharpTimerConPrint($"Overriding MapType to {currentMapType}");
+                                }
+                                catch (FormatException)
+                                {
+                                    SharpTimerError("Invalid string format for MapType");
+                                }
+                            });
                         }
                     }
                     else
@@ -650,8 +945,8 @@ namespace SharpTimer
 
                     if (useTriggers == false)
                     {
-                        DrawWireframe2D(currentMapStartC1, currentMapStartC2, startBeamColor, fakeTriggerHeight);
-                        DrawWireframe2D(currentMapEndC1, currentMapEndC2, endBeamColor, fakeTriggerHeight);
+                        DrawWireframe3D(currentMapStartC1, currentMapStartC2, startBeamColor);
+                        DrawWireframe3D(currentMapEndC1, currentMapEndC2, endBeamColor);
                     }
                     else
                     {
@@ -671,8 +966,8 @@ namespace SharpTimer
 
             if (useTriggers == false)
             {
-                DrawWireframe2D(currentMapStartC1, currentMapStartC2, startBeamColor, fakeTriggerHeight);
-                DrawWireframe2D(currentMapEndC1, currentMapEndC2, endBeamColor, fakeTriggerHeight);
+                DrawWireframe3D(currentMapStartC1, currentMapStartC2, startBeamColor);
+                DrawWireframe3D(currentMapEndC1, currentMapEndC2, endBeamColor);
             }
             else
             {
@@ -683,6 +978,43 @@ namespace SharpTimer
                 DrawWireframe3D(startRight, startLeft, startBeamColor);
                 DrawWireframe3D(endRight, endLeft, endBeamColor);
             }
+
+            if (triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false) FindTriggerPushData();
+
+            KillServerCommandEnts();
+        }
+
+        public void ClearMapData()
+        {
+            cpTriggers.Clear();
+            stageTriggers.Clear();
+            stageTriggerAngs.Clear();
+            stageTriggerPoses.Clear();
+
+            stageTriggerCount = 0;
+            useStageTriggers = false;
+
+            currentMapStartC1 = new Vector(0, 0, 0);
+            currentMapStartC2 = new Vector(0, 0, 0);
+            currentMapEndC1 = new Vector(0, 0, 0);
+            currentMapEndC2 = new Vector(0, 0, 0);
+
+            currentRespawnPos = null;
+            currentRespawnAng = null;
+
+            currentMapStartTriggerMaxs = null;
+            currentMapStartTriggerMins = null;
+
+            currentMapTier = null; //making sure previous map tier and type are wiped
+            currentMapType = null;
+            currentMapOverrideDisableTelehop = false; //making sure previous map overrides are reset
+            currentMapOverrideMaxSpeedLimit = new string[0];
+            currentMapOverrideStageRequirement = false;
+            currentMapOverrideTriggerPushFix = false;
+
+            globalPointsMultiplier = 1.0f;
+
+            startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile = false;
         }
 
         private JsonDocument LoadJson(string path)
@@ -701,6 +1033,71 @@ namespace SharpTimer
             }
 
             return null;
+        }
+
+        public string RemovePlayerTags(string input)
+        {
+            string originalTag = input;
+            string[] playerTagsToRemove =   {   $"[{customVIPTag}]",
+                                                "[Unranked]",
+                                                "[Silver I]", "[Silver II]", "[Silver III]",
+                                                "[Gold I]", "[Gold II]", "[Gold III]",
+                                                "[Platinum I]", "[Platinum II]", "[Platinum III]",
+                                                "[Diamond I]", "[Diamond II]", "[Diamond III]",
+                                                "[Master I]", "[Master II]", "[Master III]",
+                                                "[Legend I]", "[Legend II]", "[Legend III]",
+                                                "[Royalty I]", "[Royalty II]", "[Royalty III]",
+                                                "[God I]", "[God II]", "[God III]"
+                                            };
+
+            if (!string.IsNullOrEmpty(input))
+            {
+                foreach (var strToRemove in playerTagsToRemove)
+                {
+                    if (input.Contains(strToRemove))
+                    {
+                        input = Regex.Replace(input, Regex.Escape(strToRemove), string.Empty, RegexOptions.IgnoreCase).Trim();
+                    }
+                }
+            }
+
+            SharpTimerDebug($"Removing tags... I: {originalTag} O: {input}");
+
+            return input;
+        }
+
+        static string FormatOrdinal(int number)
+        {
+            if (number % 100 >= 11 && number % 100 <= 13)
+            {
+                return number + "th";
+            }
+
+            switch (number % 10)
+            {
+                case 1:
+                    return number + "st";
+                case 2:
+                    return number + "nd";
+                case 3:
+                    return number + "rd";
+                default:
+                    return number + "th";
+            }
+        }
+
+        static int GetNumberBeforeSlash(string input)
+        {
+            string[] parts = input.Split('/');
+
+            if (parts.Length == 2 && int.TryParse(parts[0], out int result))
+            {
+                return result;
+            }
+            else
+            {
+                return -1;
+            }
         }
     }
 }

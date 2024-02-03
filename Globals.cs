@@ -1,7 +1,9 @@
+using System.Data.Common;
 using System.Text;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Utils;
+using MySqlConnector;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
 namespace SharpTimer
@@ -9,13 +11,16 @@ namespace SharpTimer
     public partial class SharpTimer
     {
         public override string ModuleName => "SharpTimer";
-        public override string ModuleVersion => $"0.1.9 - {new DateTime(Builtin.CompileTime, DateTimeKind.Utc)}";
+        public override string ModuleVersion => $"0.2.0 - {new DateTime(Builtin.CompileTime, DateTimeKind.Utc)}";
         public override string ModuleAuthor => "DEAFPS https://github.com/DEAFPS/";
         public override string ModuleDescription => "A simple CSS Timer Plugin";
 
         private Dictionary<int, PlayerTimerInfo> playerTimers = new Dictionary<int, PlayerTimerInfo>();
+        private Dictionary<int, PlayerReplays> playerReplays = new Dictionary<int, PlayerReplays>();
         private Dictionary<int, List<PlayerCheckpoint>> playerCheckpoints = new Dictionary<int, List<PlayerCheckpoint>>();
         private Dictionary<int, CCSPlayerController> connectedPlayers = new Dictionary<int, CCSPlayerController>();
+        private Dictionary<int, CCSPlayerController> connectedReplayBots = new Dictionary<int, CCSPlayerController>();
+        private Dictionary<uint, CCSPlayerController> specTargets = new Dictionary<uint, CCSPlayerController>();
         Dictionary<nint, TriggerPushData> triggerPushData = new Dictionary<nint, TriggerPushData>();
         private EntityCache? entityCache;
         public Dictionary<string, PlayerRecord>? SortedCachedRecords = new Dictionary<string, PlayerRecord>();
@@ -30,6 +35,8 @@ namespace SharpTimer
         public string endBeamColor = "";
         public bool beamColorOverride = false;
         public string currentMapStartTrigger = "trigger_startzone";
+        public Vector? currentMapStartTriggerMaxs = null;
+        public Vector? currentMapStartTriggerMins = null;
         public string currentMapEndTrigger = "trigger_endzone";
         public Vector currentMapStartC1 = new Vector(0, 0, 0);
         public Vector currentMapStartC2 = new Vector(0, 0, 0);
@@ -38,6 +45,9 @@ namespace SharpTimer
         public Vector? currentRespawnPos = null;
         public QAngle? currentRespawnAng = null;
         public bool currentMapOverrideDisableTelehop = false;
+        public string[]? currentMapOverrideMaxSpeedLimit = null;
+        public bool currentMapOverrideStageRequirement = false;
+        public bool currentMapOverrideTriggerPushFix = false;
         private Dictionary<int, Vector?> bonusRespawnPoses = new Dictionary<int, Vector?>();
         private Dictionary<int, QAngle?> bonusRespawnAngs = new Dictionary<int, QAngle?>();
         private Dictionary<nint, int> stageTriggers = new Dictionary<nint, int>();
@@ -50,17 +60,31 @@ namespace SharpTimer
         private bool useCheckpointTriggers = false;
         public string? currentMapType = null;
         public int? currentMapTier = null;
+        public float? globalPointsMultiplier = 1.0f;
 
         public bool enableDebug = true;
+        public bool killServerCommands = true;
         public bool useMySQL = false;
+        public bool enableReplays = false;
+        public bool enableSRreplayBot = false;
+        public bool startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile = false;
+        public bool globalRanksEnabled = false;
+        public bool globalRanksFreePointsEnabled = true;
+        public int maxGlobalFreePoints = 20;
+        public bool displayChatTags = true;
+        public bool displayScoreboardTags = true;
+        public string customVIPTag = "VIP";
 
         public bool useTriggers = true;
         public bool respawnEnabled = true;
+        public bool keysOverlayEnabled = true;
+        public bool hudOverlayEnabled = true;
         public bool topEnabled = true;
         public bool rankEnabled = true;
         public bool pbComEnabled = true;
         public bool alternativeSpeedometer = false;
         public bool removeLegsEnabled = true;
+        public bool hideAllPlayers = false;
         public bool removeCollisionEnabled = true;
         public bool disableDamage = true;
         public bool cpEnabled = false;
@@ -71,7 +95,7 @@ namespace SharpTimer
         public bool cmdJoinMsgEnabled = true;
         public bool autosetHostname = false;
         public bool srEnabled = true;
-        public int srTimer = 120;
+        public int adTimer = 120;
         public int rankHUDTimer = 170;
         public bool resetTriggerTeleportSpeedEnabled = false;
         public bool maxStartingSpeedEnabled = true;
@@ -88,6 +112,8 @@ namespace SharpTimer
         public bool forcePlayerSpeedEnabled = false;
         public float forcedPlayerSpeed = 250;
 
+         public bool execCustomMapCFG  = false;
+
         public string beepSound = "sounds/ui/csgo_ui_button_rollover_large.vsnd";
         public string respawnSound = "sounds/ui/menu_accept.vsnd";
         public string cpSound = "sounds/ui/counter_beep.vsnd";
@@ -103,6 +129,32 @@ namespace SharpTimer
         public string? remoteKZDataSource = "https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/kz_.json";
         public string? remoteSurfDataSource = "https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/surf_.json";
         public string? testerPersonalGifsSource = "https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/tester_bling.json";
+
+        public static string god3Icon = "<img src='https://files.catbox.moe/u1c5ro.png' class=''>";
+        public static string god2Icon = "<img src='https://files.catbox.moe/nd0f19.png' class=''>";
+        public static string god1Icon = "<img src='https://files.catbox.moe/jsnr5c.png' class=''>";
+        public static string royalty3Icon = "<img src='https://files.catbox.moe/u1c5ro.png' class=''>";
+        public static string royalty2Icon = "<img src='https://files.catbox.moe/nd0f19.png' class=''>";
+        public static string royalty1Icon = "<img src='https://files.catbox.moe/jsnr5c.png' class=''>";
+        public static string legend3Icon = "<img src='https://files.catbox.moe/hvivx8.png' class=''>";
+        public static string legend2Icon = "<img src='https://files.catbox.moe/v6pptr.png' class=''>";
+        public static string legend1Icon = "<img src='https://files.catbox.moe/qyhx6m.png' class=''>";
+        public static string master3Icon = "<img src='https://files.catbox.moe/r4svtx.png' class=''>";
+        public static string master2Icon = "<img src='https://files.catbox.moe/c1fe41.png' class=''>";
+        public static string master1Icon = "<img src='https://files.catbox.moe/c1fe41.png' class=''>";
+        public static string diamond3Icon = "<img src='https://files.catbox.moe/7cueh7.png' class=''>";
+        public static string diamond2Icon = "<img src='https://files.catbox.moe/g1xupf.png' class=''>";
+        public static string diamond1Icon = "<img src='https://files.catbox.moe/h76rhv.png' class=''>";
+        public static string platinum3Icon = "<img src='https://files.catbox.moe/layka5.png' class=''>";
+        public static string platinum2Icon = "<img src='https://files.catbox.moe/uar6mc.png' class=''>";
+        public static string platinum1Icon = "<img src='https://files.catbox.moe/lzc3hp.png' class=''>";
+        public static string gold3Icon = "<img src='https://files.catbox.moe/saz0km.png' class=''>";
+        public static string gold2Icon = "<img src='https://files.catbox.moe/6k7p4f.png' class=''>";
+        public static string gold1Icon = "<img src='https://files.catbox.moe/avuup2.png' class=''>";
+        public static string silver3Icon = "<img src='https://files.catbox.moe/tktipr.png' class=''>";
+        public static string silver2Icon = "<img src='https://files.catbox.moe/r8hytb.png' class=''>";
+        public static string silver1Icon = "<img src='https://files.catbox.moe/w4y4in.png' class=''>";
+
 
         public struct WeaponSpeedStats
         {

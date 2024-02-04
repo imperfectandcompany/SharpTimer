@@ -56,7 +56,7 @@ namespace SharpTimer
 
                 if (bot.IsValid && bot.IsBot)
                 {
-                    if(startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile)
+                    if (startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile)
                     {
                         AddTimer(4.0f, () =>
                         {
@@ -167,7 +167,15 @@ namespace SharpTimer
 
                     if (IsValidStartTriggerName(caller.Entity.Name.ToString()) && IsAllowedPlayer(player))
                     {
-                        if (!playerTimers[player.Slot].IsTimerBlocked) playerCheckpoints.Remove(player.Slot);
+                        if (!playerTimers[player.Slot].IsTimerBlocked)
+                        {
+                            playerCheckpoints.Remove(player.Slot);
+                            if (jumpStatsEnabled)
+                            {
+                                playerTimers[player.Slot].JSbestLJ = null;
+                                playerTimers[player.Slot].JSlastLJ = null;
+                            }
+                        }
                         playerTimers[player.Slot].TimerTicks = 0;
                         playerTimers[player.Slot].BonusTimerTicks = 0;
                         playerTimers[player.Slot].IsTimerRunning = false;
@@ -211,7 +219,15 @@ namespace SharpTimer
 
                     if (validStartBonus && IsAllowedPlayer(player))
                     {
-                        if (!playerTimers[player.Slot].IsTimerBlocked) playerCheckpoints.Remove(player.Slot);
+                        if (!playerTimers[player.Slot].IsTimerBlocked)
+                        {
+                            playerCheckpoints.Remove(player.Slot);
+                            if (jumpStatsEnabled)
+                            {
+                                playerTimers[player.Slot].JSbestLJ = null;
+                                playerTimers[player.Slot].JSlastLJ = null;
+                            }
+                        }
                         playerTimers[player.Slot].TimerTicks = 0;
                         playerTimers[player.Slot].BonusTimerTicks = 0;
                         playerTimers[player.Slot].IsTimerRunning = false;
@@ -245,7 +261,7 @@ namespace SharpTimer
                         RespawnPlayer(player);
                         player.PrintToChat(msgPrefix + $"You got reset due to illegal skip attempt");
                     }
-                    
+
                     return HookResult.Continue;
                 }
                 catch (Exception ex)
@@ -346,12 +362,12 @@ namespace SharpTimer
                         return HookResult.Continue;
                     }
 
-                    if (!IsAllowedPlayer(player) || caller.Entity.Name == null) return HookResult.Continue;
+                    if (!IsAllowedPlayer(player)) return HookResult.Continue;
 
                     if (IsAllowedPlayer(player) && resetTriggerTeleportSpeedEnabled && currentMapOverrideDisableTelehop != null)
                     {
-                        string triggerName = caller.Entity.Name.ToString();
-                        /* if (!currentMapOverrideDisableTelehop.Contains(triggerName))
+                        /* string triggerName = caller.Entity.Name.ToString();
+                        if (!currentMapOverrideDisableTelehop.Contains(triggerName))
                         {
                             Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
                             adjustVelocity(player, 0, false);
@@ -362,6 +378,52 @@ namespace SharpTimer
                             adjustVelocity(player, 0, false);
                         }
                     }
+
+                    return HookResult.Continue;
+                }
+                catch (Exception ex)
+                {
+                    SharpTimerError($"Exception in trigger_teleport hook: {ex.Message}");
+                    return HookResult.Continue;
+                }
+            });
+
+            HookEntityOutput("trigger_teleport", "OnStartTouch", (CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay) =>
+            {
+                try
+                {
+                    if (activator == null || output == null || value == null || caller == null)
+                    {
+                        SharpTimerDebug("Null reference detected in trigger_teleport hook.");
+                        return HookResult.Continue;
+                    }
+
+                    if (activator.DesignerName != "player")
+                    {
+                        SharpTimerDebug("activator.DesignerName != player in trigger_teleport hook.");
+                        return HookResult.Continue;
+                    }
+
+                    var player = new CCSPlayerController(new CCSPlayerPawn(activator.Handle).Controller.Value.Handle);
+
+                    if (player == null)
+                    {
+                        
+                        return HookResult.Continue;
+                    }
+
+                    if (!IsAllowedPlayer(player))
+                    {
+                        SharpTimerDebug("Player not allowed in trigger_teleport hook.");
+                        return HookResult.Continue;
+                    } 
+
+                    if (jumpStatsEnabled)
+                    {
+                        SharpTimerDebug("playerTimers[player.Slot].JSPos1 = null");
+                        playerTimers[player.Slot].JSPos1 = null;
+                        return HookResult.Continue;
+                    } 
 
                     return HookResult.Continue;
                 }

@@ -629,7 +629,17 @@ namespace SharpTimer
                 }
 
                 // Remove checkpoints for the current player
-                playerCheckpoints.Remove(player.Slot);
+                if (!playerTimers[player.Slot].IsTimerBlocked)
+                {
+                    playerCheckpoints.Remove(player.Slot);
+                    if (jumpStatsEnabled)
+                    {
+                        playerTimers[player.Slot].JSbestLJ = null;
+                        playerTimers[player.Slot].JSlastLJ = null;
+                    }
+                }
+
+                if (jumpStatsEnabled) playerTimers[player.Slot].JSPos1 = null;
 
                 if (bonusRespawnPoses[bonusX] != null)
                 {
@@ -775,7 +785,17 @@ namespace SharpTimer
                 }
 
                 // Remove checkpoints for the current player
-                playerCheckpoints.Remove(player.Slot);
+                if (!playerTimers[player.Slot].IsTimerBlocked)
+                {
+                    playerCheckpoints.Remove(player.Slot);
+                    if (jumpStatsEnabled)
+                    {
+                        playerTimers[player.Slot].JSbestLJ = null;
+                        playerTimers[player.Slot].JSlastLJ = null;
+                    }
+                }
+
+                if (jumpStatsEnabled) playerTimers[player.Slot].JSPos1 = null;
 
                 if (stageTriggerPoses.TryGetValue(stageX, out Vector stagePos) && stagePos != null)
                 {
@@ -832,7 +852,18 @@ namespace SharpTimer
             try
             {
                 // Remove checkpoints for the current player
-                playerCheckpoints.Remove(player.Slot);
+                if (!playerTimers[player.Slot].IsTimerBlocked)
+                {
+                    playerCheckpoints.Remove(player.Slot);
+                    if (jumpStatsEnabled)
+                    {
+                        playerTimers[player.Slot].JSbestLJ = null;
+                        playerTimers[player.Slot].JSlastLJ = null;
+                    }
+                }
+
+                if (jumpStatsEnabled) playerTimers[player.Slot].JSPos1 = null;
+
                 if (stageTriggerCount != 0 || cpTriggerCount != 0)//remove previous stage times if the map has stages
                 {
                     playerTimers[player.Slot].StageTimes.Clear();
@@ -904,6 +935,8 @@ namespace SharpTimer
                 SharpTimerDebug("Failed to get playerTimer or playerTimer.CurrentMapStage == 0.");
                 return;
             }
+
+            if (jumpStatsEnabled) playerTimers[player.Slot].JSPos1 = null;
 
             int currStage = playerTimer.CurrentMapStage;
 
@@ -1040,7 +1073,18 @@ namespace SharpTimer
             }
 
 
-            playerCheckpoints.Remove(player.Slot);
+            if (!playerTimers[player.Slot].IsTimerBlocked)
+            {
+                playerCheckpoints.Remove(player.Slot);
+                if (jumpStatsEnabled)
+                {
+                    playerTimers[player.Slot].JSbestLJ = null;
+                    playerTimers[player.Slot].JSlastLJ = null;
+                }
+            }
+
+            if (jumpStatsEnabled) playerTimers[player.Slot].JSPos1 = null;
+
             playerTimers[player.Slot].IsTimerRunning = false;
             playerTimers[player.Slot].TimerTicks = 0;
 
@@ -1174,6 +1218,8 @@ namespace SharpTimer
             QAngle rotation = ParseQAngle(lastCheckpoint.RotationString ?? "0 0 0");
             Vector speed = ParseVector(lastCheckpoint.SpeedString ?? "0 0 0");
 
+            if (jumpStatsEnabled) playerTimers[player.Slot].JSPos1 = null;
+
             // Teleport the player to the most recent checkpoint, including the saved rotation
             if (removeCpRestrictEnabled == true)
             {
@@ -1225,6 +1271,8 @@ namespace SharpTimer
             }
 
             int index = playerTimers.TryGetValue(player.Slot, out var timer) ? timer.CheckpointIndex : 0;
+
+            if (jumpStatsEnabled) playerTimers[player.Slot].JSPos1 = null;
 
             if (checkpoints.Count == 1)
             {
@@ -1288,6 +1336,8 @@ namespace SharpTimer
             }
 
             int index = playerTimers.TryGetValue(player.Slot, out var timer) ? timer.CheckpointIndex : 0;
+
+            if (jumpStatsEnabled) playerTimers[player.Slot].JSPos1 = null;
 
             if (checkpoints.Count == 1)
             {

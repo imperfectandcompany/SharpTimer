@@ -426,7 +426,7 @@ namespace SharpTimer
 
                                 await upsertCommand.ExecuteNonQueryAsync();
                                 Server.NextFrame(() => SharpTimerDebug($"Got player stats from MySQL for {playerName}"));
-                                if (connectMsgEnabled && playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value)) Server.NextFrame(() => Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{player.PlayerName} {ChatColors.White}connected for the {FormatOrdinal(value.TimesConnected)} time!"));
+                                if (connectMsgEnabled && playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value)) Server.NextFrame(() => Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{playerName} {ChatColors.White}connected for the {FormatOrdinal(value.TimesConnected)} time!"));
                             }
                         }
                         else
@@ -451,7 +451,7 @@ namespace SharpTimer
 
                                 await upsertCommand.ExecuteNonQueryAsync();
                                 Server.NextFrame(() => SharpTimerDebug($"Got player stats from MySQL for {playerName}"));
-                                if (connectMsgEnabled) Server.NextFrame(() => Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{player.PlayerName} {ChatColors.White}connected for the first time!"));
+                                if (connectMsgEnabled) Server.NextFrame(() => Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{playerName} {ChatColors.White}connected for the first time!"));
                             }
                         }
                     }

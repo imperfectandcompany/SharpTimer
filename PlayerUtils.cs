@@ -53,20 +53,26 @@ namespace SharpTimer
 
                 using (JsonDocument jsonDocument = JsonDocument.Parse(response))
                 {
-                    playerTimers[playerSlot].IsTester = jsonDocument.RootElement.TryGetProperty(steamId64, out JsonElement steamData);
-                    //playerTimers[playerSlot].IsTester = false;
-
-                    if (playerTimers[playerSlot].IsTester)
+                    if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? playerTimer))
                     {
-                        if (steamData.TryGetProperty("SmolGif", out JsonElement smolGifElement))
-                        {
-                            playerTimers[playerSlot].TesterSparkleGif = smolGifElement.GetString() ?? "";
-                        }
+                        playerTimer.IsTester = jsonDocument.RootElement.TryGetProperty(steamId64, out JsonElement steamData);
 
-                        if (steamData.TryGetProperty("BigGif", out JsonElement bigGifElement))
+                        if (playerTimer.IsTester)
                         {
-                            playerTimers[playerSlot].TesterPausedGif = bigGifElement.GetString() ?? "";
+                            if (steamData.TryGetProperty("SmolGif", out JsonElement smolGifElement))
+                            {
+                                playerTimer.TesterSparkleGif = smolGifElement.GetString() ?? "";
+                            }
+
+                            if (steamData.TryGetProperty("BigGif", out JsonElement bigGifElement))
+                            {
+                                playerTimer.TesterPausedGif = bigGifElement.GetString() ?? "";
+                            }
                         }
+                    }
+                    else
+                    {
+                        SharpTimerError($"Error in IsPlayerATester: player not on server anymore");
                     }
                 }
             }
@@ -87,7 +93,7 @@ namespace SharpTimer
                 playerTimers[player.Slot].MovementService = new CCSPlayer_MovementServices(player.PlayerPawn.Value.MovementServices!.Handle);
                 playerTimers[player.Slot].StageTimes = new Dictionary<int, int>();
                 playerTimers[player.Slot].StageVelos = new Dictionary<int, string>();
-                if(AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimers[player.Slot].ZoneToolWire = new Dictionary<int, CBeam>();
+                if (AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimers[player.Slot].ZoneToolWire = new Dictionary<int, CBeam>();
                 playerTimers[player.Slot].CurrentMapStage = 0;
                 playerTimers[player.Slot].CurrentMapCheckpoint = 0;
                 playerTimers[player.Slot].IsRecordingReplay = false;
@@ -219,7 +225,7 @@ namespace SharpTimer
                         continue;
                     }
 
-                    if(playerTimers[player.Slot].IsAddingStartZone || playerTimers[player.Slot].IsAddingEndZone)
+                    if (playerTimers[player.Slot].IsAddingStartZone || playerTimers[player.Slot].IsAddingEndZone)
                     {
                         OnTickZoneTool(player);
                         continue;
@@ -384,12 +390,27 @@ namespace SharpTimer
                             playerTimer.TicksInAir++;
                             if (playerTimer.TicksInAir == 1)
                             {
-                                playerTimer.PreSpeed = $"{player.PlayerPawn.Value.AbsVelocity.X.ToString()} {player.PlayerPawn.Value.AbsVelocity.Y.ToString()} {player.PlayerPawn.Value.AbsVelocity.Z.ToString()}";
+                                playerTimer.PreSpeed = $"{player.PlayerPawn.Value.AbsVelocity.X} {player.PlayerPawn.Value.AbsVelocity.Y} {player.PlayerPawn.Value.AbsVelocity.Z}";
+                                if (jumpStatsEnabled) playerTimer.JSPos1 = playerTimer.LastPositionOnGround;
                             }
                         }
                         else
                         {
                             playerTimer.TicksInAir = 0;
+                        }
+
+                        if (((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND)
+                        {
+                            playerTimer.TicksOnGround++;
+                            playerTimer.LastPositionOnGround = $"{player.PlayerPawn.Value.AbsOrigin.X} {player.PlayerPawn.Value.AbsOrigin.Y} {player.PlayerPawn.Value.AbsOrigin.Z}";
+                            if (playerTimer.TicksOnGround == 1)
+                            {
+                                JumpStats(player, playerTimer);
+                            }
+                        }
+                        else
+                        {
+                            playerTimer.TicksOnGround = 0;
                         }
 
                         if (enableReplays && !playerTimer.IsReplaying && timerTicks > 0 && playerTimer.IsRecordingReplay && !playerTimer.IsTimerBlocked) ReplayUpdate(player, timerTicks);
@@ -517,6 +538,36 @@ namespace SharpTimer
             {
                 if (ex.Message != "Invalid game event") SharpTimerError($"Error in SpectatorOnTick: {ex.Message}");
             }
+        }
+
+        public void JumpStats(CCSPlayerController player, PlayerTimerInfo playerTimer)
+        {
+            Server.NextFrame(() =>
+            {
+                if (!jumpStatsEnabled || playerTimer.JSPos1 == null) return;
+
+                playerTimer.JSPos2 = $"{player.PlayerPawn.Value.AbsOrigin.X} {player.PlayerPawn.Value.AbsOrigin.Y} {player.PlayerPawn.Value.AbsOrigin.Z}";
+
+                double? currentLJ = LjDistance(ParseVector(playerTimer.JSPos1), ParseVector(playerTimer.JSPos2)) + 16.0;
+
+                if (currentLJ > 175 && currentLJ != null)
+                {
+                    playerTimer.JSlastLJ = currentLJ;
+
+                    if (playerTimer.JSbestLJ == null || currentLJ > playerTimer.JSbestLJ)
+                        playerTimer.JSbestLJ = currentLJ;
+
+                    if (playerTimer.HideJumpStats != true)
+                        PrintJumpStats(player, playerTimer);
+                }
+            });
+        }
+
+        public void PrintJumpStats(CCSPlayerController player, PlayerTimerInfo playerTimer)
+        {
+            SharpTimerDebug($"PrintJumpStats for {player.PlayerName}");
+            if (playerTimer.JSlastLJ == null) return;
+            player.PrintToChat($"{msgPrefix}[LJ: {(playerTimer.JSlastLJ == playerTimer.JSbestLJ ? $"{ChatColors.Orange}NEW PB {playerTimer.JSbestLJ:F3}{ChatColors.White}" : $"{primaryChatColor}{playerTimer.JSlastLJ:F3}{ChatColors.Grey} (PB: {playerTimer.JSbestLJ:F3})")}{ChatColors.White}] [Pre: {primaryChatColor}{ParseVector(playerTimer.PreSpeed).Length2D():F3}{ChatColors.White}]");
         }
 
         public void PrintAllEnabledCommands(CCSPlayerController player)

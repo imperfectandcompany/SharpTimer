@@ -84,6 +84,7 @@ namespace SharpTimer
         public bool pbComEnabled = true;
         public bool alternativeSpeedometer = false;
         public bool removeLegsEnabled = true;
+        public bool jumpStatsEnabled = false;
         public bool hideAllPlayers = false;
         public bool removeCollisionEnabled = true;
         public bool disableDamage = true;

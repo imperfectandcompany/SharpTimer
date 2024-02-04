@@ -441,6 +441,20 @@ namespace SharpTimer
             return Math.Sqrt(dx * dx + dy * dy + dz * dz);
         }
 
+        public static double? LjDistance(Vector vector1, Vector vector2)
+        {
+            double dx = vector2.X - vector1.X;
+            double dy = vector2.Y - vector1.Y;
+            double dz = vector2.Z - vector1.Z;
+
+            double distance = Math.Sqrt(dx * dx + dy * dy);
+
+            if (Math.Abs(dz) <= 40)
+                return distance;
+            else
+                return null;
+        }
+
         public Dictionary<string, PlayerRecord> GetSortedRecords(int bonusX = 0)
         {
             string mapRecordsPath = Path.Combine(playerRecordsPath, bonusX == 0 ? $"{currentMapName}.json" : $"{currentMapName}_bonus{bonusX}.json");

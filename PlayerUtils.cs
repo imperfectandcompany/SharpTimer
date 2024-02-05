@@ -1155,7 +1155,7 @@ namespace SharpTimer
                 }
                 else if (savedPlayerPoints == 0)
                 {
-                    return "<img src='https://files.catbox.moe/h3zqzd.png' class=''>";
+                    return unrankedIcon;
                 }
 
                 if (getPointsOnly == true)

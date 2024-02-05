@@ -1547,7 +1547,8 @@ namespace SharpTimer
 
                     if (!records.ContainsKey(steamId) || records[steamId].TimerTicks > timerTicks)
                     {
-                        if (!useMySQL) _ = PrintMapTimeToChat(player, records[steamId].TimerTicks, timerTicks, bonusX);
+                        if (!useMySQL) _ = PrintMapTimeToChat(player, records.GetValueOrDefault(steamId)?.TimerTicks ?? 0, timerTicks, bonusX);
+
                         records[steamId] = new PlayerRecord
                         {
                             PlayerName = playerName,
@@ -1556,6 +1557,7 @@ namespace SharpTimer
 
                         string updatedJson = JsonSerializer.Serialize(records, new JsonSerializerOptions { WriteIndented = true });
                         File.WriteAllText(mapRecordsPath, updatedJson);
+
                         if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == false) DumpPlayerStageTimesToJson(player);
                         if (enableReplays == true && useMySQL == false) DumpReplayToJson(player, bonusX);
                     }

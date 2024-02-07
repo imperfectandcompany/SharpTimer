@@ -90,6 +90,11 @@ namespace SharpTimer
             {
                 int totalFrames = playerReplays[player.Slot].replayFrames.Count;
 
+                if(totalFrames <= 128)
+                {
+                    OnRecordingStop(player);
+                }
+
                 if (playerReplays[player.Slot].CurrentPlaybackFrame >= totalFrames)
                 {
                     playerReplays[player.Slot].CurrentPlaybackFrame = 0;
@@ -130,6 +135,7 @@ namespace SharpTimer
             try
             {
                 playerTimers[player.Slot].IsRecordingReplay = false;
+                player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
             }
             catch (Exception ex)
             {

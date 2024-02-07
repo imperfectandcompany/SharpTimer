@@ -7,6 +7,13 @@ namespace SharpTimer
 {
     public partial class SharpTimer
     {
+        [ConsoleCommand("css_help", "alias for !sthelp")]
+        [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
+        public void StHelpAlias(CCSPlayerController? player, CommandInfo command)
+        {
+            PrintAllEnabledCommands(player);
+        }
+        
         [ConsoleCommand("css_saveloc", "alias for !cp")]
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void SaveLocAlias(CCSPlayerController? player, CommandInfo command)

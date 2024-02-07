@@ -4,13 +4,14 @@ using CounterStrikeSharp.API.Core.Attributes;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Memory;
+using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace SharpTimer
 {
-    [MinimumApiVersion(141)]
+    [MinimumApiVersion(161)]
     public partial class SharpTimer : BasePlugin
     {
         public override void Load(bool hotReload)
@@ -408,7 +409,7 @@ namespace SharpTimer
 
                     if (player == null)
                     {
-                        
+
                         return HookResult.Continue;
                     }
 
@@ -416,14 +417,14 @@ namespace SharpTimer
                     {
                         SharpTimerDebug("Player not allowed in trigger_teleport hook.");
                         return HookResult.Continue;
-                    } 
+                    }
 
                     if (jumpStatsEnabled)
                     {
                         SharpTimerDebug("playerTimers[player.Slot].JSPos1 = null");
                         playerTimers[player.Slot].JSPos1 = null;
                         return HookResult.Continue;
-                    } 
+                    }
 
                     return HookResult.Continue;
                 }
@@ -487,19 +488,7 @@ namespace SharpTimer
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
             {
-                SharpTimerDebug($"TakeDamage hook...");
-                VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook((h =>
-                {
-                    if (disableDamage == false || h == null) return HookResult.Continue;
-
-                    var damageInfoParam = h.GetParam<CTakeDamageInfo>(1);
-
-                    if (damageInfoParam == null) return HookResult.Continue;
-
-                    if (disableDamage == true) damageInfoParam.Damage = 0;
-
-                    return HookResult.Continue;
-                }), HookMode.Pre);
+                VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(this.OnTakeDamage, HookMode.Pre);
             }
             else
             {
@@ -509,7 +498,35 @@ namespace SharpTimer
             AddCommandListener("say", OnPlayerChatAll);
             AddCommandListener("say_team", OnPlayerChatTeam);
 
-            SharpTimerDebug("Plugin Loaded");
+            SharpTimerConPrint("Plugin Loaded");
+        }
+
+        public override void Unload(bool hotReload)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamage,HookMode.Pre);
+            }
+
+            RemoveCommandListener("say", OnPlayerChatAll, HookMode.Pre);
+            RemoveCommandListener("say_team", OnPlayerChatTeam, HookMode.Pre);
+
+            SharpTimerConPrint("Plugin Unloaded");
+        }
+
+        HookResult OnTakeDamage(DynamicHook h)
+        {
+            SharpTimerDebug($"TakeDamage hook");
+
+            if (disableDamage == false || h == null) return HookResult.Continue;
+
+            var damageInfoParam = h.GetParam<CTakeDamageInfo>(1);
+
+            if (damageInfoParam == null) return HookResult.Continue;
+
+            if (disableDamage == true) damageInfoParam.Damage = 0;
+
+            return HookResult.Continue;
         }
     }
 }

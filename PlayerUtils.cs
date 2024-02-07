@@ -2,6 +2,7 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
@@ -102,11 +103,6 @@ namespace SharpTimer
 
                 if (isForBot == false) _ = IsPlayerATester(player.SteamID.ToString(), player.Slot);
 
-                if (isForBot == true || hideAllPlayers == true)
-                    player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
-                else if (removeLegsEnabled == true)
-                    player.PlayerPawn.Value.Render = Color.FromArgb(254, 254, 254, 254);
-
                 //PlayerSettings
                 if (useMySQL == true && isForBot == false) _ = GetPlayerStats(player, player.SteamID.ToString(), player.PlayerName, player.Slot, true);
 
@@ -116,6 +112,13 @@ namespace SharpTimer
                 SharpTimerDebug($"Total players connected: {connectedPlayers.Count}");
                 SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
                 SharpTimerDebug($"Total playerCheckpoints: {playerCheckpoints.Count}");
+
+                if (isForBot == true || hideAllPlayers == true)
+                {
+                    player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
+                }
+                else if (removeLegsEnabled == true)
+                    player.PlayerPawn.Value.Render = Color.FromArgb(254, 254, 254, 254);
             }
             catch (Exception ex)
             {
@@ -215,6 +218,7 @@ namespace SharpTimer
             try
             {
                 var updates = new Dictionary<int, PlayerTimerInfo>();
+
                 foreach (CCSPlayerController player in connectedPlayers.Values)
                 {
                     if (player == null || !player.IsValid) continue;
@@ -343,7 +347,18 @@ namespace SharpTimer
                         {
                             SharpTimerDebug($"{player.PlayerName} has rank and pb null... calling handler");
                             _ = RankCommandHandler(player, player.SteamID.ToString(), player.Slot, player.PlayerName, true);
+
+
                             playerTimer.IsRankPbCached = true;
+                        }
+
+                        if (hideAllPlayers)
+                        {
+                            foreach (var gun in player.PlayerPawn.Value.WeaponServices.MyWeapons)
+                            {
+                                gun.Value.Render = Color.FromArgb(0, 255, 255, 255);
+                                gun.Value.ShadowStrength = 0.0f;
+                            }
                         }
 
                         if (displayScoreboardTags == true &&
@@ -420,7 +435,7 @@ namespace SharpTimer
                         }
                         else
                         {
-                            if (!playerTimer.IsTimerBlocked && player.PlayerPawn.Value.MoveType == MoveType_t.MOVETYPE_OBSERVER) player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
+                            //if (!playerTimer.IsTimerBlocked && player.PlayerPawn.Value.MoveType == MoveType_t.MOVETYPE_OBSERVER) player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
                         }
 
                         if (playerTimer.TicksSinceLastCmd < cmdCooldown) playerTimer.TicksSinceLastCmd++;
@@ -1094,7 +1109,7 @@ namespace SharpTimer
                 }
                 else if (savedPlayerTime == 0)
                 {
-                    return "<img src='https://files.catbox.moe/h3zqzd.png' class=''>";
+                    return unrankedIcon;
                 }
 
                 Dictionary<string, PlayerRecord> sortedRecords;

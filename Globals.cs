@@ -1,9 +1,6 @@
-using System.Data.Common;
-using System.Text;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Utils;
-using MySqlConnector;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
 namespace SharpTimer
@@ -224,6 +221,6 @@ namespace SharpTimer
             {"no_knife", new WeaponSpeedStats(260.00, 130.56)} //no knife
         };
 
-        private readonly WIN_LINUX<int> OnCollisionRulesChangedOffset = new WIN_LINUX<int>(176, 175);
+        private readonly WIN_LINUX<int> OnCollisionRulesChangedOffset = new WIN_LINUX<int>(175, 174);
     }
 }

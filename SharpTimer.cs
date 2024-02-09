@@ -1,17 +1,14 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes;
-using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
-using CounterStrikeSharp.API.Modules.Utils;
-using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace SharpTimer
 {
-    [MinimumApiVersion(161)]
+    [MinimumApiVersion(163)]
     public partial class SharpTimer : BasePlugin
     {
         public override void Load(bool hotReload)
@@ -477,15 +474,6 @@ namespace SharpTimer
                 }
             });
 
-            /* RegisterEventHandler<EventPlayerHurt>((@event, info) =>
-            {
-                var player = @event.Userid;
-                player.PlayerPawn.Value.Health = 100;
-                Utilities.SetStateChanged(player,"CBaseEntity","m_iHealth");
-
-                return HookResult.Changed;
-            }); */
-
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
             {
                 VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(this.OnTakeDamage, HookMode.Pre);
@@ -516,8 +504,6 @@ namespace SharpTimer
 
         HookResult OnTakeDamage(DynamicHook h)
         {
-            SharpTimerDebug($"TakeDamage hook");
-
             if (disableDamage == false || h == null) return HookResult.Continue;
 
             var damageInfoParam = h.GetParam<CTakeDamageInfo>(1);

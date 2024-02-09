@@ -1,9 +1,7 @@
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
-using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Utils;
 
@@ -51,7 +49,8 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void TestCMD(CCSPlayerController? player, CommandInfo command)
         {
-            SpawnReplayBot();
+            //SpawnReplayBot();
+            FindTriggerPushData();
         }
 
         [ConsoleCommand("css_replaypb", "Replay your last pb")]
@@ -99,7 +98,7 @@ namespace SharpTimer
 
         [ConsoleCommand("css_replaysr", "Replay server map record")]
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
-        public async void ReplaySRCommand(CCSPlayerController? player, CommandInfo command)
+        public void ReplaySRCommand(CCSPlayerController? player, CommandInfo command)
         {
             if (!IsAllowedPlayer(player) || enableReplays == false) return;
 
@@ -134,29 +133,36 @@ namespace SharpTimer
                 (srSteamID, srPlayerName, srTime) = GetMapRecordSteamID();
             }
 
-            if (srSteamID == "null" || srPlayerName == "null" || srTime == "null")
+            if (IsAllowedPlayer(player))
             {
-                Server.NextFrame(() => player.PrintToChat(msgPrefix + $"No Server Record to replay!"));
-                return;
+                if (srSteamID == "null" || srPlayerName == "null" || srTime == "null")
+                {
+                    Server.NextFrame(() => player.PrintToChat(msgPrefix + $"No Server Record to replay!"));
+                    return;
+                }
+
+                ReadReplayFromJson(player, srSteamID);
+
+                if (!playerReplays[player.Slot].replayFrames.Any()) return;
+
+                if (useMySQL) _ = GetReplayVIPGif(srSteamID, player.Slot);
+
+                playerTimers[player.Slot].IsReplaying = playerTimers[player.Slot].IsReplaying ? false : true;
+                playerTimers[player.Slot].ReplayHUDString = $"{srPlayerName} | {srTime}";
+
+                playerTimers[player.Slot].IsTimerRunning = false;
+                playerTimers[player.Slot].TimerTicks = 0;
+                playerTimers[player.Slot].IsBonusTimerRunning = false;
+                playerTimers[player.Slot].BonusTimerTicks = 0;
+                playerReplays[player.Slot].CurrentPlaybackFrame = 0;
+                if (stageTriggers.Any()) playerTimers[player.Slot].StageTimes.Clear(); //remove previous stage times if the map has stages
+                if (stageTriggers.Any()) playerTimers[player.Slot].StageVelos.Clear(); //remove previous stage times if the map has stages
+                Server.NextFrame(() => player.PrintToChat(msgPrefix + $" Replaying the Server Map Record, type {primaryChatColor}!stopreplay {ChatColors.White}to exit the replay"));
             }
-
-            ReadReplayFromJson(player, srSteamID);
-
-            if (!playerReplays[player.Slot].replayFrames.Any()) return;
-
-            if (useMySQL) _ = GetReplayVIPGif(srSteamID, player.Slot);
-
-            playerTimers[player.Slot].IsReplaying = playerTimers[player.Slot].IsReplaying ? false : true;
-            playerTimers[player.Slot].ReplayHUDString = $"{srPlayerName} | {srTime}";
-
-            playerTimers[player.Slot].IsTimerRunning = false;
-            playerTimers[player.Slot].TimerTicks = 0;
-            playerTimers[player.Slot].IsBonusTimerRunning = false;
-            playerTimers[player.Slot].BonusTimerTicks = 0;
-            playerReplays[player.Slot].CurrentPlaybackFrame = 0;
-            if (stageTriggers.Any()) playerTimers[player.Slot].StageTimes.Clear(); //remove previous stage times if the map has stages
-            if (stageTriggers.Any()) playerTimers[player.Slot].StageVelos.Clear(); //remove previous stage times if the map has stages
-            Server.NextFrame(() => player.PrintToChat(msgPrefix + $" Replaying the Server Map Record, type {primaryChatColor}!stopreplay {ChatColors.White}to exit the replay"));
+            else
+            {
+                SharpTimerError($"Error in ReplaySRHandler: player not allowed or not on server anymore");
+            }
         }
 
         [ConsoleCommand("css_replaytop", "Replay a top 10 server map record")]
@@ -200,29 +206,35 @@ namespace SharpTimer
                     (srSteamID, srPlayerName, srTime) = GetMapRecordSteamID();
                 }
 
-                if (srSteamID == "null" || srPlayerName == "null" || srTime == "null")
-                {
-                    Server.NextFrame(() => player.PrintToChat(msgPrefix + $"No Server Record to replay!"));
-                    return;
+                if(IsAllowedPlayer(player)) {
+                    if (srSteamID == "null" || srPlayerName == "null" || srTime == "null")
+                    {
+                        Server.NextFrame(() => player.PrintToChat(msgPrefix + $"No Server Record to replay!"));
+                        return;
+                    }
+    
+                    ReadReplayFromJson(player, srSteamID);
+    
+                    if (!playerReplays[player.Slot].replayFrames.Any()) return;
+    
+                    if (useMySQL) _ = GetReplayVIPGif(srSteamID, player.Slot);
+    
+                    playerTimers[player.Slot].IsReplaying = playerTimers[player.Slot].IsReplaying ? false : true;
+                    playerTimers[player.Slot].ReplayHUDString = $"{srPlayerName} | {srTime}";
+    
+                    playerTimers[player.Slot].IsTimerRunning = false;
+                    playerTimers[player.Slot].TimerTicks = 0;
+                    playerTimers[player.Slot].IsBonusTimerRunning = false;
+                    playerTimers[player.Slot].BonusTimerTicks = 0;
+                    playerReplays[player.Slot].CurrentPlaybackFrame = 0;
+                    if (stageTriggers.Any()) playerTimers[player.Slot].StageTimes.Clear(); //remove previous stage times if the map has stages
+                    if (stageTriggers.Any()) playerTimers[player.Slot].StageVelos.Clear(); //remove previous stage times if the map has stages
+                    Server.NextFrame(() => player.PrintToChat(msgPrefix + $" Replaying the Server Top {top10}, type {primaryChatColor}!stopreplay {ChatColors.White}to exit the replay"));
                 }
-
-                ReadReplayFromJson(player, srSteamID);
-
-                if (!playerReplays[player.Slot].replayFrames.Any()) return;
-
-                if (useMySQL) _ = GetReplayVIPGif(srSteamID, player.Slot);
-
-                playerTimers[player.Slot].IsReplaying = playerTimers[player.Slot].IsReplaying ? false : true;
-                playerTimers[player.Slot].ReplayHUDString = $"{srPlayerName} | {srTime}";
-
-                playerTimers[player.Slot].IsTimerRunning = false;
-                playerTimers[player.Slot].TimerTicks = 0;
-                playerTimers[player.Slot].IsBonusTimerRunning = false;
-                playerTimers[player.Slot].BonusTimerTicks = 0;
-                playerReplays[player.Slot].CurrentPlaybackFrame = 0;
-                if (stageTriggers.Any()) playerTimers[player.Slot].StageTimes.Clear(); //remove previous stage times if the map has stages
-                if (stageTriggers.Any()) playerTimers[player.Slot].StageVelos.Clear(); //remove previous stage times if the map has stages
-                Server.NextFrame(() => player.PrintToChat(msgPrefix + $" Replaying the Server Top {top10}, type {primaryChatColor}!stopreplay {ChatColors.White}to exit the replay"));
+                else
+                {
+                    SharpTimerError($"Error in ReplaySRHandler: player not allowed or not on server anymore");
+                }
             }
             else
             {
@@ -453,9 +465,12 @@ namespace SharpTimer
                 sortedRecords = GetSortedRecords(bonusX);
             }
 
-            if (sortedRecords.Count == 0 && IsAllowedPlayer(player))
+            if (sortedRecords.Count == 0)
             {
-                Server.NextFrame(() => player.PrintToChat(msgPrefix + $" No records available for{(bonusX != 0 ? $" Bonus {bonusX} on" : "")} {currentMapName}."));
+                Server.NextFrame(() =>
+                {
+                    if (IsAllowedPlayer(player)) player.PrintToChat(msgPrefix + $" No records available for{(bonusX != 0 ? $" Bonus {bonusX} on" : "")} {currentMapName}.");
+                });
                 return;
             }
 
@@ -500,7 +515,11 @@ namespace SharpTimer
 
         public async Task RankCommandHandler(CCSPlayerController? player, string steamId, int playerSlot, string playerName, bool sendRankToHUD = false)
         {
-            if (!IsAllowedPlayer(player)) return;
+            if (!IsAllowedPlayer(player))
+            {
+                SharpTimerError($"Error in DumpReplayToJson: Player not allowed or not on server anymore");
+                return;
+            }
             SharpTimerDebug($"Handling !rank for {playerName}...");
 
             string ranking = (useMySQL && globalRanksEnabled) ? await GetPlayerServerPlacement(player, steamId, playerName) : await GetPlayerMapPlacementWithTotal(player, steamId, playerName);

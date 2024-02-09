@@ -1,8 +1,6 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
-using System.Drawing;
 using System.Text.Json;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
@@ -145,6 +143,12 @@ namespace SharpTimer
 
         private void DumpReplayToJson(CCSPlayerController player, int bonusX = 0)
         {
+            if(!IsAllowedPlayer(player))
+            {
+                SharpTimerError($"Error in DumpReplayToJson: Player not allowed or not on server anymore");
+                return;
+            } 
+            
             string fileName = $"{player.SteamID.ToString()}_replay.json";
             string playerReplaysDirectory = Path.Join(gameDir, "csgo", "cfg", "SharpTimer", "PlayerReplayData", bonusX == 0 ? $"{currentMapName}" : $"{currentMapName}_bonus{bonusX}");
             string playerReplaysPath = Path.Join(playerReplaysDirectory, fileName);

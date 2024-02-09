@@ -7,7 +7,6 @@ using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Data;
-using System.Security.Cryptography;
 
 namespace SharpTimer
 {
@@ -201,8 +200,9 @@ namespace SharpTimer
                         string username = root.GetProperty("MySqlUsername").GetString();
                         string password = root.GetProperty("MySqlPassword").GetString();
                         int port = root.GetProperty("MySqlPort").GetInt32();
+                        int timeout = root.GetProperty("MySqlTimeout").GetInt32();
 
-                        return $"Server={host};Database={database};User ID={username};Password={password};Port={port};CharSet=utf8mb4;";
+                        return $"Server={host};Database={database};User ID={username};Password={password};Port={port};CharSet=utf8mb4;Connection Timeout={timeout};";
                     }
                     else
                     {
@@ -215,7 +215,7 @@ namespace SharpTimer
                 SharpTimerError($"Error in GetConnectionString: {ex.Message}");
             }
 
-            return "Server=localhost;Database=database;User ID=root;Password=root;Port=3306;CharSet=utf8mb4;";
+            return "Server=localhost;Database=database;User ID=root;Password=root;Port=3306;CharSet=utf8mb4;Connection Timeout=30;";
         }
 
         public async Task SavePlayerTimeToDatabase(CCSPlayerController? player, int timerTicks, string steamId, string playerName, int playerSlot, int bonusX = 0)
@@ -305,8 +305,8 @@ namespace SharpTimer
                                 if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == true && timerTicks < dBtimerTicks) Server.NextFrame(() => DumpPlayerStageTimesToJson(player));
                                 await upsertCommand.ExecuteNonQueryAsync();
                                 Server.NextFrame(() => SharpTimerDebug($"Saved player {(bonusX != 0 ? $"bonus {bonusX} time" : "time")} to MySQL for {playerName} {timerTicks} {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"));
-                                if (useMySQL == true) await RankCommandHandler(player, steamId, playerSlot, playerName, true);
-                                Server.NextFrame(() => _ = PrintMapTimeToChat(player, dBtimerTicks, timerTicks, bonusX, dBtimesFinished));
+                                if (useMySQL == true && IsAllowedPlayer(player)) await RankCommandHandler(player, steamId, playerSlot, playerName, true);
+                                if (IsAllowedPlayer(player)) Server.NextFrame(() => _ = PrintMapTimeToChat(player, playerName, dBtimerTicks, timerTicks, bonusX, dBtimesFinished));
                             }
                         }
                         else
@@ -329,8 +329,8 @@ namespace SharpTimer
                                 if (useMySQL == true && globalRanksEnabled == true) await SavePlayerPoints(steamId, playerName, playerSlot, timerTicks, beatPB);
                                 if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == true) Server.NextFrame(() => DumpPlayerStageTimesToJson(player));
                                 Server.NextFrame(() => SharpTimerDebug($"Saved player {(bonusX != 0 ? $"bonus {bonusX} time" : "time")} to MySQL for {playerName} {timerTicks} {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"));
-                                if (useMySQL == true) await RankCommandHandler(player, steamId, playerSlot, playerName, true);
-                                Server.NextFrame(() => _ = PrintMapTimeToChat(player, dBtimerTicks, timerTicks, bonusX, 1));
+                                if (useMySQL == true && IsAllowedPlayer(player)) await RankCommandHandler(player, steamId, playerSlot, playerName, true);
+                                if (IsAllowedPlayer(player)) Server.NextFrame(() => _ = PrintMapTimeToChat(player, playerName, dBtimerTicks, timerTicks, bonusX, 1));
                             }
                         }
                     }
@@ -709,7 +709,10 @@ namespace SharpTimer
                         {
                             using (MySqlDataReader reader = await command.ExecuteReaderAsync())
                             {
-                                Server.NextFrame(() => player.PrintToChat(msgPrefix + $"Top 10 Players with the most points:"));
+                                Server.NextFrame(() =>
+                                {
+                                    if (IsAllowedPlayer(player)) player.PrintToChat(msgPrefix + $"Top 10 Players with the most points:");
+                                });
 
                                 int rank = 0;
 
@@ -717,9 +720,15 @@ namespace SharpTimer
                                 {
                                     string playerName = reader["PlayerName"].ToString();
                                     int points = Convert.ToInt32(reader["GlobalPoints"]);
-                                    int currentRank = ++rank;
 
-                                    Server.NextFrame(() => player.PrintToChat(msgPrefix + $"#{currentRank}: {primaryChatColor}{playerName}{ChatColors.Default}: {primaryChatColor}{points}{ChatColors.Default} points"));
+                                    if (points >= 500)
+                                    {
+                                        int currentRank = ++rank;
+                                        Server.NextFrame(() =>
+                                        {
+                                            if (IsAllowedPlayer(player)) player.PrintToChat(msgPrefix + $"#{currentRank}: {primaryChatColor}{playerName}{ChatColors.Default}: {primaryChatColor}{points}{ChatColors.Default} points");
+                                        });
+                                    }
                                 }
                             }
                         }
@@ -986,11 +995,15 @@ namespace SharpTimer
                                 string steamId = reader.GetString(0);
                                 string playerName = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1);
                                 int globalPoints = reader.GetInt32(2);
-                                sortedPoints.Add(steamId, new PlayerPoints
+
+                                if (globalPoints >= 500) // Only add if GlobalPoints is above or equal to 500
                                 {
-                                    PlayerName = playerName,
-                                    GlobalPoints = globalPoints
-                                });
+                                    sortedPoints.Add(steamId, new PlayerPoints
+                                    {
+                                        PlayerName = playerName,
+                                        GlobalPoints = globalPoints
+                                    });
+                                }
                             }
 
                             sortedPoints = sortedPoints.OrderByDescending(record => record.Value.GlobalPoints)

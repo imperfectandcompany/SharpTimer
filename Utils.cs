@@ -4,7 +4,6 @@ using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Drawing;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
@@ -993,7 +992,7 @@ namespace SharpTimer
                 DrawWireframe3D(endRight, endLeft, endBeamColor);
             }
 
-            if (triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false) FindTriggerPushData();
+            //if (triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false) FindTriggerPushData();
 
             KillServerCommandEnts();
         }

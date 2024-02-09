@@ -2,7 +2,6 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
-using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
@@ -632,7 +631,7 @@ namespace SharpTimer
                 OnTimerStop(player);
                 if (enableReplays) OnRecordingStop(player);
             }
-            else if (isInsideStartBox)
+            else if (isInsideStartBox && !isInsideEndBox)
             {
                 OnTimerStart(player);
                 if (enableReplays) OnRecordingStart(player);
@@ -1508,7 +1507,6 @@ namespace SharpTimer
             if (useTriggers) SharpTimerDebug($"Stopping Timer for {player.PlayerName}");
 
             int currentTicks = playerTimers[player.Slot].TimerTicks;
-            int previousRecordTicks = GetPreviousPlayerRecord(player);
 
             SavePlayerTime(player, currentTicks);
             if (useMySQL == true) _ = SavePlayerTimeToDatabase(player, currentTicks, player.SteamID.ToString(), player.PlayerName, player.Slot);
@@ -1525,7 +1523,6 @@ namespace SharpTimer
             if (useTriggers) SharpTimerDebug($"Stopping Bonus Timer for {player.PlayerName}");
 
             int currentTicks = playerTimers[player.Slot].BonusTimerTicks;
-            int previousRecordTicks = GetPreviousPlayerRecord(player, bonusX);
 
             SavePlayerTime(player, currentTicks, bonusX);
             if (useMySQL == true) _ = SavePlayerTimeToDatabase(player, currentTicks, player.SteamID.ToString(), player.PlayerName, player.Slot, bonusX);
@@ -1562,7 +1559,7 @@ namespace SharpTimer
 
                     if (!records.ContainsKey(steamId) || records[steamId].TimerTicks > timerTicks)
                     {
-                        if (!useMySQL) _ = PrintMapTimeToChat(player, records.GetValueOrDefault(steamId)?.TimerTicks ?? 0, timerTicks, bonusX);
+                        if (!useMySQL) _ = PrintMapTimeToChat(player, player.PlayerName, records.GetValueOrDefault(steamId)?.TimerTicks ?? 0, timerTicks, bonusX);
 
                         records[steamId] = new PlayerRecord
                         {
@@ -1578,7 +1575,7 @@ namespace SharpTimer
                     }
                     else
                     {
-                        if (!useMySQL) _ = PrintMapTimeToChat(player, records[steamId].TimerTicks, timerTicks, bonusX);
+                        if (!useMySQL) _ = PrintMapTimeToChat(player, player.PlayerName, records[steamId].TimerTicks, timerTicks, bonusX);
                     }
                 }
             }
@@ -1588,31 +1585,37 @@ namespace SharpTimer
             }
         }
 
-        public async Task PrintMapTimeToChat(CCSPlayerController player, int oldticks, int newticks, int bonusX = 0, int timesFinished = 0)
+        public async Task PrintMapTimeToChat(CCSPlayerController player, string playerName, int oldticks, int newticks, int bonusX = 0, int timesFinished = 0)
         {
-            string ranking = await GetPlayerMapPlacementWithTotal(player, player.SteamID.ToString(), player.PlayerName, false, true);
+            if(!IsAllowedPlayer(player))
+            {
+                SharpTimerError($"Error in PrintMapTimeToChat: Player {playerName} not allowed or not on server anymore");
+                return;
+            } 
+
+            string ranking = await GetPlayerMapPlacementWithTotal(player, player.SteamID.ToString(), playerName, false, true);
 
             string timeDifference = "";
             if (oldticks != 0) timeDifference = $"[{FormatTimeDifference(newticks, oldticks)}{ChatColors.White}] ";
 
             Server.NextFrame(() =>
             {
-                if (timesFinished > maxGlobalFreePoints && globalRanksFreePointsEnabled == true && oldticks < newticks)
+                if (IsAllowedPlayer(player) && timesFinished > maxGlobalFreePoints && globalRanksFreePointsEnabled == true && oldticks < newticks)
                     player.PrintToChat(msgPrefix + $"{ChatColors.White} You reached your maximum free points rewards of {primaryChatColor}{maxGlobalFreePoints}{ChatColors.White}!");
 
                 if (GetNumberBeforeSlash(ranking) == 1 && oldticks > newticks)
-                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{player.PlayerName}{ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} SR!" : "SR!")}");
+                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{playerName}{ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} SR!" : "SR!")}");
                 else if (oldticks > newticks)
-                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{player.PlayerName}{ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} PB!" : "Map PB!")}");
+                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{playerName}{ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} PB!" : "Map PB!")}");
                 else
-                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{player.PlayerName}{ChatColors.White}finished the {(bonusX != 0 ? $"Bonus {bonusX}!" : "Map!")}");
+                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{playerName}{ChatColors.White}finished the {(bonusX != 0 ? $"Bonus {bonusX}!" : "Map!")}");
 
                 if (useMySQL != false || bonusX != 0)
                     Server.PrintToChatAll(msgPrefix + $"{(bonusX != 0 ? $"" : $"Rank: [{primaryChatColor}{ranking}{ChatColors.White}] ")}{(timesFinished != 0 && useMySQL == true ? $"Times Finished: [{primaryChatColor}{timesFinished}{ChatColors.White}]" : "")}");
 
                 Server.PrintToChatAll(msgPrefix + $"Time: [{primaryChatColor}{FormatTime(newticks)}{ChatColors.White}] {timeDifference}");
 
-                if (playerTimers[player.Slot].SoundsEnabled != false) player.ExecuteClientCommand($"play {beepSound}");
+                if (IsAllowedPlayer(player) && playerTimers[player.Slot].SoundsEnabled != false) player.ExecuteClientCommand($"play {beepSound}");
 
                 if (enableReplays == true && enableSRreplayBot == true && GetNumberBeforeSlash(ranking) == 1 && (oldticks > newticks || oldticks == 0))
                 {

@@ -397,6 +397,14 @@ namespace SharpTimer
                    playerVector.Z >= minZ && playerVector.Z <= maxZ;
         }
 
+        static Vector CalculateMiddleVector(Vector corner1, Vector corner2)
+        {
+            float middleX = (corner1.X + corner2.X) / 2;
+            float middleY = (corner1.Y + corner2.Y) / 2;
+            float middleZ = (corner1.Z + corner2.Z) / 2;
+            return new Vector(middleX, middleY, middleZ);
+        }
+
         private static Vector ParseVector(string vectorString)
         {
             const char separator = ' ';
@@ -754,6 +762,7 @@ namespace SharpTimer
                             currentMapStartC2 = ParseVector(mapInfo.MapStartC2);
                             currentMapEndC1 = ParseVector(mapInfo.MapEndC1);
                             currentMapEndC2 = ParseVector(mapInfo.MapEndC2);
+                            currentEndPos = CalculateMiddleVector(currentMapEndC1, currentMapEndC2);
                             useTriggers = false;
                             SharpTimerConPrint($"Found Fake Trigger Corners: START {currentMapStartC1}, {currentMapStartC2} | END {currentMapEndC1}, {currentMapEndC2}");
                         }
@@ -942,6 +951,7 @@ namespace SharpTimer
                         SharpTimerConPrint($"Map data json not found for map: {currentMapName}!");
                         SharpTimerConPrint($"Trying to hook Triggers supported by default!");
                         (currentRespawnPos, currentRespawnAng) = FindStartTriggerPos();
+                        currentEndPos = FindEndTriggerPos();
                         FindBonusStartTriggerPos();
                         FindStageTriggers();
                         FindCheckpointTriggers();
@@ -1014,6 +1024,8 @@ namespace SharpTimer
 
             currentRespawnPos = null;
             currentRespawnAng = null;
+
+            currentEndPos = null;
 
             currentMapStartTriggerMaxs = null;
             currentMapStartTriggerMins = null;

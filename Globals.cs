@@ -41,6 +41,7 @@ namespace SharpTimer
         public Vector currentMapEndC2 = new Vector(0, 0, 0);
         public Vector? currentRespawnPos = null;
         public QAngle? currentRespawnAng = null;
+        public Vector? currentEndPos = null;
         public bool currentMapOverrideDisableTelehop = false;
         public string[]? currentMapOverrideMaxSpeedLimit = null;
         public bool currentMapOverrideStageRequirement = false;

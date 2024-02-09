@@ -206,22 +206,23 @@ namespace SharpTimer
                     (srSteamID, srPlayerName, srTime) = GetMapRecordSteamID();
                 }
 
-                if(IsAllowedPlayer(player)) {
+                if (IsAllowedPlayer(player))
+                {
                     if (srSteamID == "null" || srPlayerName == "null" || srTime == "null")
                     {
                         Server.NextFrame(() => player.PrintToChat(msgPrefix + $"No Server Record to replay!"));
                         return;
                     }
-    
+
                     ReadReplayFromJson(player, srSteamID);
-    
+
                     if (!playerReplays[player.Slot].replayFrames.Any()) return;
-    
+
                     if (useMySQL) _ = GetReplayVIPGif(srSteamID, player.Slot);
-    
+
                     playerTimers[player.Slot].IsReplaying = playerTimers[player.Slot].IsReplaying ? false : true;
                     playerTimers[player.Slot].ReplayHUDString = $"{srPlayerName} | {srTime}";
-    
+
                     playerTimers[player.Slot].IsTimerRunning = false;
                     playerTimers[player.Slot].TimerTicks = 0;
                     playerTimers[player.Slot].IsBonusTimerRunning = false;
@@ -866,7 +867,35 @@ namespace SharpTimer
             RespawnPlayer(player);
         }
 
-        public void RespawnPlayer(CCSPlayerController? player)
+        [ConsoleCommand("css_end", "Teleports you to end")]
+        [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
+        public void EndPlayerCommand(CCSPlayerController? player, CommandInfo command)
+        {
+            if (!IsAllowedPlayer(player) || respawnEnabled == false) return;
+            SharpTimerDebug($"{player.PlayerName} calling css_end...");
+
+            if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
+            {
+                player.PrintToChat(msgPrefix + $" Command is on cooldown. Chill...");
+                return;
+            }
+
+            if (playerTimers[player.Slot].IsReplaying)
+            {
+                player.PrintToChat(msgPrefix + $" Please end your current replay first {primaryChatColor}!stopreplay");
+                return;
+            }
+
+            playerTimers[player.Slot].TicksSinceLastCmd = 0;
+            playerTimers[player.Slot].IsTimerRunning = false;
+            playerTimers[player.Slot].TimerTicks = 0;
+            playerTimers[player.Slot].IsBonusTimerRunning = false;
+            playerTimers[player.Slot].BonusTimerTicks = 0;
+
+            RespawnPlayer(player, true);
+        }
+
+        public void RespawnPlayer(CCSPlayerController? player, bool toEnd = false)
         {
             try
             {
@@ -888,27 +917,41 @@ namespace SharpTimer
                     playerTimers[player.Slot].StageTimes.Clear();
                 }
 
-                if (currentRespawnPos != null && playerTimers[player.Slot].SetRespawnPos == null)
+                if (toEnd == false)
                 {
-                    if (currentRespawnAng != null)
+                    if (currentRespawnPos != null && playerTimers[player.Slot].SetRespawnPos == null)
                     {
-                        player.PlayerPawn.Value.Teleport(currentRespawnPos, currentRespawnAng, new Vector(0, 0, 0));
+                        if (currentRespawnAng != null)
+                        {
+                            player.PlayerPawn.Value.Teleport(currentRespawnPos, currentRespawnAng, new Vector(0, 0, 0));
+                        }
+                        else
+                        {
+                            player.PlayerPawn.Value.Teleport(currentRespawnPos, player.PlayerPawn.Value.EyeAngles ?? new QAngle(0, 0, 0), new Vector(0, 0, 0));
+                        }
+                        SharpTimerDebug($"{player.PlayerName} css_r to {currentRespawnPos}");
                     }
                     else
                     {
-                        player.PlayerPawn.Value.Teleport(currentRespawnPos, player.PlayerPawn.Value.EyeAngles ?? new QAngle(0, 0, 0), new Vector(0, 0, 0));
+                        if (playerTimers[player.Slot].SetRespawnPos != null && playerTimers[player.Slot].SetRespawnAng != null)
+                        {
+                            player.PlayerPawn.Value.Teleport(ParseVector(playerTimers[player.Slot].SetRespawnPos), ParseQAngle(playerTimers[player.Slot].SetRespawnAng), new Vector(0, 0, 0));
+                        }
+                        else
+                        {
+                            player.PrintToChat(msgPrefix + $" {ChatColors.LightRed} No RespawnPos found for current map!");
+                        }
                     }
-                    SharpTimerDebug($"{player.PlayerName} css_r to {currentRespawnPos}");
                 }
                 else
                 {
-                    if (playerTimers[player.Slot].SetRespawnPos != null && playerTimers[player.Slot].SetRespawnAng != null)
+                    if (currentEndPos != null)
                     {
-                        player.PlayerPawn.Value.Teleport(ParseVector(playerTimers[player.Slot].SetRespawnPos), ParseQAngle(playerTimers[player.Slot].SetRespawnAng), new Vector(0, 0, 0));
+                        player.PlayerPawn.Value.Teleport(currentEndPos, player.PlayerPawn.Value.EyeAngles ?? new QAngle(0, 0, 0), new Vector(0, 0, 0));
                     }
                     else
                     {
-                        player.PrintToChat(msgPrefix + $" {ChatColors.LightRed} No RespawnPos found for current map!");
+                        player.PrintToChat(msgPrefix + $" {ChatColors.LightRed} No EndPos found for current map!");
                     }
                 }
 

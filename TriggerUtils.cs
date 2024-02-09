@@ -237,6 +237,22 @@ namespace SharpTimer
             return (null, null);
         }
 
+        private Vector? FindEndTriggerPos()
+        {
+            currentEndPos = null;
+
+            foreach (var trigger in entityCache.Triggers)
+            {
+                if (trigger == null || trigger.Entity.Name == null || !IsValidEndTriggerName(trigger.Entity.Name.ToString()))
+                    continue;
+
+                if (trigger.CBodyComponent.SceneNode.AbsOrigin != null) return trigger.CBodyComponent.SceneNode.AbsOrigin;
+
+            }
+
+            return null;
+        }
+
         private void FindStageTriggers()
         {
             stageTriggers.Clear();

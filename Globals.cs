@@ -57,7 +57,6 @@ namespace SharpTimer
         private bool useCheckpointTriggers = false;
         public string? currentMapType = null;
         public int? currentMapTier = null;
-        public float? globalPointsMultiplier = 1.0f;
 
         public bool enableDebug = true;
         public bool killServerCommands = true;
@@ -68,6 +67,8 @@ namespace SharpTimer
         public bool globalRanksEnabled = false;
         public bool globalRanksFreePointsEnabled = true;
         public int maxGlobalFreePoints = 20;
+        public float? globalPointsMultiplier = 1.0f;
+        public int minGlobalPointsForRank = 1000;
         public bool displayChatTags = true;
         public bool displayScoreboardTags = true;
         public string customVIPTag = "VIP";

@@ -84,14 +84,31 @@ namespace SharpTimer
         {
             string args = command.ArgString;
 
-            if (float.TryParse(args, out float maxFreePoints) && maxFreePoints > 0)
+            if (int.TryParse(args, out int maxFreePoints) && maxFreePoints > 0)
             {
-                maxGlobalFreePoints = (int)(maxFreePoints * 64);
+                maxGlobalFreePoints = maxFreePoints * 64;
                 SharpTimerConPrint($"SharpTimer free 'participation' rewards set to {maxFreePoints} times.");
             }
             else
             {
-                SharpTimerConPrint("Invalid free 'participation' rewards value. Please provide a positive integer.");
+                SharpTimerConPrint("Invalid free 'participation' rewards value. Please provide a positive float.");
+            }
+        }
+
+        [ConsoleCommand("sharptimer_global_rank_min_points_threshold", "Players with Points below this amount will be treated as Unranked. Default value: 1000")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerGlobalRanksMinPointsConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            if (int.TryParse(args, out int minPoints) && minPoints > 0)
+            {
+                minGlobalPointsForRank = minPoints * 64;
+                SharpTimerConPrint($"SharpTimer min points for rank set to {minPoints} points.");
+            }
+            else
+            {
+                SharpTimerConPrint("Invalid min points for rank value. Please provide a positive integer.");
             }
         }
 

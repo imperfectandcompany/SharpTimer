@@ -721,7 +721,7 @@ namespace SharpTimer
                                     string playerName = reader["PlayerName"].ToString();
                                     int points = Convert.ToInt32(reader["GlobalPoints"]);
 
-                                    if (points >= 500)
+                                    if (points >= minGlobalPointsForRank)
                                     {
                                         int currentRank = ++rank;
                                         Server.NextFrame(() =>
@@ -996,7 +996,7 @@ namespace SharpTimer
                                 string playerName = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1);
                                 int globalPoints = reader.GetInt32(2);
 
-                                if (globalPoints >= 500) // Only add if GlobalPoints is above or equal to 500
+                                if (globalPoints >= minGlobalPointsForRank) // Only add if GlobalPoints is above or equal to 500
                                 {
                                     sortedPoints.Add(steamId, new PlayerPoints
                                     {

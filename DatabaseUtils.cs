@@ -996,7 +996,7 @@ namespace SharpTimer
                                 string playerName = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1);
                                 int globalPoints = reader.GetInt32(2);
 
-                                if (globalPoints >= minGlobalPointsForRank) // Only add if GlobalPoints is above or equal to 500
+                                if (globalPoints >= minGlobalPointsForRank) // Only add if GlobalPoints is above or equal to minGlobalPointsForRank
                                 {
                                     sortedPoints.Add(steamId, new PlayerPoints
                                     {

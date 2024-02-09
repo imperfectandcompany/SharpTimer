@@ -1163,18 +1163,18 @@ namespace SharpTimer
                     savedPlayerPoints = 0;
                 }
 
-                if (savedPlayerPoints == 0 && getRankImg == false)
-                {
-                    return "Unranked";
-                }
-                else if (savedPlayerPoints == 0)
-                {
-                    return unrankedIcon;
-                }
-
                 if (getPointsOnly == true)
                 {
                     return savedPlayerPoints.ToString();
+                }
+
+                if ((savedPlayerPoints == 0 || savedPlayerPoints <= minGlobalPointsForRank) && getRankImg == false)
+                {
+                    return "Unranked";
+                }
+                else if (savedPlayerPoints == 0 || savedPlayerPoints <= minGlobalPointsForRank)
+                {
+                    return unrankedIcon;
                 }
 
                 Dictionary<string, PlayerPoints> sortedPoints;

@@ -103,7 +103,7 @@ namespace SharpTimer
 
             if (int.TryParse(args, out int minPoints) && minPoints > 0)
             {
-                minGlobalPointsForRank = minPoints * 64;
+                minGlobalPointsForRank = minPoints;
                 SharpTimerConPrint($"SharpTimer min points for rank set to {minPoints} points.");
             }
             else

@@ -628,7 +628,7 @@ namespace SharpTimer
                             string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))
                             {
-                                if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value))
+                                if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value) || playerSlot == -1)
                                 {
                                     upsertCommand.Parameters.AddWithValue("@PlayerName", playerName);
                                     upsertCommand.Parameters.AddWithValue("@SteamID", steamId);
@@ -663,7 +663,7 @@ namespace SharpTimer
                             string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))
                             {
-                                if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value))
+                                if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value) || playerSlot == -1)
                                 {
                                     upsertCommand.Parameters.AddWithValue("@PlayerName", playerName);
                                     upsertCommand.Parameters.AddWithValue("@SteamID", steamId);

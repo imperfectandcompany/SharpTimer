@@ -54,26 +54,41 @@ namespace SharpTimer
 
                 //player.LerpTime = 0.0078125f;
 
-                var replayFrame = playerReplays[player.Slot].replayFrames[plackbackTick];
-
-                if (((PlayerFlags)replayFrame.Flags & PlayerFlags.FL_ONGROUND) != 0)
-                    player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
-                else
-                    player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_OBSERVER;
-
-
-                player.PlayerPawn.Value.Teleport(ParseVector(replayFrame.PositionString), ParseQAngle(replayFrame.RotationString), ParseVector(replayFrame.SpeedString));
-
-                var replayButtons = $"{((replayFrame.Buttons & PlayerButtons.Moveleft) != 0 ? "A" : "_")} " +
-                                    $"{((replayFrame.Buttons & PlayerButtons.Forward) != 0 ? "W" : "_")} " +
-                                    $"{((replayFrame.Buttons & PlayerButtons.Moveright) != 0 ? "D" : "_")} " +
-                                    $"{((replayFrame.Buttons & PlayerButtons.Back) != 0 ? "S" : "_")} " +
-                                    $"{((replayFrame.Buttons & PlayerButtons.Jump) != 0 ? "J" : "_")} " +
-                                    $"{((replayFrame.Buttons & PlayerButtons.Duck) != 0 ? "C" : "_")}";
-
-                if (playerTimers[player.Slot].HideKeys != true && playerTimers[player.Slot].IsReplaying == true && keysOverlayEnabled == true)
+                if (playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? value))
                 {
-                    player.PrintToCenter(replayButtons);
+                    var replayFrame = playerReplays[player.Slot].replayFrames[plackbackTick];
+
+                    if (((PlayerFlags)replayFrame.Flags & PlayerFlags.FL_ONGROUND) != 0)
+                    {
+                        player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
+                    }
+                    else
+                    {
+                        player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_OBSERVER;
+                    }
+
+                    if (((PlayerFlags)replayFrame.Flags & PlayerFlags.FL_DUCKING) != 0)
+                    {
+                        value.MovementService.DuckAmount = 1;
+                    }
+                    else
+                    {
+                        value.MovementService.DuckAmount = 0;
+                    }
+
+                    player.PlayerPawn.Value.Teleport(ParseVector(replayFrame.PositionString), ParseQAngle(replayFrame.RotationString), ParseVector(replayFrame.SpeedString));
+
+                    var replayButtons = $"{((replayFrame.Buttons & PlayerButtons.Moveleft) != 0 ? "A" : "_")} " +
+                                        $"{((replayFrame.Buttons & PlayerButtons.Forward) != 0 ? "W" : "_")} " +
+                                        $"{((replayFrame.Buttons & PlayerButtons.Moveright) != 0 ? "D" : "_")} " +
+                                        $"{((replayFrame.Buttons & PlayerButtons.Back) != 0 ? "S" : "_")} " +
+                                        $"{((replayFrame.Buttons & PlayerButtons.Jump) != 0 ? "J" : "_")} " +
+                                        $"{((replayFrame.Buttons & PlayerButtons.Duck) != 0 ? "C" : "_")}";
+
+                    if (value.HideKeys != true && value.IsReplaying == true && keysOverlayEnabled == true)
+                    {
+                        player.PrintToCenter(replayButtons);
+                    }
                 }
             }
             catch (Exception ex)
@@ -88,7 +103,7 @@ namespace SharpTimer
             {
                 int totalFrames = playerReplays[player.Slot].replayFrames.Count;
 
-                if(totalFrames <= 128)
+                if (totalFrames <= 128)
                 {
                     OnRecordingStop(player);
                 }
@@ -143,12 +158,12 @@ namespace SharpTimer
 
         private void DumpReplayToJson(CCSPlayerController player, int bonusX = 0)
         {
-            if(!IsAllowedPlayer(player))
+            if (!IsAllowedPlayer(player))
             {
                 SharpTimerError($"Error in DumpReplayToJson: Player not allowed or not on server anymore");
                 return;
-            } 
-            
+            }
+
             string fileName = $"{player.SteamID.ToString()}_replay.json";
             string playerReplaysDirectory = Path.Join(gameDir, "csgo", "cfg", "SharpTimer", "PlayerReplayData", bonusX == 0 ? $"{currentMapName}" : $"{currentMapName}_bonus{bonusX}");
             string playerReplaysPath = Path.Join(playerReplaysDirectory, fileName);
@@ -268,6 +283,9 @@ namespace SharpTimer
                                 {
                                     SharpTimerDebug($"Found replay bot!");
                                     OnReplayBotConnect(tempPlayer);
+                                    tempPlayer.PlayerPawn.Value.Bot.IsSleeping = true;
+                                    tempPlayer.PlayerPawn.Value.Bot.AllowActive = false;
+                                    tempPlayer.RemoveWeapons();
                                     foundBot = true;
                                     startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile = true;
                                 }
@@ -291,7 +309,6 @@ namespace SharpTimer
                     OnPlayerConnect(bot, true);
                     connectedReplayBots[bot.Slot] = new CCSPlayerController(bot.Handle);
                     ChangePlayerName(bot, "SERVER RECORD REPLAY");
-                    bot.RemoveWeapons();
                     playerTimers[bot.Slot].IsTimerBlocked = true;
                     _ = ReplaySRHandler(bot);
                     SharpTimerDebug($"Starting replay for {bot.PlayerName}");

@@ -340,6 +340,11 @@ namespace SharpTimer
                             CheckPlayerCoords(player);
                         }
 
+                        if (triggerPushFixEnabled)
+                        {
+                            CheckPlayerTriggerPushCoords(player);
+                        }
+
                         if (forcePlayerSpeedEnabled == true) ForcePlayerSpeed(player, player.Pawn.Value.WeaponServices.ActiveWeapon.Value.DesignerName);
 
                         if (playerTimer.IsRankPbCached == false)
@@ -642,6 +647,39 @@ namespace SharpTimer
                     Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
                     adjustVelocity(player, maxStartingSpeed, true);
                 }
+            }
+        }
+
+        private void CheckPlayerTriggerPushCoords(CCSPlayerController player)
+        {
+            try
+            {
+                if (player == null || !IsAllowedPlayer(player)) return;
+
+                Vector? playerPos = player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin;
+
+                if (playerPos == null) return;
+
+                var data = GetTriggerPushDataForVector(playerPos);
+                if (data != null)
+                {
+                    var (pushDirEntitySpace, pushSpeed) = data.Value;
+                    float currentSpeed = player.PlayerPawn.Value.AbsVelocity.Length();
+                    float speedDifference = pushSpeed - currentSpeed;
+
+                    if (speedDifference > 0)
+                    {
+                        float velocityChange = speedDifference;
+                        player.PlayerPawn.Value.AbsVelocity.X += pushDirEntitySpace.X * velocityChange;
+                        player.PlayerPawn.Value.AbsVelocity.Y += pushDirEntitySpace.Y * velocityChange;
+                        player.PlayerPawn.Value.AbsVelocity.Z += pushDirEntitySpace.Z * velocityChange;
+                        SharpTimerDebug($"trigger_push fix: Player velocity adjusted for {player.PlayerName} by {speedDifference / 6.40f}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in CheckPlayerTriggerPushCoords: {ex.Message}");
             }
         }
 
@@ -1587,11 +1625,11 @@ namespace SharpTimer
 
         public async Task PrintMapTimeToChat(CCSPlayerController player, string playerName, int oldticks, int newticks, int bonusX = 0, int timesFinished = 0)
         {
-            if(!IsAllowedPlayer(player))
+            if (!IsAllowedPlayer(player))
             {
                 SharpTimerError($"Error in PrintMapTimeToChat: Player {playerName} not allowed or not on server anymore");
                 return;
-            } 
+            }
 
             string ranking = await GetPlayerMapPlacementWithTotal(player, player.SteamID.ToString(), playerName, false, true);
 

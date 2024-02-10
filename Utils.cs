@@ -1002,7 +1002,7 @@ namespace SharpTimer
                 DrawWireframe3D(endRight, endLeft, endBeamColor);
             }
 
-            //if (triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false) FindTriggerPushData();
+            if (triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false) FindTriggerPushData();
 
             KillServerCommandEnts();
         }

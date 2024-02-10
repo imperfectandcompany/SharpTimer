@@ -113,7 +113,6 @@ namespace SharpTimer
         public int CurrentMapStage { get; set; }
         public int CurrentMapCheckpoint { get; set; }
         public CCSPlayer_MovementServices? MovementService { get; set; }
-        public bool LockPlayerInPlace { get; set; }
 
         //player settings/stats
         public bool Azerty { get; set; }
@@ -217,11 +216,15 @@ namespace SharpTimer
         public float PushSpeed { get; set; }
         public QAngle PushEntitySpace { get; set; }
         public Vector PushDirEntitySpace { get; set; }
-        public TriggerPushData(float pushSpeed, QAngle pushEntitySpace, Vector pushDirEntitySpace)
+        public Vector PushMins { get; set; }
+        public Vector PushMaxs { get; set; }
+        public TriggerPushData(float pushSpeed, QAngle pushEntitySpace, Vector pushDirEntitySpace, Vector pushMins, Vector pushMaxs)
         {
             PushSpeed = pushSpeed;
             PushEntitySpace = pushEntitySpace;
             PushDirEntitySpace = pushDirEntitySpace;
+            PushMins = pushMins;
+            PushMaxs = pushMaxs;
         }
     }
 

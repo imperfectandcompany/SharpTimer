@@ -1,3 +1,4 @@
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Text.RegularExpressions;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
@@ -381,16 +382,31 @@ namespace SharpTimer
                     }
 
                     nint handle = trigger_push.Handle;
+                    var pushSpeed = trigger_push.Speed;
+                    var pushEntitySpace = trigger_push.PushEntitySpace;
+                    var pushDirEntitySpace = trigger_push.PushDirEntitySpace;
+                    var collisionMins = trigger_push.Collision.Mins + trigger_push.CBodyComponent.SceneNode.AbsOrigin;
+                    var collisionMaxs = trigger_push.Collision.Maxs + trigger_push.CBodyComponent.SceneNode.AbsOrigin;
 
                     triggerPushData[handle] = new TriggerPushData(
-                        trigger_push.PushSpeed,
-                        trigger_push.PushEntitySpace,
-                        trigger_push.PushDirEntitySpace
+                        pushSpeed,
+                        pushEntitySpace,
+                        pushDirEntitySpace,
+                        collisionMins,
+                        collisionMaxs
                     );
 
-                    trigger_push.PushSpeed = 0.0f;
+                    SharpTimerDebug($"TriggerPushData for handle {handle}:");
+                    SharpTimerDebug($"PushSpeed: {pushSpeed}");
+                    SharpTimerDebug($"PushEntitySpace: {pushEntitySpace}");
+                    SharpTimerDebug($"PushDirEntitySpace: {pushDirEntitySpace}");
+                    SharpTimerDebug($"CollisionMins: ({collisionMins.X}, {collisionMins.Y}, {collisionMins.Z})");
+                    SharpTimerDebug($"CollisionMaxs: ({collisionMaxs.X}, {collisionMaxs.Y}, {collisionMaxs.Z})");
 
-                    SharpTimerDebug($"Trigger_push {trigger_push.Entity.Name} Speed set to {trigger_push.PushSpeed}");
+                    //trigger_push.Remove();
+                    trigger_push.Speed = 0.0f;
+
+                    SharpTimerDebug($"Killed trigger_push {handle}");
                 }
             }
         }
@@ -428,11 +444,28 @@ namespace SharpTimer
             return (startMins, startMaxs, endMins, endMaxs);
         }
 
-        public bool IsInsideTrigger(Vector triggerPos, float triggerCollisionRadius, Vector info_tpPos)
+        public (Vector, float)? GetTriggerPushDataForVector(Vector vector)
         {
-            return info_tpPos.X >= triggerPos.X - triggerCollisionRadius && info_tpPos.X <= triggerPos.X + triggerCollisionRadius &&
-                   info_tpPos.Y >= triggerPos.Y - triggerCollisionRadius && info_tpPos.Y <= triggerPos.Y + triggerCollisionRadius &&
-                   info_tpPos.Z >= triggerPos.Z - triggerCollisionRadius && info_tpPos.Z <= triggerPos.Z + triggerCollisionRadius;
+            try
+            {
+                foreach (var data in triggerPushData)
+                {
+                    var trigger = data.Value;
+
+                    if (vector.X >= trigger.PushMins.X && vector.X <= trigger.PushMaxs.X &&
+                        vector.Y >= trigger.PushMins.Y && vector.Y <= trigger.PushMaxs.Y &&
+                        vector.Z >= trigger.PushMins.Z && vector.Z <= trigger.PushMaxs.Z)
+                    {
+                        return (trigger.PushDirEntitySpace, trigger.PushSpeed);
+                    }
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in GetTriggerPushDataForVector: {ex.Message}");
+                return null;
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace SharpTimer
 {
-    [MinimumApiVersion(163)]
+    [MinimumApiVersion(164)]
     public partial class SharpTimer : BasePlugin
     {
         public override void Load(bool hotReload)
@@ -459,10 +459,12 @@ namespace SharpTimer
 
                     if (triggerPushData.TryGetValue(caller.Handle, out TriggerPushData TriggerPushData) && triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false)
                     {
-                        player.PlayerPawn.Value.AbsVelocity.X += TriggerPushData.PushDirEntitySpace.X * TriggerPushData.PushSpeed;
-                        player.PlayerPawn.Value.AbsVelocity.Y += TriggerPushData.PushDirEntitySpace.Y * TriggerPushData.PushSpeed;
-                        player.PlayerPawn.Value.AbsVelocity.Z += TriggerPushData.PushDirEntitySpace.Z * TriggerPushData.PushSpeed;
-                        SharpTimerDebug($"trigger_push OnStartTouch Player velocity adjusted for {player.PlayerName} by {TriggerPushData.PushSpeed}");
+                        if(player.PlayerPawn.Value.AbsVelocity.Length() > TriggerPushData.PushSpeed) {
+                            player.PlayerPawn.Value.AbsVelocity.X += TriggerPushData.PushDirEntitySpace.X * TriggerPushData.PushSpeed;
+                            player.PlayerPawn.Value.AbsVelocity.Y += TriggerPushData.PushDirEntitySpace.Y * TriggerPushData.PushSpeed;
+                            player.PlayerPawn.Value.AbsVelocity.Z += TriggerPushData.PushDirEntitySpace.Z * TriggerPushData.PushSpeed;
+                            SharpTimerDebug($"trigger_push OnStartTouch Player velocity adjusted for {player.PlayerName} by {TriggerPushData.PushSpeed}");
+                        }
                     }
 
                     return HookResult.Continue;

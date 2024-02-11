@@ -1642,11 +1642,11 @@ namespace SharpTimer
                     player.PrintToChat(msgPrefix + $"{ChatColors.White} You reached your maximum free points rewards of {primaryChatColor}{maxGlobalFreePoints}{ChatColors.White}!");
 
                 if (GetNumberBeforeSlash(ranking) == 1 && oldticks > newticks)
-                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{playerName}{ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} SR!" : "SR!")}");
+                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{playerName} {ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} SR!" : "SR!")}");
                 else if (oldticks > newticks)
-                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{playerName}{ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} PB!" : "Map PB!")}");
+                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{playerName} {ChatColors.White}set a new {(bonusX != 0 ? $"Bonus {bonusX} PB!" : "Map PB!")}");
                 else
-                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{playerName}{ChatColors.White}finished the {(bonusX != 0 ? $"Bonus {bonusX}!" : "Map!")}");
+                    Server.PrintToChatAll(msgPrefix + $"{primaryChatColor}{playerName} {ChatColors.White}finished the {(bonusX != 0 ? $"Bonus {bonusX}!" : "Map!")}");
 
                 if (useMySQL != false || bonusX != 0)
                     Server.PrintToChatAll(msgPrefix + $"{(bonusX != 0 ? $"" : $"Rank: [{primaryChatColor}{ranking}{ChatColors.White}] ")}{(timesFinished != 0 && useMySQL == true ? $"Times Finished: [{primaryChatColor}{timesFinished}{ChatColors.White}]" : "")}");

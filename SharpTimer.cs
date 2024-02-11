@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace SharpTimer
 {
-    [MinimumApiVersion(164)]
+    [MinimumApiVersion(165)]
     public partial class SharpTimer : BasePlugin
     {
         public override void Load(bool hotReload)

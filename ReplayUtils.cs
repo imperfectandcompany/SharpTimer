@@ -60,11 +60,11 @@ namespace SharpTimer
 
                     if (((PlayerFlags)replayFrame.Flags & PlayerFlags.FL_ONGROUND) != 0)
                     {
-                        player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
+                        SetMoveType(player, MoveType_t.MOVETYPE_WALK);
                     }
                     else
                     {
-                        player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_OBSERVER;
+                        SetMoveType(player, MoveType_t.MOVETYPE_OBSERVER);
                     }
 
                     if (((PlayerFlags)replayFrame.Flags & PlayerFlags.FL_DUCKING) != 0)
@@ -148,7 +148,7 @@ namespace SharpTimer
             try
             {
                 playerTimers[player.Slot].IsRecordingReplay = false;
-                player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
+                SetMoveType(player, MoveType_t.MOVETYPE_WALK);
             }
             catch (Exception ex)
             {

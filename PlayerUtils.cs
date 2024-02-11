@@ -439,7 +439,7 @@ namespace SharpTimer
                         }
                         else
                         {
-                            //if (!playerTimer.IsTimerBlocked && player.PlayerPawn.Value.MoveType == MoveType_t.MOVETYPE_OBSERVER) player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
+                            if (!playerTimer.IsTimerBlocked && player.PlayerPawn.Value.MoveType == MoveType_t.MOVETYPE_OBSERVER) SetMoveType(player, MoveType_t.MOVETYPE_WALK);
                         }
 
                         if (playerTimer.TicksSinceLastCmd < cmdCooldown) playerTimer.TicksSinceLastCmd++;
@@ -673,7 +673,7 @@ namespace SharpTimer
                         player.PlayerPawn.Value.AbsVelocity.X += pushDirEntitySpace.X * velocityChange;
                         player.PlayerPawn.Value.AbsVelocity.Y += pushDirEntitySpace.Y * velocityChange;
                         player.PlayerPawn.Value.AbsVelocity.Z += pushDirEntitySpace.Z * velocityChange;
-                        SharpTimerDebug($"trigger_push fix: Player velocity adjusted for {player.PlayerName} by {speedDifference / 6.40f}");
+                        SharpTimerDebug($"trigger_push fix: Player velocity adjusted for {player.PlayerName} by {speedDifference}");
                     }
                 }
             }
@@ -1684,18 +1684,20 @@ namespace SharpTimer
 
                 AddTimer(0.1f, () =>
                 {
-                    Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
-                    Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                    if(player.IsValid) {
+                        Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
+                        Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                    }
                 });
 
                 AddTimer(0.2f, () =>
                 {
-                    playerName.Set(originalPlayerName);
+                    if(player.IsValid) playerName.Set(originalPlayerName);
                 });
 
                 AddTimer(0.3f, () =>
                 {
-                    Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                    if(player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
                 });
 
                 SharpTimerDebug($"Set Scoreboard Tag for {player.Clan} {player.PlayerName}");
@@ -1719,21 +1721,31 @@ namespace SharpTimer
 
             AddTimer(0.1f, () =>
             {
-                Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
-                Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                if(player.IsValid) {
+                    Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
+                    Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                }
             });
 
             AddTimer(0.2f, () =>
             {
-                playerName.Set(name);
+                if(player.IsValid) playerName.Set(name);
             });
 
             AddTimer(0.3f, () =>
             {
-                Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                if(player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
             });
 
             SharpTimerDebug($"Changed PlayerName to {player.PlayerName}");
+        }
+
+        static void SetMoveType(CCSPlayerController player, MoveType_t nMoveType)
+        {
+            if(!player.IsValid) return;
+            
+            player.PlayerPawn.Value.MoveType = nMoveType; // necessary to maintain client prediction
+            player.PlayerPawn.Value.ActualMoveType = nMoveType;
         }
 
         public char GetRankColorForChat(CCSPlayerController player)

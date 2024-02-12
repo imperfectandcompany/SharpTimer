@@ -3,7 +3,6 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
-using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Drawing;
 using System.Text.Json;
@@ -220,7 +219,7 @@ namespace SharpTimer
 
                 foreach (CCSPlayerController player in connectedPlayers.Values)
                 {
-                    if (player == null || !player.IsValid) continue;
+                    if (player == null || !player.IsValid || player.Slot == null) continue;
 
                     if ((CsTeam)player.TeamNum == CsTeam.Spectator)
                     {
@@ -322,7 +321,6 @@ namespace SharpTimer
 
                         if (playerTimer.HideKeys != true && playerTimer.IsReplaying != true && keysOverlayEnabled == true)
                         {
-                            //VirtualFunctions.ClientPrint(player.Handle, HudDestination.Center, "#SFUI_Notice_DM_BuyMenu_RandomON", 0, 0, 0, 0);
                             player.PrintToCenter(keysLineNoHtml);
                         }
 
@@ -439,7 +437,7 @@ namespace SharpTimer
                         }
                         else
                         {
-                            if (!playerTimer.IsTimerBlocked && player.PlayerPawn.Value.MoveType == MoveType_t.MOVETYPE_OBSERVER) SetMoveType(player, MoveType_t.MOVETYPE_WALK);
+                            if (!playerTimer.IsTimerBlocked && (player.PlayerPawn.Value.MoveType == MoveType_t.MOVETYPE_OBSERVER || player.PlayerPawn.Value.ActualMoveType == MoveType_t.MOVETYPE_OBSERVER)) SetMoveType(player, MoveType_t.MOVETYPE_WALK);
                         }
 
                         if (playerTimer.TicksSinceLastCmd < cmdCooldown) playerTimer.TicksSinceLastCmd++;
@@ -614,39 +612,43 @@ namespace SharpTimer
 
         private void CheckPlayerCoords(CCSPlayerController? player)
         {
-            if (player == null || !IsAllowedPlayer(player))
+            if (player == null || !IsAllowedPlayer(player)) return;
+
+            try
             {
-                return;
-            }
+                Vector incorrectVector = new Vector(0, 0, 0);
+                Vector? playerPos = player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin;
 
-            Vector incorrectVector = new Vector(0, 0, 0);
-            Vector? playerPos = player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin;
-
-            if (playerPos == null || currentMapStartC1 == incorrectVector || currentMapStartC2 == incorrectVector ||
-                currentMapEndC1 == incorrectVector || currentMapEndC2 == incorrectVector)
-            {
-                return;
-            }
-
-            bool isInsideStartBox = IsVectorInsideBox(playerPos, currentMapStartC1, currentMapStartC2);
-            bool isInsideEndBox = IsVectorInsideBox(playerPos, currentMapEndC1, currentMapEndC2);
-
-            if (!isInsideStartBox && isInsideEndBox)
-            {
-                OnTimerStop(player);
-                if (enableReplays) OnRecordingStop(player);
-            }
-            else if (isInsideStartBox && !isInsideEndBox)
-            {
-                OnTimerStart(player);
-                if (enableReplays) OnRecordingStart(player);
-
-                if ((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
-                    (maxStartingSpeedEnabled == true && use2DSpeed == true && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
+                if (playerPos == null || currentMapStartC1 == incorrectVector || currentMapStartC2 == incorrectVector ||
+                    currentMapEndC1 == incorrectVector || currentMapEndC2 == incorrectVector)
                 {
-                    Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
-                    adjustVelocity(player, maxStartingSpeed, true);
+                    return;
                 }
+
+                bool isInsideStartBox = IsVectorInsideBox(playerPos, currentMapStartC1, currentMapStartC2);
+                bool isInsideEndBox = IsVectorInsideBox(playerPos, currentMapEndC1, currentMapEndC2);
+
+                if (!isInsideStartBox && isInsideEndBox)
+                {
+                    OnTimerStop(player);
+                    if (enableReplays) OnRecordingStop(player);
+                }
+                else if (isInsideStartBox && !isInsideEndBox)
+                {
+                    OnTimerStart(player);
+                    if (enableReplays) OnRecordingStart(player);
+
+                    if ((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
+                        (maxStartingSpeedEnabled == true && use2DSpeed == true && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
+                    {
+                        Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
+                        adjustVelocity(player, maxStartingSpeed, true);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in CheckPlayerCoords: {ex.Message}");
             }
         }
 
@@ -686,62 +688,120 @@ namespace SharpTimer
         public void ForcePlayerSpeed(CCSPlayerController player, string activeWeapon)
         {
 
-            activeWeapon ??= "no_knife";
-            if (!weaponSpeedLookup.TryGetValue(activeWeapon, out WeaponSpeedStats weaponStats) || !player.IsValid) return;
+            try
+            {
+                activeWeapon ??= "no_knife";
+                if (!weaponSpeedLookup.TryGetValue(activeWeapon, out WeaponSpeedStats weaponStats) || !player.IsValid) return;
 
-            player.PlayerPawn.Value.VelocityModifier = (float)(forcedPlayerSpeed / weaponStats.GetSpeed(player.PlayerPawn.Value.IsWalking));
+                player.PlayerPawn.Value.VelocityModifier = (float)(forcedPlayerSpeed / weaponStats.GetSpeed(player.PlayerPawn.Value.IsWalking));
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in ForcePlayerSpeed: {ex.Message}");
+            }
         }
 
         private void AdjustPlayerVelocity(CCSPlayerController? player, float velocity, bool forceNoDebug = false)
         {
             if (!IsAllowedPlayer(player)) return;
 
-            var currentX = player.PlayerPawn.Value.AbsVelocity.X;
-            var currentY = player.PlayerPawn.Value.AbsVelocity.Y;
-            var currentZ = player.PlayerPawn.Value.AbsVelocity.Z;
+            try
+            {
+                var currentX = player.PlayerPawn.Value.AbsVelocity.X;
+                var currentY = player.PlayerPawn.Value.AbsVelocity.Y;
+                var currentZ = player.PlayerPawn.Value.AbsVelocity.Z;
 
-            var currentSpeed3D = Math.Sqrt(currentX * currentX + currentY * currentY + currentZ * currentZ);
+                var currentSpeedSquared = currentX * currentX + currentY * currentY + currentZ * currentZ;
 
-            var normalizedX = currentX / currentSpeed3D;
-            var normalizedY = currentY / currentSpeed3D;
-            var normalizedZ = currentZ / currentSpeed3D;
+                // Check if current speed is not zero to avoid division by zero
+                if (currentSpeedSquared > 0)
+                {
+                    var currentSpeed = Math.Sqrt(currentSpeedSquared);
 
-            var adjustedX = normalizedX * velocity; // Adjusted speed limit
-            var adjustedY = normalizedY * velocity; // Adjusted speed limit
-            var adjustedZ = normalizedZ * velocity; // Adjusted speed limit
+                    var normalizedX = currentX / currentSpeed;
+                    var normalizedY = currentY / currentSpeed;
+                    var normalizedZ = currentZ / currentSpeed;
 
-            player.PlayerPawn.Value.AbsVelocity.X = (float)adjustedX;
-            player.PlayerPawn.Value.AbsVelocity.Y = (float)adjustedY;
-            player.PlayerPawn.Value.AbsVelocity.Z = (float)adjustedZ;
+                    var adjustedX = normalizedX * velocity; // Adjusted speed limit
+                    var adjustedY = normalizedY * velocity; // Adjusted speed limit
+                    var adjustedZ = normalizedZ * velocity; // Adjusted speed limit
 
-            if (!forceNoDebug) SharpTimerDebug($"Adjusted Velo for {player.PlayerName} to {player.PlayerPawn.Value.AbsVelocity}");
+                    player.PlayerPawn.Value.AbsVelocity.X = (float)adjustedX;
+                    player.PlayerPawn.Value.AbsVelocity.Y = (float)adjustedY;
+                    player.PlayerPawn.Value.AbsVelocity.Z = (float)adjustedZ;
+
+                    if (!forceNoDebug) SharpTimerDebug($"Adjusted Velo for {player.PlayerName} to {player.PlayerPawn.Value.AbsVelocity}");
+                }
+                else
+                {
+                    if (!forceNoDebug) SharpTimerDebug($"Cannot adjust velocity for {player.PlayerName} because current speed is zero.");
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in AdjustPlayerVelocity: {ex.Message}");
+            }
         }
 
         private void AdjustPlayerVelocity2D(CCSPlayerController? player, float velocity, bool forceNoDebug = false)
         {
             if (!IsAllowedPlayer(player)) return;
 
-            var currentX = player.PlayerPawn.Value.AbsVelocity.X;
-            var currentY = player.PlayerPawn.Value.AbsVelocity.Y;
-            var currentSpeed2D = Math.Sqrt(currentX * currentX + currentY * currentY);
-            var normalizedX = currentX / currentSpeed2D;
-            var normalizedY = currentY / currentSpeed2D;
-            var adjustedX = normalizedX * velocity; // Adjusted speed limit
-            var adjustedY = normalizedY * velocity; // Adjusted speed limit
-            player.PlayerPawn.Value.AbsVelocity.X = (float)adjustedX;
-            player.PlayerPawn.Value.AbsVelocity.Y = (float)adjustedY;
-            if (!forceNoDebug) SharpTimerDebug($"Adjusted Velo for {player.PlayerName} to {player.PlayerPawn.Value.AbsVelocity}");
+            try
+            {
+                var currentX = player.PlayerPawn.Value.AbsVelocity.X;
+                var currentY = player.PlayerPawn.Value.AbsVelocity.Y;
+
+                var currentSpeedSquared = currentX * currentX + currentY * currentY;
+
+                // Check if current speed is not zero to avoid division by zero
+                if (currentSpeedSquared > 0)
+                {
+                    var currentSpeed2D = Math.Sqrt(currentSpeedSquared);
+
+                    var normalizedX = currentX / currentSpeed2D;
+                    var normalizedY = currentY / currentSpeed2D;
+
+                    var adjustedX = normalizedX * velocity; // Adjusted speed limit
+                    var adjustedY = normalizedY * velocity; // Adjusted speed limit
+
+                    player.PlayerPawn.Value.AbsVelocity.X = (float)adjustedX;
+                    player.PlayerPawn.Value.AbsVelocity.Y = (float)adjustedY;
+
+                    if (!forceNoDebug) SharpTimerDebug($"Adjusted Velo for {player.PlayerName} to {player.PlayerPawn.Value.AbsVelocity}");
+                }
+                else
+                {
+                    if (!forceNoDebug) SharpTimerDebug($"Cannot adjust velocity for {player.PlayerName} because current speed is zero.");
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in AdjustPlayerVelocity2D: {ex.Message}");
+            }
         }
 
         private void RemovePlayerCollision(CCSPlayerController? player)
         {
-            if (removeCollisionEnabled == false || player == null) return;
+            try
+            {
+                Server.NextFrame(() =>
+                {
+                    if (removeCollisionEnabled == false || !IsAllowedPlayer(player)) return;
 
-            player.PlayerPawn.Value.Collision.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING;
-            player.PlayerPawn.Value.Collision.CollisionAttribute.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING;
-            VirtualFunctionVoid<nint> collisionRulesChanged = new VirtualFunctionVoid<nint>(player.PlayerPawn.Value.Handle, OnCollisionRulesChangedOffset.Get());
-            collisionRulesChanged.Invoke(player.PlayerPawn.Value.Handle);
-            SharpTimerDebug($"Removed Collison for {player.PlayerName}");
+                    player.Pawn.Value.Collision.CollisionAttribute.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING;
+                    player.Pawn.Value.Collision.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING;
+
+                    Utilities.SetStateChanged(player, "CCollisionProperty", "m_CollisionGroup");
+                    Utilities.SetStateChanged(player, "CCollisionProperty", "m_collisionAttribute");
+
+                    SharpTimerDebug($"Removed Collison for {player.PlayerName}");
+                });
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in RemovePlayerCollision: {ex.Message}");
+            }
         }
 
         private async Task HandlePlayerStageTimes(CCSPlayerController player, nint triggerHandle)
@@ -1684,7 +1744,8 @@ namespace SharpTimer
 
                 AddTimer(0.1f, () =>
                 {
-                    if(player.IsValid) {
+                    if (player.IsValid)
+                    {
                         Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
                         Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
                     }
@@ -1692,12 +1753,12 @@ namespace SharpTimer
 
                 AddTimer(0.2f, () =>
                 {
-                    if(player.IsValid) playerName.Set(originalPlayerName);
+                    if (player.IsValid) playerName.Set(originalPlayerName);
                 });
 
                 AddTimer(0.3f, () =>
                 {
-                    if(player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                    if (player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
                 });
 
                 SharpTimerDebug($"Set Scoreboard Tag for {player.Clan} {player.PlayerName}");
@@ -1721,7 +1782,8 @@ namespace SharpTimer
 
             AddTimer(0.1f, () =>
             {
-                if(player.IsValid) {
+                if (player.IsValid)
+                {
                     Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
                     Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
                 }
@@ -1729,12 +1791,12 @@ namespace SharpTimer
 
             AddTimer(0.2f, () =>
             {
-                if(player.IsValid) playerName.Set(name);
+                if (player.IsValid) playerName.Set(name);
             });
 
             AddTimer(0.3f, () =>
             {
-                if(player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                if (player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
             });
 
             SharpTimerDebug($"Changed PlayerName to {player.PlayerName}");
@@ -1742,8 +1804,8 @@ namespace SharpTimer
 
         static void SetMoveType(CCSPlayerController player, MoveType_t nMoveType)
         {
-            if(!player.IsValid) return;
-            
+            if (!player.IsValid) return;
+
             player.PlayerPawn.Value.MoveType = nMoveType; // necessary to maintain client prediction
             player.PlayerPawn.Value.ActualMoveType = nMoveType;
         }

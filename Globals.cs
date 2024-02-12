@@ -8,7 +8,7 @@ namespace SharpTimer
     public partial class SharpTimer
     {
         public override string ModuleName => "SharpTimer";
-        public override string ModuleVersion => $"0.2.1 - {new DateTime(Builtin.CompileTime, DateTimeKind.Utc)}";
+        public override string ModuleVersion => $"0.2.2 - {new DateTime(Builtin.CompileTime, DateTimeKind.Utc)}";
         public override string ModuleAuthor => "DEAFPS https://github.com/DEAFPS/";
         public override string ModuleDescription => "A simple CSS Timer Plugin";
 
@@ -222,7 +222,5 @@ namespace SharpTimer
             {"weapon_c4", new WeaponSpeedStats(250.00, 130.00)},
             {"no_knife", new WeaponSpeedStats(260.00, 130.56)} //no knife
         };
-
-        private readonly WIN_LINUX<int> OnCollisionRulesChangedOffset = new WIN_LINUX<int>(175, 174);
     }
 }

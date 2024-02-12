@@ -259,7 +259,7 @@ namespace SharpTimer
             {
                 player.PrintToChat(msgPrefix + $" Ending Replay!");
                 playerTimers[player.Slot].IsReplaying = false;
-                if (player.PlayerPawn.Value.MoveType != MoveType_t.MOVETYPE_WALK) player.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
+                if (player.PlayerPawn.Value.MoveType != MoveType_t.MOVETYPE_WALK || player.PlayerPawn.Value.ActualMoveType == MoveType_t.MOVETYPE_WALK) SetMoveType(player, MoveType_t.MOVETYPE_WALK);
                 RespawnPlayerCommand(player, command);
                 playerReplays.Remove(player.Slot);
                 playerReplays[player.Slot] = new PlayerReplays();

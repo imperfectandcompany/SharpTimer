@@ -5,6 +5,7 @@ using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 using System.Runtime.InteropServices;
+using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
 namespace SharpTimer
 {
@@ -459,7 +460,8 @@ namespace SharpTimer
 
                     if (triggerPushData.TryGetValue(caller.Handle, out TriggerPushData TriggerPushData) && triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false)
                     {
-                        if(player.PlayerPawn.Value.AbsVelocity.Length() > TriggerPushData.PushSpeed) {
+                        if (player.PlayerPawn.Value.AbsVelocity.Length() > TriggerPushData.PushSpeed)
+                        {
                             player.PlayerPawn.Value.AbsVelocity.X += TriggerPushData.PushDirEntitySpace.X * TriggerPushData.PushSpeed;
                             player.PlayerPawn.Value.AbsVelocity.Y += TriggerPushData.PushDirEntitySpace.Y * TriggerPushData.PushSpeed;
                             player.PlayerPawn.Value.AbsVelocity.Z += TriggerPushData.PushDirEntitySpace.Z * TriggerPushData.PushSpeed;
@@ -482,7 +484,8 @@ namespace SharpTimer
             }
             else
             {
-                SharpTimerDebug($"Platform is Windows. Blocking TakeDamage hook");
+                SharpTimerDebug($"disableDamage: Platform is Windows. Using different method...");
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Pre);
             }
 
             AddCommandListener("say", OnPlayerChatAll);
@@ -495,7 +498,7 @@ namespace SharpTimer
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamage,HookMode.Pre);
+                VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamage, HookMode.Pre);
             }
 
             RemoveCommandListener("say", OnPlayerChatAll, HookMode.Pre);
@@ -513,6 +516,30 @@ namespace SharpTimer
             if (damageInfoParam == null) return HookResult.Continue;
 
             if (disableDamage == true) damageInfoParam.Damage = 0;
+
+            return HookResult.Continue;
+        }
+
+        HookResult OnPlayerHurt(EventPlayerHurt @event, GameEventInfo info)
+        {
+            if (disableDamage == true)
+            {
+                var player = @event.Userid;
+                Vector playerSpeed = player.PlayerPawn.Value.AbsVelocity ?? new Vector(0, 0, 0);
+
+                if (!player.IsValid)
+                    return HookResult.Continue;
+
+                player.PlayerPawn.Value.Health = 696969; // max 32bit int
+                player.PlayerPawn.Value.ArmorValue = 696969;
+                
+                if(!player.PawnHasHelmet) player.GiveNamedItem("item_assaultsuit");
+
+                Server.NextFrame(() =>
+                {
+                    if (IsAllowedPlayer(player)) AdjustPlayerVelocity(player, playerSpeed.Length(), true);
+                });
+            }
 
             return HookResult.Continue;
         }

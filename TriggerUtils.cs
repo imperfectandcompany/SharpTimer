@@ -1,4 +1,3 @@
-using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Text.RegularExpressions;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;

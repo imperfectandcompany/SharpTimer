@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Serialization;
 using CounterStrikeSharp.API;
@@ -254,33 +253,6 @@ namespace SharpTimer
         private byte[] GetStringBytes(string str)
         {
             return Encoding.UTF8.GetBytes(str);
-        }
-    }
-
-    public class WIN_LINUX<T>
-    {
-        [JsonPropertyName("Windows")]
-        public T Windows { get; private set; }
-
-        [JsonPropertyName("Linux")]
-        public T Linux { get; private set; }
-
-        public WIN_LINUX(T windows, T linux)
-        {
-            this.Windows = windows;
-            this.Linux = linux;
-        }
-
-        public T Get()
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return this.Windows;
-            }
-            else
-            {
-                return this.Linux;
-            }
         }
     }
 }

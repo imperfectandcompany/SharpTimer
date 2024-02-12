@@ -1836,63 +1836,6 @@ namespace SharpTimer
             return color;
         }
 
-        /* public void AddScoreboardTagToPlayer(CCSPlayerController player, string tag)
-        {
-            if (string.IsNullOrEmpty(tag))
-                return;
-
-            if (player == null || !player.IsValid)
-                return;
-
-            string originalPlayerName = player.PlayerName;
-
-            string stripedName = RemovePlayerTags(player.PlayerName == null ? "" : player.PlayerName);
-
-            //player.Clan = $"{(playerTimers[player.Slot].IsVip ? "[VIP] " : "")}[{tag}]{(!string.IsNullOrEmpty(stripedName) ? $"{stripedName} " : "")}";
-            char color = ChatColors.Default;
-            
-            if(tag.Contains("Unranked"))
-                    color = ChatColors.Default;
-                else if(tag.Contains("Silver"))
-                    color = ChatColors.Silver;
-                else if(tag.Contains("Gold"))
-                    color = ChatColors.LightYellow;
-                else if(tag.Contains("Platinum"))
-                    color = ChatColors.Green;
-                else if(tag.Contains("Diamond"))
-                    color = ChatColors.LightBlue;
-                else if(tag.Contains("Master"))
-                    color = ChatColors.Purple;
-                else if(tag.Contains("Legend"))
-                    color = ChatColors.Lime;
-                else if(tag.Contains("Royalty"))
-                    color = ChatColors.Orange;
-                else if(tag.Contains("God"))
-                    color = ChatColors.LightRed;
-
-            SchemaString<CBasePlayerController> playerName = new SchemaString<CBasePlayerController>(player, "m_iszPlayerName");
-            playerName.Set($"{(playerTimers[player.Slot].IsVip ? $" {color}[VIP]" : " " + color)}[{tag}] {(!string.IsNullOrEmpty(stripedName) ? $"{stripedName}" : "")}");
-
-            AddTimer(0.1f, () =>
-            {
-                Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
-                Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
-            });
-
-            AddTimer(0.2f, () =>
-            {
-                playerName.Set($"{(playerTimers[player.Slot].IsVip ? $" {color}[VIP]" : " " + color)}[{tag}] {(!string.IsNullOrEmpty(stripedName) ? $"{stripedName}" : "")}");
-
-            });
-
-            AddTimer(0.3f, () =>
-            {
-                Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
-            });
-
-            SharpTimerDebug($"Set Scoreboard Tag for {player.PlayerName}");
-        } */
-
         public static void SendCommandToEveryone(string command)
         {
             Utilities.GetPlayers().ForEach(player =>

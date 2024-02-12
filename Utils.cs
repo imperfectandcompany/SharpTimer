@@ -659,7 +659,7 @@ namespace SharpTimer
                 {
                     SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
                     Server.ExecuteCommand("execifexists SharpTimer/custom_exec.cfg");
-                    if (execCustomMapCFG == true) Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{currentMapName}.cfg");
+                    if (execCustomMapCFG == true) Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{GetClosestMapCFGMatch()}");
                     if (hideAllPlayers == true) Server.ExecuteCommand($"mp_teammates_are_enemies 1");
                     if (enableSRreplayBot)
                     {
@@ -711,7 +711,7 @@ namespace SharpTimer
             {
                 SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
                 Server.ExecuteCommand("execifexists SharpTimer/custom_exec.cfg");
-                if (execCustomMapCFG == true) Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{currentMapName}.cfg");
+                if (execCustomMapCFG == true) Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{GetClosestMapCFGMatch()}");
                 if (hideAllPlayers == true) Server.ExecuteCommand($"mp_teammates_are_enemies 1");
                 if (enableSRreplayBot)
                 {
@@ -1123,6 +1123,32 @@ namespace SharpTimer
             {
                 return -1;
             }
+        }
+
+        public string GetClosestMapCFGMatch()
+        {
+            string[] configFiles = Directory.GetFiles(gameDir + "/csgo/cfg/SharpTimer/MapData/MapExecs", "*.cfg");
+
+            string closestMatch = string.Empty;
+            int closestMatchLength = int.MaxValue;
+
+            foreach (string file in configFiles)
+            {
+                string fileName = Path.GetFileNameWithoutExtension(file);
+
+                if (currentMapName == fileName)
+                {
+                    return fileName + ".cfg";
+                }
+
+                if (currentMapName.StartsWith(fileName) && fileName.Length < closestMatchLength)
+                {
+                    closestMatch = fileName + ".cfg";
+                    closestMatchLength = fileName.Length;
+                }
+            }
+
+            return closestMatch;
         }
     }
 }

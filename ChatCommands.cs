@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Runtime.InteropServices;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
@@ -45,7 +46,26 @@ namespace SharpTimer
             Console.WriteLine("End of Player Timers");
         }
 
-        [ConsoleCommand("css_test", "Replay your last pb")]
+        /* [ConsoleCommand("css_hidegun", "Hides the weapon viewmodel")]
+        [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
+        public void TestPanel(CCSPlayerController? player, CommandInfo command)
+        {
+            if (!IsAllowedPlayer(player))
+                return;
+
+            CHandle<CBaseViewModel>[]? viewModels = GetPlayerGunViewModels(player);
+
+            if (viewModels == null)
+                return;
+
+            SetViewModelRender(viewModels[0]);
+            if(viewModels[0] != null && viewModels[0].IsValid && viewModels[0].Value != null && viewModels[0].IsValid) {
+                player.PrintToChat(msgPrefix + $" <0> {viewModels[0].Value.VMName}");
+                player.PrintToChat(msgPrefix + $" <0> {viewModels[0].Value.Globalname}");
+            }
+        } */
+
+        [ConsoleCommand("css_test", "test cmd")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void TestCMD(CCSPlayerController? player, CommandInfo command)
         {

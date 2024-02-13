@@ -87,42 +87,74 @@ namespace SharpTimer
         {
             try
             {
-                connectedPlayers[player.Slot] = new CCSPlayerController(player.Handle);
-                playerTimers[player.Slot] = new PlayerTimerInfo();
-                if (enableReplays) playerReplays[player.Slot] = new PlayerReplays();
-                if (cmdJoinMsgEnabled == true && isForBot == false) PrintAllEnabledCommands(player);
-                playerTimers[player.Slot].MovementService = new CCSPlayer_MovementServices(player.PlayerPawn.Value.MovementServices!.Handle);
-                playerTimers[player.Slot].StageTimes = new Dictionary<int, int>();
-                playerTimers[player.Slot].StageVelos = new Dictionary<int, string>();
-                if (AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimers[player.Slot].ZoneToolWire = new Dictionary<int, CBeam>();
-                playerTimers[player.Slot].CurrentMapStage = 0;
-                playerTimers[player.Slot].CurrentMapCheckpoint = 0;
-                playerTimers[player.Slot].IsRecordingReplay = false;
-                playerTimers[player.Slot].SetRespawnPos = null;
-                playerTimers[player.Slot].SetRespawnAng = null;
-
-                if (isForBot == false) _ = IsPlayerATester(player.SteamID.ToString(), player.Slot);
-
-                //PlayerSettings
-                if (useMySQL == true && isForBot == false) _ = GetPlayerStats(player, player.SteamID.ToString(), player.PlayerName, player.Slot, true);
-
-                if (connectMsgEnabled == true && useMySQL == false) Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{player.PlayerName} {ChatColors.White}connected!");
-
-                SharpTimerDebug($"Added player {player.PlayerName} with UserID {player.UserId} to connectedPlayers");
-                SharpTimerDebug($"Total players connected: {connectedPlayers.Count}");
-                SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
-                SharpTimerDebug($"Total playerCheckpoints: {playerCheckpoints.Count}");
-
-                if (isForBot == true || hideAllPlayers == true)
+                if (player == null)
                 {
-                    player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
+                    SharpTimerError("Player object is null.");
+                    return;
                 }
-                else if (removeLegsEnabled == true)
-                    player.PlayerPawn.Value.Render = Color.FromArgb(254, 254, 254, 254);
+
+                if (player.PlayerPawn == null)
+                {
+                    SharpTimerError("PlayerPawn is null.");
+                    return;
+                }
+
+                if (player.PlayerPawn.Value.MovementServices == null)
+                {
+                    SharpTimerError("MovementServices is null.");
+                    return;
+                }
+
+                int playerSlot = player.Slot;
+
+                try
+                {
+                    connectedPlayers[playerSlot] = new CCSPlayerController(player.Handle);
+                    playerTimers[playerSlot] = new PlayerTimerInfo();
+                    if (enableReplays) playerReplays[playerSlot] = new PlayerReplays();
+                    playerTimers[playerSlot].MovementService = new CCSPlayer_MovementServices(player.PlayerPawn.Value.MovementServices!.Handle);
+                    playerTimers[playerSlot].StageTimes = new Dictionary<int, int>();
+                    playerTimers[playerSlot].StageVelos = new Dictionary<int, string>();
+                    if (AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimers[playerSlot].ZoneToolWire = new Dictionary<int, CBeam>();
+                    playerTimers[playerSlot].CurrentMapStage = 0;
+                    playerTimers[playerSlot].CurrentMapCheckpoint = 0;
+                    playerTimers[playerSlot].IsRecordingReplay = false;
+                    playerTimers[playerSlot].SetRespawnPos = null;
+                    playerTimers[playerSlot].SetRespawnAng = null;
+
+                    if (isForBot == false) _ = IsPlayerATester(player.SteamID.ToString(), playerSlot);
+
+                    //PlayerSettings
+                    if (useMySQL == true && isForBot == false) _ = GetPlayerStats(player, player.SteamID.ToString(), player.PlayerName, playerSlot, true);
+
+                    if (connectMsgEnabled == true && useMySQL == false) Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{player.PlayerName} {ChatColors.White}connected!");
+                    if (cmdJoinMsgEnabled == true && isForBot == false) PrintAllEnabledCommands(player);
+
+                    SharpTimerDebug($"Added player {player.PlayerName} with UserID {player.UserId} to connectedPlayers");
+                    SharpTimerDebug($"Total players connected: {connectedPlayers.Count}");
+                    SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
+                    SharpTimerDebug($"Total playerReplays: {playerReplays.Count}");
+
+                    if (isForBot == true || hideAllPlayers == true) player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
+
+                    if (removeLegsEnabled == true) player.PlayerPawn.Value.Render = Color.FromArgb(254, 254, 254, 254);
+                }
+                finally
+                {
+                    if (connectedPlayers[playerSlot] == null)
+                    {
+                        connectedPlayers.Remove(playerSlot);
+                    }
+
+                    if (playerTimers[playerSlot] == null)
+                    {
+                        playerTimers.Remove(playerSlot);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                SharpTimerError($"Error in OnPlayerConnect (probably replay bot related lolxd): {ex.Message}");
+                SharpTimerError($"Error in OnPlayerConnect: {ex.Message}");
             }
         }
 
@@ -190,7 +222,9 @@ namespace SharpTimer
             {
                 char rankColor = GetRankColorForChat(player);
 
-                Server.PrintToChatAll($" {primaryChatColor}● {(playerTimers[player.Slot].IsVip ? $"{ChatColors.Magenta}[{customVIPTag}] " : "")}{rankColor}[{playerTimers[player.Slot].CachedRank}]{ChatColors.Default} {player.PlayerName}: {message.GetArg(1)}");
+                if(playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? value)) {
+                    Server.PrintToChatAll($" {primaryChatColor}● {(value.IsVip ? $"{ChatColors.Magenta}[{customVIPTag}] " : "")}{rankColor}[{value.CachedRank}]{ChatColors.Default} {player.PlayerName}: {message.GetArg(1)}");
+                }
                 return HookResult.Handled;
             }
         }
@@ -208,7 +242,9 @@ namespace SharpTimer
             {
                 char rankColor = GetRankColorForChat(player);
 
-                Server.PrintToChatAll($" {ChatColors.Grey}[ALL] {primaryChatColor}● {(playerTimers[player.Slot].IsVip ? $"{ChatColors.Magenta}[{customVIPTag}] " : "")}{rankColor}[{playerTimers[player.Slot].CachedRank}]{ChatColors.Default} {player.PlayerName}: {message.GetArg(1)}");
+                if(playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? value)) {
+                    Server.PrintToChatAll($" {ChatColors.Grey}[ALL] {primaryChatColor}● {(value.IsVip ? $"{ChatColors.Magenta}[{customVIPTag}] " : "")}{rankColor}[{value.CachedRank}]{ChatColors.Default} {player.PlayerName}: {message.GetArg(1)}");
+                }
                 return HookResult.Handled;
             }
         }
@@ -356,7 +392,7 @@ namespace SharpTimer
                             playerTimer.IsRankPbCached = true;
                         }
 
-                        if (hideAllPlayers)
+                        if (hideAllPlayers == true)
                         {
                             foreach (var gun in player.PlayerPawn.Value.WeaponServices.MyWeapons)
                             {
@@ -368,7 +404,7 @@ namespace SharpTimer
                         if (displayScoreboardTags == true &&
                             playerTimer.TicksSinceLastRankUpdate > 511 &&
                             playerTimer.CachedRank != null &&
-                            (player.Clan == null || !player.Clan.Contains($"[{playerTimer.CachedRank}]")))
+                            (player.Clan != null || !player.Clan.Contains($"[{playerTimer.CachedRank}]")))
                         {
                             AddScoreboardTagToPlayer(player, playerTimer.CachedRank);
                             playerTimer.TicksSinceLastRankUpdate = 0;
@@ -410,26 +446,11 @@ namespace SharpTimer
                             if (playerTimer.TicksInAir == 1)
                             {
                                 playerTimer.PreSpeed = $"{player.PlayerPawn.Value.AbsVelocity.X} {player.PlayerPawn.Value.AbsVelocity.Y} {player.PlayerPawn.Value.AbsVelocity.Z}";
-                                if (jumpStatsEnabled) playerTimer.JSPos1 = playerTimer.LastPositionOnGround;
                             }
                         }
                         else
                         {
                             playerTimer.TicksInAir = 0;
-                        }
-
-                        if (((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND)
-                        {
-                            playerTimer.TicksOnGround++;
-                            playerTimer.LastPositionOnGround = $"{player.PlayerPawn.Value.AbsOrigin.X} {player.PlayerPawn.Value.AbsOrigin.Y} {player.PlayerPawn.Value.AbsOrigin.Z}";
-                            if (playerTimer.TicksOnGround == 1)
-                            {
-                                JumpStats(player, playerTimer);
-                            }
-                        }
-                        else
-                        {
-                            playerTimer.TicksOnGround = 0;
                         }
 
                         if (enableReplays && !playerTimer.IsReplaying && timerTicks > 0 && playerTimer.IsRecordingReplay && !playerTimer.IsTimerBlocked) ReplayUpdate(player, timerTicks);
@@ -557,36 +578,6 @@ namespace SharpTimer
             {
                 if (ex.Message != "Invalid game event") SharpTimerError($"Error in SpectatorOnTick: {ex.Message}");
             }
-        }
-
-        public void JumpStats(CCSPlayerController player, PlayerTimerInfo playerTimer)
-        {
-            Server.NextFrame(() =>
-            {
-                if (!jumpStatsEnabled || playerTimer.JSPos1 == null) return;
-
-                playerTimer.JSPos2 = $"{player.PlayerPawn.Value.AbsOrigin.X} {player.PlayerPawn.Value.AbsOrigin.Y} {player.PlayerPawn.Value.AbsOrigin.Z}";
-
-                double? currentLJ = LjDistance(ParseVector(playerTimer.JSPos1), ParseVector(playerTimer.JSPos2)) + 16.0;
-
-                if (currentLJ > 175 && currentLJ != null)
-                {
-                    playerTimer.JSlastLJ = currentLJ;
-
-                    if (playerTimer.JSbestLJ == null || currentLJ > playerTimer.JSbestLJ)
-                        playerTimer.JSbestLJ = currentLJ;
-
-                    if (playerTimer.HideJumpStats != true)
-                        PrintJumpStats(player, playerTimer);
-                }
-            });
-        }
-
-        public void PrintJumpStats(CCSPlayerController player, PlayerTimerInfo playerTimer)
-        {
-            SharpTimerDebug($"PrintJumpStats for {player.PlayerName}");
-            if (playerTimer.JSlastLJ == null) return;
-            player.PrintToChat($"{msgPrefix}[LJ: {(playerTimer.JSlastLJ == playerTimer.JSbestLJ ? $"{ChatColors.Orange}NEW PB {playerTimer.JSbestLJ:F3}{ChatColors.White}" : $"{primaryChatColor}{playerTimer.JSlastLJ:F3}{ChatColors.Grey} (PB: {playerTimer.JSbestLJ:F3})")}{ChatColors.White}] [Pre: {primaryChatColor}{ParseVector(playerTimer.PreSpeed).Length2D():F3}{ChatColors.White}]");
         }
 
         public void PrintAllEnabledCommands(CCSPlayerController player)
@@ -1814,28 +1805,38 @@ namespace SharpTimer
 
         public char GetRankColorForChat(CCSPlayerController player)
         {
-            char color = ChatColors.Default;
+            try
+            {
+                if (string.IsNullOrEmpty(playerTimers[player.Slot].CachedRank)) return ChatColors.Default;
 
-            if (playerTimers[player.Slot].CachedRank.Contains("Unranked"))
-                color = ChatColors.Default;
-            else if (playerTimers[player.Slot].CachedRank.Contains("Silver"))
-                color = ChatColors.Silver;
-            else if (playerTimers[player.Slot].CachedRank.Contains("Gold"))
-                color = ChatColors.LightYellow;
-            else if (playerTimers[player.Slot].CachedRank.Contains("Platinum"))
-                color = ChatColors.Green;
-            else if (playerTimers[player.Slot].CachedRank.Contains("Diamond"))
-                color = ChatColors.LightBlue;
-            else if (playerTimers[player.Slot].CachedRank.Contains("Master"))
-                color = ChatColors.Purple;
-            else if (playerTimers[player.Slot].CachedRank.Contains("Legend"))
-                color = ChatColors.Lime;
-            else if (playerTimers[player.Slot].CachedRank.Contains("Royalty"))
-                color = ChatColors.Orange;
-            else if (playerTimers[player.Slot].CachedRank.Contains("God"))
-                color = ChatColors.LightRed;
+                char color = ChatColors.Default;
 
-            return color;
+                if (playerTimers[player.Slot].CachedRank.Contains("Unranked"))
+                    color = ChatColors.Default;
+                else if (playerTimers[player.Slot].CachedRank.Contains("Silver"))
+                    color = ChatColors.Silver;
+                else if (playerTimers[player.Slot].CachedRank.Contains("Gold"))
+                    color = ChatColors.LightYellow;
+                else if (playerTimers[player.Slot].CachedRank.Contains("Platinum"))
+                    color = ChatColors.Green;
+                else if (playerTimers[player.Slot].CachedRank.Contains("Diamond"))
+                    color = ChatColors.LightBlue;
+                else if (playerTimers[player.Slot].CachedRank.Contains("Master"))
+                    color = ChatColors.Purple;
+                else if (playerTimers[player.Slot].CachedRank.Contains("Legend"))
+                    color = ChatColors.Lime;
+                else if (playerTimers[player.Slot].CachedRank.Contains("Royalty"))
+                    color = ChatColors.Orange;
+                else if (playerTimers[player.Slot].CachedRank.Contains("God"))
+                    color = ChatColors.LightRed;
+
+                return color;
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in GetRankColorForChat: {ex.Message}");
+                return ChatColors.Default;
+            }
         }
 
         public static void SendCommandToEveryone(string command)

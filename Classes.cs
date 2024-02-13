@@ -147,13 +147,6 @@ namespace SharpTimer
         //set respawn
         public string? SetRespawnPos { get; set; }
         public string? SetRespawnAng { get; set; }
-
-        //jump stats
-        public string? JSPos1 { get; set; }
-        public string? JSPos2 { get; set; }
-        public double? JSlastLJ { get; set; }
-        public double? JSbestLJ { get; set; }
-        public string? LastPositionOnGround{ get; set; }
     }
 
     //Replay stuff

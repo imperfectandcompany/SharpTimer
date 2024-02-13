@@ -36,15 +36,22 @@ namespace SharpTimer
 
             RegisterEventHandler<EventPlayerConnectFull>((@event, info) =>
             {
-                var player = @event.Userid;
-
-                if (!player.IsValid || player.IsBot)
+                if (@event.Userid.IsValid)
                 {
-                    return HookResult.Continue;
+                    var player = @event.Userid;
+
+                    if (!player.IsValid || player.IsBot)
+                    {
+                        return HookResult.Continue;
+                    }
+                    else
+                    {
+                        OnPlayerConnect(player);
+                        return HookResult.Continue;
+                    }
                 }
                 else
                 {
-                    OnPlayerConnect(player);
                     return HookResult.Continue;
                 }
             });
@@ -169,11 +176,6 @@ namespace SharpTimer
                         if (!playerTimers[player.Slot].IsTimerBlocked)
                         {
                             playerCheckpoints.Remove(player.Slot);
-                            if (jumpStatsEnabled)
-                            {
-                                playerTimers[player.Slot].JSbestLJ = null;
-                                playerTimers[player.Slot].JSlastLJ = null;
-                            }
                         }
                         playerTimers[player.Slot].TimerTicks = 0;
                         playerTimers[player.Slot].BonusTimerTicks = 0;
@@ -221,11 +223,6 @@ namespace SharpTimer
                         if (!playerTimers[player.Slot].IsTimerBlocked)
                         {
                             playerCheckpoints.Remove(player.Slot);
-                            if (jumpStatsEnabled)
-                            {
-                                playerTimers[player.Slot].JSbestLJ = null;
-                                playerTimers[player.Slot].JSlastLJ = null;
-                            }
                         }
                         playerTimers[player.Slot].TimerTicks = 0;
                         playerTimers[player.Slot].BonusTimerTicks = 0;
@@ -417,13 +414,6 @@ namespace SharpTimer
                         return HookResult.Continue;
                     }
 
-                    if (jumpStatsEnabled)
-                    {
-                        SharpTimerDebug("playerTimers[player.Slot].JSPos1 = null");
-                        playerTimers[player.Slot].JSPos1 = null;
-                        return HookResult.Continue;
-                    }
-
                     return HookResult.Continue;
                 }
                 catch (Exception ex)
@@ -532,8 +522,8 @@ namespace SharpTimer
 
                 player.PlayerPawn.Value.Health = 696969; // max 32bit int
                 player.PlayerPawn.Value.ArmorValue = 696969;
-                
-                if(!player.PawnHasHelmet) player.GiveNamedItem("item_assaultsuit");
+
+                if (!player.PawnHasHelmet) player.GiveNamedItem("item_assaultsuit");
 
                 Server.NextFrame(() =>
                 {

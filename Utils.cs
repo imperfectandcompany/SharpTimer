@@ -321,36 +321,10 @@ namespace SharpTimer
             beam.EndPos.X = endPos.X;
             beam.EndPos.Y = endPos.Y;
             beam.EndPos.Z = endPos.Z;
-            beam.FadeMinDist = 9999;
+            beam.FadeScale = 0;
 
             beam.DispatchSpawn();
             SharpTimerDebug($"Beam Spawned at S:{startPos} E:{beam.EndPos}");
-        }
-
-        public void DrawWireframe2D(Vector corner1, Vector corner2, string _color, float height = 50)
-        {
-            Vector corner3 = new Vector(corner2.X, corner1.Y, corner1.Z);
-            Vector corner4 = new Vector(corner1.X, corner2.Y, corner1.Z);
-
-            Vector corner1_top = new Vector(corner1.X, corner1.Y, corner1.Z + height);
-            Vector corner2_top = new Vector(corner2.X, corner2.Y, corner2.Z + height);
-            Vector corner3_top = new Vector(corner2.X, corner1.Y, corner1.Z + height);
-            Vector corner4_top = new Vector(corner1.X, corner2.Y, corner1.Z + height);
-
-            DrawLaserBetween(corner1, corner3, _color);
-            DrawLaserBetween(corner1, corner4, _color);
-            DrawLaserBetween(corner2, corner3, _color);
-            DrawLaserBetween(corner2, corner4, _color);
-
-            DrawLaserBetween(corner1_top, corner3_top, _color);
-            DrawLaserBetween(corner1_top, corner4_top, _color);
-            DrawLaserBetween(corner2_top, corner3_top, _color);
-            DrawLaserBetween(corner2_top, corner4_top, _color);
-
-            DrawLaserBetween(corner1, corner1_top, _color);
-            DrawLaserBetween(corner2, corner2_top, _color);
-            DrawLaserBetween(corner3, corner3_top, _color);
-            DrawLaserBetween(corner4, corner4_top, _color);
         }
 
         public void DrawWireframe3D(Vector corner1, Vector corner8, string _color)
@@ -437,29 +411,6 @@ namespace SharpTimer
             }
 
             return new QAngle(0, 0, 0);
-        }
-
-        public static double Distance(Vector vector1, Vector vector2)
-        {
-            double dx = vector2.X - vector1.X;
-            double dy = vector2.Y - vector1.Y;
-            double dz = vector2.Z - vector1.Z;
-
-            return Math.Sqrt(dx * dx + dy * dy + dz * dz);
-        }
-
-        public static double? LjDistance(Vector vector1, Vector vector2)
-        {
-            double dx = vector2.X - vector1.X;
-            double dy = vector2.Y - vector1.Y;
-            double dz = vector2.Z - vector1.Z;
-
-            double distance = Math.Sqrt(dx * dx + dy * dy);
-
-            if (Math.Abs(dz) <= 40)
-                return distance;
-            else
-                return null;
         }
 
         public Dictionary<string, PlayerRecord> GetSortedRecords(int bonusX = 0)

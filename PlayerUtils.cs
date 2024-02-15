@@ -222,7 +222,8 @@ namespace SharpTimer
             {
                 char rankColor = GetRankColorForChat(player);
 
-                if(playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? value)) {
+                if (playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? value))
+                {
                     Server.PrintToChatAll($" {primaryChatColor}● {(value.IsVip ? $"{ChatColors.Magenta}[{customVIPTag}] " : "")}{rankColor}[{value.CachedRank}]{ChatColors.Default} {player.PlayerName}: {message.GetArg(1)}");
                 }
                 return HookResult.Handled;
@@ -242,7 +243,8 @@ namespace SharpTimer
             {
                 char rankColor = GetRankColorForChat(player);
 
-                if(playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? value)) {
+                if (playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? value))
+                {
                     Server.PrintToChatAll($" {ChatColors.Grey}[ALL] {primaryChatColor}● {(value.IsVip ? $"{ChatColors.Magenta}[{customVIPTag}] " : "")}{rankColor}[{value.CachedRank}]{ChatColors.Default} {player.PlayerName}: {message.GetArg(1)}");
                 }
                 return HookResult.Handled;
@@ -1849,41 +1851,5 @@ namespace SharpTimer
                 }
             });
         }
-
-        /* private unsafe CHandle<CBaseViewModel>[]? GetPlayerGunViewModels(CCSPlayerController player)
-        {
-            CCSPlayerPawn playerPawn = player.Pawn.Value!.As<CCSPlayerPawn>();
-
-            if (playerPawn.ViewModelServices == null || playerPawn.ViewModelServices.Handle == IntPtr.Zero)
-                return null;
-
-            CCSPlayer_ViewModelServices viewModelServices = new CCSPlayer_ViewModelServices(playerPawn.ViewModelServices.Handle);
-            return ESchema.GetFixedArray<CHandle<CBaseViewModel>>(viewModelServices.Handle, "CCSPlayer_ViewModelServices", "m_hViewModel", 4);
-        }
-
-        public unsafe static class ESchema
-        {
-            public static unsafe T[] GetFixedArray<T>(nint pointer, string @class, string member, int length)
-            {
-                nint ptr = pointer + Schema.GetSchemaOffset(@class, member);
-                Span<nint> references = MemoryMarshal.CreateSpan<nint>(ref ptr, length);
-                T[] values = new T[length];
-
-                for (int i = 0; i < length; i++)
-                {
-                    values[i] = (T)Activator.CreateInstance(typeof(T), references[i])!;
-                }
-
-                return values;
-            }
-        }
-
-        private static void SetViewModelRender(CHandle<CBaseViewModel>? viewModel)
-        {
-            if (viewModel != null && viewModel.IsValid && viewModel.Value != null && viewModel.IsValid)
-            {
-                viewModel.Value.Render = Color.FromArgb(0, 0, 0, 0);
-            }
-        } */
     }
 }

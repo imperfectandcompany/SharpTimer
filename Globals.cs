@@ -111,7 +111,7 @@ namespace SharpTimer
         public bool forcePlayerSpeedEnabled = false;
         public float forcedPlayerSpeed = 250;
 
-         public bool execCustomMapCFG  = false;
+        public bool execCustomMapCFG = false;
 
         public string beepSound = "sounds/ui/csgo_ui_button_rollover_large.vsnd";
         public string respawnSound = "sounds/ui/menu_accept.vsnd";

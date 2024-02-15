@@ -88,7 +88,7 @@ namespace SharpTimer
         public bool IsBonusTimerRunning { get; set; }
         public int BonusTimerTicks { get; set; }
         public int BonusStage { get; set; }
-        
+
         //replay
         public bool IsReplaying { get; set; }
         public bool IsRecordingReplay { get; set; }
@@ -102,7 +102,7 @@ namespace SharpTimer
         public string? PreSpeed { get; set; }
         public string? CachedPB { get; set; }
         public string? CachedMapPlacement { get; set; }
-        
+
         //logic
         public int? TicksInAir { get; set; }
         public int? TicksOnGround { get; set; }
@@ -223,18 +223,19 @@ namespace SharpTimer
     public class SchemaString<SchemaClass> : NativeObject where SchemaClass : NativeObject
     {
         public SchemaString(SchemaClass instance, string member) : base(Schema.GetSchemaValue<nint>(instance.Handle, typeof(SchemaClass).Name!, member))
-            { }
+        { }
 
         public unsafe void Set(string str)
         {
-            try {
+            try
+            {
                 byte[] bytes = this.GetStringBytes(str);
-    
+
                 for (int i = 0; i < bytes.Length; i++)
                 {
                     Unsafe.Write((void*)(this.Handle.ToInt64() + i), bytes[i]);
                 }
-    
+
                 Unsafe.Write((void*)(this.Handle.ToInt64() + bytes.Length), 0);
             }
             catch (Exception ex)

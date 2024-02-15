@@ -520,7 +520,7 @@ namespace SharpTimer
                 if (!player.IsValid)
                     return HookResult.Continue;
 
-                player.PlayerPawn.Value.Health = 696969; // max 32bit int
+                player.PlayerPawn.Value.Health = 696969;
                 player.PlayerPawn.Value.ArmorValue = 696969;
 
                 if (!player.PawnHasHelmet) player.GiveNamedItem("item_assaultsuit");

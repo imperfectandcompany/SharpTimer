@@ -619,7 +619,7 @@ namespace SharpTimer
                             playerPoints = row.GetInt32("GlobalPoints");
 
                             // Modify the stats
-                            int newPoints = (int)(beatPB == false ? Convert.ToInt32(CalculatePoints(timerTicks) * globalPointsMultiplier) + playerPoints : (Convert.ToInt32(CalculatePoints(timerTicks)) - Convert.ToInt32(CalculatePoints(oldTicks)) * globalPointsMultiplier) + playerPoints);
+                            int newPoints = (int)(beatPB == false ? Convert.ToInt32(CalculatePoints(timerTicks) * globalPointsMultiplier) + playerPoints : (Convert.ToInt32(CalculatePoints(timerTicks)) - Convert.ToInt32(CalculatePoints(oldTicks)) * globalPointsMultiplier) + playerPoints + (310 * mapTier));
 
                             await row.CloseAsync();
                             // Update or insert the record
@@ -656,7 +656,7 @@ namespace SharpTimer
                         {
                             Server.NextFrame(() => SharpTimerDebug($"No player stats yet"));
 
-                            int newPoints = (int)(beatPB == false ? Convert.ToInt32(CalculatePoints(timerTicks) * globalPointsMultiplier) + playerPoints : (Convert.ToInt32(CalculatePoints(timerTicks)) - Convert.ToInt32(CalculatePoints(oldTicks)) * globalPointsMultiplier) + playerPoints);
+                            int newPoints = (int)(beatPB == false ? Convert.ToInt32(CalculatePoints(timerTicks) * globalPointsMultiplier) + playerPoints : (Convert.ToInt32(CalculatePoints(timerTicks)) - Convert.ToInt32(CalculatePoints(oldTicks)) * globalPointsMultiplier) + playerPoints + (310 * mapTier));
 
                             await row.CloseAsync();
 

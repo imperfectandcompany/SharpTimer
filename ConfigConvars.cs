@@ -224,7 +224,7 @@ namespace SharpTimer
 
             endBeamColor = $"{args}";
         }
-        
+
         [ConsoleCommand("sharptimer_mysql_enabled", "Whether player times should be put into a mysql database by default or not. Default value: false")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void SharpTimerMySQLConvar(CCSPlayerController? player, CommandInfo command)

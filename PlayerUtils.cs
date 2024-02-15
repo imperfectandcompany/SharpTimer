@@ -1809,30 +1809,37 @@ namespace SharpTimer
         {
             try
             {
-                if (string.IsNullOrEmpty(playerTimers[player.Slot].CachedRank)) return ChatColors.Default;
+                if (playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo? playerTimer))
+                {
+                    if (string.IsNullOrEmpty(playerTimer.CachedRank)) return ChatColors.Default;
 
-                char color = ChatColors.Default;
+                    char color = ChatColors.Default;
 
-                if (playerTimers[player.Slot].CachedRank.Contains("Unranked"))
-                    color = ChatColors.Default;
-                else if (playerTimers[player.Slot].CachedRank.Contains("Silver"))
-                    color = ChatColors.Silver;
-                else if (playerTimers[player.Slot].CachedRank.Contains("Gold"))
-                    color = ChatColors.LightYellow;
-                else if (playerTimers[player.Slot].CachedRank.Contains("Platinum"))
-                    color = ChatColors.Green;
-                else if (playerTimers[player.Slot].CachedRank.Contains("Diamond"))
-                    color = ChatColors.LightBlue;
-                else if (playerTimers[player.Slot].CachedRank.Contains("Master"))
-                    color = ChatColors.Purple;
-                else if (playerTimers[player.Slot].CachedRank.Contains("Legend"))
-                    color = ChatColors.Lime;
-                else if (playerTimers[player.Slot].CachedRank.Contains("Royalty"))
-                    color = ChatColors.Orange;
-                else if (playerTimers[player.Slot].CachedRank.Contains("God"))
-                    color = ChatColors.LightRed;
+                    if (playerTimer.CachedRank.Contains("Unranked"))
+                        color = ChatColors.Default;
+                    else if (playerTimer.CachedRank.Contains("Silver"))
+                        color = ChatColors.Silver;
+                    else if (playerTimer.CachedRank.Contains("Gold"))
+                        color = ChatColors.LightYellow;
+                    else if (playerTimer.CachedRank.Contains("Platinum"))
+                        color = ChatColors.Green;
+                    else if (playerTimer.CachedRank.Contains("Diamond"))
+                        color = ChatColors.LightBlue;
+                    else if (playerTimer.CachedRank.Contains("Master"))
+                        color = ChatColors.Purple;
+                    else if (playerTimer.CachedRank.Contains("Legend"))
+                        color = ChatColors.Lime;
+                    else if (playerTimer.CachedRank.Contains("Royalty"))
+                        color = ChatColors.Orange;
+                    else if (playerTimer.CachedRank.Contains("God"))
+                        color = ChatColors.LightRed;
 
-                return color;
+                    return color;
+                }
+                else
+                {
+                    return ChatColors.Default;
+                }
             }
             catch (Exception ex)
             {

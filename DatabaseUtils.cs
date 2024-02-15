@@ -195,12 +195,12 @@ namespace SharpTimer
                     {
                         JsonElement root = jsonConfig.RootElement;
 
-                        string host = root.GetProperty("MySqlHost").GetString();
-                        string database = root.GetProperty("MySqlDatabase").GetString();
-                        string username = root.GetProperty("MySqlUsername").GetString();
-                        string password = root.GetProperty("MySqlPassword").GetString();
-                        int port = root.GetProperty("MySqlPort").GetInt32();
-                        int timeout = root.GetProperty("MySqlTimeout").GetInt32();
+                        string host = root.TryGetProperty("MySqlHost", out var hostProperty) ? hostProperty.GetString() : "localhost";
+                        string database = root.TryGetProperty("MySqlDatabase", out var databaseProperty) ? databaseProperty.GetString() : "database";
+                        string username = root.TryGetProperty("MySqlUsername", out var usernameProperty) ? usernameProperty.GetString() : "root";
+                        string password = root.TryGetProperty("MySqlPassword", out var passwordProperty) ? passwordProperty.GetString() : "root";
+                        int port = root.TryGetProperty("MySqlPort", out var portProperty) ? portProperty.GetInt32() : 3306;
+                        int timeout = root.TryGetProperty("MySqlTimeout", out var timeoutProperty) ? timeoutProperty.GetInt32() : 30;
 
                         return $"Server={host};Database={database};User ID={username};Password={password};Port={port};CharSet=utf8mb4;Connection Timeout={timeout};";
                     }

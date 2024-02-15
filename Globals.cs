@@ -76,6 +76,7 @@ namespace SharpTimer
 
         public bool useTriggers = true;
         public bool respawnEnabled = true;
+        public bool respawnEndEnabled = true;
         public bool keysOverlayEnabled = true;
         public bool hudOverlayEnabled = true;
         public bool topEnabled = true;

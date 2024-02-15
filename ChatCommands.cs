@@ -850,7 +850,7 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void EndPlayerCommand(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player) || respawnEnabled == false) return;
+            if (!IsAllowedPlayer(player) || respawnEndEnabled == false) return;
             SharpTimerDebug($"{player.PlayerName} calling css_end...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)

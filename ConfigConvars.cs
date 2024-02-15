@@ -260,6 +260,15 @@ namespace SharpTimer
             respawnEnabled = bool.TryParse(args, out bool respawnEnabledValue) ? respawnEnabledValue : args != "0" && respawnEnabled;
         }
 
+        [ConsoleCommand("sharptimer_end_enabled", "Whether !end is enabled by default or not. Default value: false")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerRespawnEndConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            respawnEndEnabled = bool.TryParse(args, out bool respawnEndEnabledValue) ? respawnEndEnabledValue : args != "0" && respawnEndEnabled;
+        }
+
         [ConsoleCommand("sharptimer_top_enabled", "Whether !top is enabled by default or not. Default value: true")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void SharpTimerTopConvar(CCSPlayerController? player, CommandInfo command)

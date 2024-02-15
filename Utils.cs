@@ -610,7 +610,16 @@ namespace SharpTimer
                 {
                     SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
                     Server.ExecuteCommand("execifexists SharpTimer/custom_exec.cfg");
-                    if (execCustomMapCFG == true) Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{GetClosestMapCFGMatch()}");
+
+                    if (execCustomMapCFG == true)
+                    {
+                        string MapExecFile = GetClosestMapCFGMatch();
+                        if (!string.IsNullOrEmpty(MapExecFile))
+                            Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{MapExecFile}");
+                        else
+                            SharpTimerError("MapExec Error: file name returned null");
+                    }
+
                     if (hideAllPlayers == true) Server.ExecuteCommand($"mp_teammates_are_enemies 1");
                     if (enableSRreplayBot)
                     {
@@ -662,7 +671,16 @@ namespace SharpTimer
             {
                 SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
                 Server.ExecuteCommand("execifexists SharpTimer/custom_exec.cfg");
-                if (execCustomMapCFG == true) Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{GetClosestMapCFGMatch()}");
+
+                if (execCustomMapCFG == true)
+                {
+                    string MapExecFile = GetClosestMapCFGMatch();
+                    if (!string.IsNullOrEmpty(MapExecFile))
+                        Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{MapExecFile}");
+                    else
+                        SharpTimerError("MapExec Error: file name returned null");
+                }
+
                 if (hideAllPlayers == true) Server.ExecuteCommand($"mp_teammates_are_enemies 1");
                 if (enableSRreplayBot)
                 {
@@ -1078,7 +1096,22 @@ namespace SharpTimer
 
         public string GetClosestMapCFGMatch()
         {
-            string[] configFiles = Directory.GetFiles(gameDir + "/csgo/cfg/SharpTimer/MapData/MapExecs", "*.cfg");
+            string[] configFiles;
+            try
+            {
+                configFiles = Directory.GetFiles(gameDir + "/csgo/cfg/SharpTimer/MapData/MapExecs", "*.cfg");
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError("Error accessing MapExec directory: " + ex.Message);
+                return null;
+            }
+
+            if (configFiles == null || configFiles.Length == 0)
+            {
+                SharpTimerError("No MapExec files found.");
+                return null;
+            }
 
             string closestMatch = string.Empty;
             int closestMatchLength = int.MaxValue;
@@ -1097,6 +1130,12 @@ namespace SharpTimer
                     closestMatch = fileName + ".cfg";
                     closestMatchLength = fileName.Length;
                 }
+            }
+
+            if (string.IsNullOrEmpty(closestMatch))
+            {
+                SharpTimerError("No closest MapExec match found.");
+                return null;
             }
 
             return closestMatch;

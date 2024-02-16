@@ -373,12 +373,12 @@ namespace SharpTimer
                             playerTimer.BonusTimerTicks++;
                         }
 
-                        if (!useTriggers && !playerTimer.IsTimerBlocked)
+                        if (useTriggers == false && playerTimer.IsTimerBlocked == false)
                         {
                             CheckPlayerCoords(player);
                         }
 
-                        if (triggerPushFixEnabled)
+                        if (triggerPushFixEnabled == true)
                         {
                             CheckPlayerTriggerPushCoords(player);
                         }
@@ -607,15 +607,13 @@ namespace SharpTimer
 
         private void CheckPlayerCoords(CCSPlayerController? player)
         {
-            if (player == null || !IsAllowedPlayer(player)) return;
+            if (player == null || !IsAllowedPlayer(player) || useTriggers == true) return;
 
             try
             {
-                Vector incorrectVector = new Vector(0, 0, 0);
                 Vector? playerPos = player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin;
 
-                if (playerPos == null || currentMapStartC1 == incorrectVector || currentMapStartC2 == incorrectVector ||
-                    currentMapEndC1 == incorrectVector || currentMapEndC2 == incorrectVector)
+                if (playerPos == null || currentMapStartC1 != null || currentMapStartC2 != null || currentMapEndC1 != null|| currentMapEndC2 != null)
                 {
                     return;
                 }
@@ -1552,7 +1550,7 @@ namespace SharpTimer
 
         }
 
-        public async void OnTimerStop(CCSPlayerController? player)
+        public void OnTimerStop(CCSPlayerController? player)
         {
             if (!IsAllowedPlayer(player) || playerTimers[player.Slot].IsTimerRunning == false) return;
 

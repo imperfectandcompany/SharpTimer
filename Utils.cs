@@ -935,7 +935,7 @@ namespace SharpTimer
                         useTriggers = true;
                     }
 
-                    if (useTriggers == false)
+                    if (useTriggers == false && currentMapStartC1 != null && currentMapStartC2 != null && currentMapEndC1 != null && currentMapEndC2 != null)
                     {
                         DrawWireframe3D(currentMapStartC1, currentMapStartC2, startBeamColor);
                         DrawWireframe3D(currentMapEndC1, currentMapEndC2, endBeamColor);
@@ -956,7 +956,7 @@ namespace SharpTimer
                 SharpTimerError($"Error in LoadMapData: {ex.Message}");
             }
 
-            if (useTriggers == false)
+            if (useTriggers == false && currentMapStartC1 != null && currentMapStartC2 != null && currentMapEndC1 != null && currentMapEndC2 != null)
             {
                 DrawWireframe3D(currentMapStartC1, currentMapStartC2, startBeamColor);
                 DrawWireframe3D(currentMapEndC1, currentMapEndC2, endBeamColor);
@@ -986,10 +986,10 @@ namespace SharpTimer
             stageTriggerCount = 0;
             useStageTriggers = false;
 
-            currentMapStartC1 = new Vector(0, 0, 0);
-            currentMapStartC2 = new Vector(0, 0, 0);
-            currentMapEndC1 = new Vector(0, 0, 0);
-            currentMapEndC2 = new Vector(0, 0, 0);
+            currentMapStartC1 = null;
+            currentMapStartC2 = null;
+            currentMapEndC1 = null;
+            currentMapEndC2 = null;
 
             currentRespawnPos = null;
             currentRespawnAng = null;

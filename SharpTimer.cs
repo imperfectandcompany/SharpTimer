@@ -151,16 +151,19 @@ namespace SharpTimer
                         if (stageTriggers[caller.Handle] == 1)
                         {
                             playerTimers[player.Slot].CurrentMapStage = 1;
+                            return HookResult.Continue;
                         }
                         else
                         {
                             _ = HandlePlayerStageTimes(player, caller.Handle);
+                            return HookResult.Continue;
                         }
                     }
 
                     if (useCheckpointTriggers == true && cpTriggers.ContainsKey(caller.Handle) && playerTimers[player.Slot].IsTimerBlocked == false && playerTimers[player.Slot].IsTimerRunning == true && IsAllowedPlayer(player))
                     {
                         _ = HandlePlayerCheckpointTimes(player, caller.Handle);
+                        return HookResult.Continue;
                     }
 
                     if (IsValidEndTriggerName(caller.Entity.Name.ToString()) && IsAllowedPlayer(player) && playerTimers[player.Slot].IsTimerRunning && !playerTimers[player.Slot].IsTimerBlocked)

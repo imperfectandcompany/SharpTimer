@@ -413,6 +413,15 @@ namespace SharpTimer
             return new QAngle(0, 0, 0);
         }
 
+        public static double Distance(Vector vector1, Vector vector2)
+        {
+            double deltaX = vector1.X - vector2.X;
+            double deltaY = vector1.Y - vector2.Y;
+            double deltaZ = vector1.Z - vector2.Z;
+
+            return Math.Sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
+        }
+
         public Dictionary<string, PlayerRecord> GetSortedRecords(int bonusX = 0)
         {
             string mapRecordsPath = Path.Combine(playerRecordsPath, bonusX == 0 ? $"{currentMapName}.json" : $"{currentMapName}_bonus{bonusX}.json");

@@ -3,10 +3,8 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
-using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
@@ -116,6 +114,7 @@ namespace SharpTimer
                     playerTimers[playerSlot].StageTimes = new Dictionary<int, int>();
                     playerTimers[playerSlot].StageVelos = new Dictionary<int, string>();
                     if (AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimers[playerSlot].ZoneToolWire = new Dictionary<int, CBeam>();
+                    if (jumpStatsEnabled) playerJumpStats[playerSlot] = new PlayerJumpStats();
                     playerTimers[playerSlot].CurrentMapStage = 0;
                     playerTimers[playerSlot].CurrentMapCheckpoint = 0;
                     playerTimers[playerSlot].IsRecordingReplay = false;
@@ -298,16 +297,13 @@ namespace SharpTimer
                             continue;
                         }
 
-                        //SharpTimerDebug($"Player Pawn Value.EntHandle.Index {player.Pawn.Value.EntityHandle.Index}");
-                        //SharpTimerDebug($"Player Pawn Index {player.Pawn.Index}");
-                        //SharpTimerDebug($"Player Pawn Value.Index {player.Pawn.Value.Index}");
-
                         bool isTimerRunning = playerTimer.IsTimerRunning;
                         int timerTicks = playerTimer.TimerTicks;
                         PlayerButtons? playerButtons = player.Buttons;
+                        Vector playerSpeed = player.PlayerPawn.Value.AbsVelocity;
 
-                        string formattedPlayerVel = Math.Round(use2DSpeed ? player.PlayerPawn.Value.AbsVelocity.Length2D()
-                                                                            : player.PlayerPawn.Value.AbsVelocity.Length())
+                        string formattedPlayerVel = Math.Round(use2DSpeed ? playerSpeed.Length2D()
+                                                                            : playerSpeed.Length())
                                                                             .ToString("0000");
                         string formattedPlayerPre = Math.Round(ParseVector(playerTimer.PreSpeed ?? "0 0 0").Length2D()).ToString("000");
                         string playerTime = FormatTime(timerTicks);
@@ -320,7 +316,6 @@ namespace SharpTimer
                                                     ? $" <font class='horizontal-center' color='red'>◉ REPLAY {FormatTime(playerReplays[player.Slot].CurrentPlaybackFrame)}</font> <br>"
                                                     : "";
 
-                        //string veloLine = $" {(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")}<font class='fontSize-s' color='{tertiaryHUDcolor}'>Speed:</font> <font class='stratum-black-italic fontSize-l' color='{secondaryHUDcolor}'>{formattedPlayerVel}</font> <font class='fontSize-s' color='gray'>({formattedPlayerPre})</font>{(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")} <br>";
                         string veloLine = $" {(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")}<font class='fontSize-s horizontal-center' color='{tertiaryHUDcolor}'>Speed:</font> <i>{(playerTimer.IsReplaying ? "<font class=''" : "<font class='fontSize-l horizontal-center'")} color='{secondaryHUDcolor}'>{formattedPlayerVel}</font></i> <font class='fontSize-s horizontal-center' color='gray'>({formattedPlayerPre})</font>{(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")} <br>";
                         string infoLine = !playerTimer.IsReplaying
                                             ? $"<font class='fontSize-s horizontal-center' color='gray'>{playerTimer.CachedPB} " + $"({playerTimer.CachedMapPlacement}) | </font>" + $"{playerTimer.RankHUDIcon} <font class='fontSize-s horizontal-center' color='gray'>" +
@@ -375,13 +370,15 @@ namespace SharpTimer
 
                         if (useTriggers == false && playerTimer.IsTimerBlocked == false)
                         {
-                            CheckPlayerCoords(player);
+                            CheckPlayerCoords(player, playerSpeed);
                         }
 
                         if (triggerPushFixEnabled == true)
                         {
-                            CheckPlayerTriggerPushCoords(player);
+                            CheckPlayerTriggerPushCoords(player, playerSpeed);
                         }
+
+                        if (jumpStatsEnabled == true) OnJumpStatTick(player, playerSpeed, player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin);
 
                         if (forcePlayerSpeedEnabled == true) ForcePlayerSpeed(player, player.Pawn.Value.WeaponServices.ActiveWeapon.Value.DesignerName);
 
@@ -398,8 +395,12 @@ namespace SharpTimer
                         {
                             foreach (var gun in player.PlayerPawn.Value.WeaponServices.MyWeapons)
                             {
-                                gun.Value.Render = Color.FromArgb(0, 255, 255, 255);
-                                gun.Value.ShadowStrength = 0.0f;
+                                if( gun.Value.Render != Color.FromArgb(0, 255, 255, 255) ||
+                                    gun.Value.ShadowStrength != 0.0f)
+                                {
+                                    gun.Value.Render = Color.FromArgb(0, 255, 255, 255);
+                                    gun.Value.ShadowStrength = 0.0f;
+                                }
                             }
                         }
 
@@ -447,7 +448,7 @@ namespace SharpTimer
                             playerTimer.TicksInAir++;
                             if (playerTimer.TicksInAir == 1)
                             {
-                                playerTimer.PreSpeed = $"{player.PlayerPawn.Value.AbsVelocity.X} {player.PlayerPawn.Value.AbsVelocity.Y} {player.PlayerPawn.Value.AbsVelocity.Z}";
+                                playerTimer.PreSpeed = $"{playerSpeed.X} {playerSpeed.Y} {playerSpeed.Z}";
                             }
                         }
                         else
@@ -502,6 +503,7 @@ namespace SharpTimer
                     bool isTimerRunning = playerTimer.IsTimerRunning;
                     int timerTicks = playerTimer.TimerTicks;
                     PlayerButtons? playerButtons;
+                    Vector targetSpeed = target.PlayerPawn.Value.AbsVelocity;
                     if (playerTimer.IsReplaying && playerReplays[target.Slot].replayFrames.Count > 0 &&
                         playerReplays[target.Slot].CurrentPlaybackFrame >= 0 &&
                         playerReplays[target.Slot].CurrentPlaybackFrame < playerReplays[target.Slot].replayFrames.Count)
@@ -513,8 +515,8 @@ namespace SharpTimer
                         playerButtons = target.Buttons;
                     }
 
-                    string formattedPlayerVel = Math.Round(use2DSpeed ? target.PlayerPawn.Value.AbsVelocity.Length2D()
-                                                                        : target.PlayerPawn.Value.AbsVelocity.Length())
+                    string formattedPlayerVel = Math.Round(use2DSpeed ? targetSpeed.Length2D()
+                                                                        : targetSpeed.Length())
                                                                         .ToString("0000");
                     string formattedPlayerPre = Math.Round(ParseVector(playerTimer.PreSpeed ?? "0 0 0").Length2D()).ToString("000");
                     string playerTime = FormatTime(timerTicks);
@@ -527,7 +529,6 @@ namespace SharpTimer
                                                 ? $" <font class='' color='red'>◉ REPLAY {FormatTime(playerReplays[target.Slot].CurrentPlaybackFrame)}</font> <br>"
                                                 : "";
 
-                    //string veloLine = $" {(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")}<font class='fontSize-s' color='{tertiaryHUDcolor}'>Speed:</font> <font class='' color='{secondaryHUDcolor}'>{formattedPlayerVel}</font> <font class='fontSize-s' color='gray'>({formattedPlayerPre})</font>{(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")} <br>";
                     string veloLine = $" {(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")}<font class='fontSize-s' color='{tertiaryHUDcolor}'>Speed:</font> <font class='' color='{secondaryHUDcolor}'>{formattedPlayerVel}</font> <font class='fontSize-s' color='gray'>({formattedPlayerPre})</font>{(playerTimer.IsTester ? playerTimer.TesterSparkleGif : "")} <br>";
                     string infoLine = !playerTimer.IsReplaying
                                         ? $"<font class='fontSize-s' color='gray'>{playerTimer.CachedPB} " + $"{playerTimer.CachedMapPlacement} | </font>" + $"{playerTimer.RankHUDIcon} <font class='fontSize-s' color='gray'>" +
@@ -561,11 +562,6 @@ namespace SharpTimer
                         @event.FireEvent(false);
                         @event = null;
                     }
-
-                    /* if (playerTimer.HideKeys != true && playerTimer.IsReplaying != true)
-                    {
-                        player.PrintToCenter(keysLine);
-                    } */
 
                     playerButtons = null;
                     formattedPlayerVel = null;
@@ -605,7 +601,7 @@ namespace SharpTimer
             }
         }
 
-        private void CheckPlayerCoords(CCSPlayerController? player)
+        private void CheckPlayerCoords(CCSPlayerController? player, Vector playerSpeed)
         {
             if (player == null || !IsAllowedPlayer(player) || useTriggers == true) return;
 
@@ -631,8 +627,8 @@ namespace SharpTimer
                     OnTimerStart(player);
                     if (enableReplays) OnRecordingStart(player);
 
-                    if ((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length()) > maxStartingSpeed) ||
-                        (maxStartingSpeedEnabled == true && use2DSpeed == true && Math.Round(player.PlayerPawn.Value.AbsVelocity.Length2D()) > maxStartingSpeed))
+                    if ((maxStartingSpeedEnabled == true && use2DSpeed == false && Math.Round(playerSpeed.Length()) > maxStartingSpeed) ||
+                        (maxStartingSpeedEnabled == true && use2DSpeed == true && Math.Round(playerSpeed.Length2D()) > maxStartingSpeed))
                     {
                         Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
                         adjustVelocity(player, maxStartingSpeed, true);
@@ -645,7 +641,7 @@ namespace SharpTimer
             }
         }
 
-        private void CheckPlayerTriggerPushCoords(CCSPlayerController player)
+        private void CheckPlayerTriggerPushCoords(CCSPlayerController player, Vector playerSpeed)
         {
             try
             {
@@ -659,7 +655,7 @@ namespace SharpTimer
                 if (data != null)
                 {
                     var (pushDirEntitySpace, pushSpeed) = data.Value;
-                    float currentSpeed = player.PlayerPawn.Value.AbsVelocity.Length();
+                    float currentSpeed = playerSpeed.Length();
                     float speedDifference = pushSpeed - currentSpeed;
 
                     if (speedDifference > 0)

@@ -149,6 +149,20 @@ namespace SharpTimer
         public string? SetRespawnAng { get; set; }
     }
 
+    public class PlayerJumpStats
+    {
+        public int FramesOnGround { get; set; }
+        public int LastFramesOnGround { get; set; }
+        public bool OnGround { get; set; }
+        public bool LastOnGround { get; set; }
+        public string? LastPos { get; set; }
+        public string? LastSpeed { get; set; }
+        public string? JumpPos { get; set; }
+        public string? JumpSpeed { get; set; }
+        public bool Jumped { get; set; }
+        public string? LastJumpType { get; set; }
+    }
+
     //Replay stuff
     public class PlayerReplays
     {

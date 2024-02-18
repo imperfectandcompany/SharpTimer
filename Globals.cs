@@ -13,6 +13,7 @@ namespace SharpTimer
         public override string ModuleDescription => "A simple CSS Timer Plugin";
 
         private Dictionary<int, PlayerTimerInfo> playerTimers = new Dictionary<int, PlayerTimerInfo>();
+        private Dictionary<int, PlayerJumpStats> playerJumpStats = new Dictionary<int, PlayerJumpStats>();
         private Dictionary<int, PlayerReplays> playerReplays = new Dictionary<int, PlayerReplays>();
         private Dictionary<int, List<PlayerCheckpoint>> playerCheckpoints = new Dictionary<int, List<PlayerCheckpoint>>();
         private Dictionary<int, CCSPlayerController> connectedPlayers = new Dictionary<int, CCSPlayerController>();
@@ -76,7 +77,7 @@ namespace SharpTimer
 
         public bool useTriggers = true;
         public bool respawnEnabled = true;
-        public bool respawnEndEnabled = true;
+        public bool respawnEndEnabled = false;
         public bool keysOverlayEnabled = true;
         public bool hudOverlayEnabled = true;
         public bool topEnabled = true;
@@ -111,6 +112,8 @@ namespace SharpTimer
         public int altVeloMaxSpeed = 3000;
         public bool forcePlayerSpeedEnabled = false;
         public float forcedPlayerSpeed = 250;
+
+        public bool jumpStatsEnabled = true;
 
         public bool execCustomMapCFG = false;
 

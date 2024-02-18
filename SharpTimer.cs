@@ -58,18 +58,21 @@ namespace SharpTimer
 
             RegisterEventHandler<EventPlayerTeam>((@event, info) =>
             {
-                var bot = @event.Userid;
-
-                if (bot.IsValid && bot.IsBot)
+                if (@event.Userid.IsValid)
                 {
-                    if (startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile)
+                    var bot = @event.Userid;
+
+                    if (bot.IsValid && bot.IsBot)
                     {
-                        AddTimer(4.0f, () =>
+                        if (startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile)
                         {
-                            Server.ExecuteCommand($"kickid {bot.Slot}");
-                            SharpTimerDebug($"Kicking unused bot on spawn...");
-                        });
-                        return HookResult.Continue;
+                            AddTimer(4.0f, () =>
+                            {
+                                Server.ExecuteCommand($"kickid {bot.Slot}");
+                                SharpTimerDebug($"Kicking unused bot on spawn...");
+                            });
+                            return HookResult.Continue;
+                        }
                     }
                     return HookResult.Continue;
                 }
@@ -88,36 +91,72 @@ namespace SharpTimer
 
             RegisterEventHandler<EventPlayerSpawned>((@event, info) =>
             {
-                if (@event.Userid == null) return HookResult.Continue;
-
-                var player = @event.Userid;
-
-                if (player.IsBot || !player.IsValid || player == null)
+                if (@event.Userid.IsValid)
                 {
-                    return HookResult.Continue;
+                    if (@event.Userid == null) return HookResult.Continue;
+
+                    var player = @event.Userid;
+
+                    if (player.IsBot || !player.IsValid || player == null)
+                    {
+                        return HookResult.Continue;
+                    }
+                    else
+                    {
+                        if (removeCollisionEnabled == true && player.PlayerPawn != null)
+                        {
+                            RemovePlayerCollision(player);
+                        }
+                        specTargets[player.Pawn.Value.EntityHandle.Index] = new CCSPlayerController(player.Handle);
+                        return HookResult.Continue;
+                    }
                 }
                 else
                 {
-                    if (removeCollisionEnabled == true && player.PlayerPawn != null)
-                    {
-                        RemovePlayerCollision(player);
-                    }
-                    specTargets[player.Pawn.Value.EntityHandle.Index] = new CCSPlayerController(player.Handle);
                     return HookResult.Continue;
                 }
             });
 
             RegisterEventHandler<EventPlayerDisconnect>((@event, info) =>
             {
-                var player = @event.Userid;
-
-                if (player.IsBot || !player.IsValid)
+                if (@event.Userid.IsValid)
                 {
-                    return HookResult.Continue;
+                    var player = @event.Userid;
+
+                    if (player.IsBot || !player.IsValid)
+                    {
+                        return HookResult.Continue;
+                    }
+                    else
+                    {
+                        OnPlayerDisconnect(player);
+                        return HookResult.Continue;
+                    }
                 }
                 else
                 {
-                    OnPlayerDisconnect(player);
+                    return HookResult.Continue;
+                }
+            });
+
+            RegisterEventHandler<EventPlayerJump>((@event, info) =>
+            {
+                if (@event.Userid.IsValid)
+                {
+                    var player = @event.Userid;
+
+                    if (player.IsBot || !player.IsValid)
+                    {
+                        return HookResult.Continue;
+                    }
+                    else
+                    {
+                        if (jumpStatsEnabled == true) OnJumpStatJumped(player);
+                        return HookResult.Continue;
+                    }
+                }
+                else
+                {
                     return HookResult.Continue;
                 }
             });
@@ -416,6 +455,8 @@ namespace SharpTimer
                         SharpTimerDebug("Player not allowed in trigger_teleport hook.");
                         return HookResult.Continue;
                     }
+
+                    if (jumpStatsEnabled) InvalidateJS(player.Slot);
 
                     return HookResult.Continue;
                 }

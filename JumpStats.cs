@@ -13,7 +13,11 @@ namespace SharpTimer
             {
                 int playerSlot = player.Slot;
                 playerJumpStats[playerSlot].Jumped = true;
+                playerJumpStats[playerSlot].OldJumpPos = string.IsNullOrEmpty(playerJumpStats[playerSlot].JumpPos)
+                                                            ? $"{player.Pawn.Value.AbsOrigin.X} {player.Pawn.Value.AbsOrigin.Y} {player.Pawn.Value.AbsOrigin.Z}"
+                                                            : playerJumpStats[playerSlot].JumpPos;
                 playerJumpStats[playerSlot].JumpPos = $"{player.Pawn.Value.AbsOrigin.X} {player.Pawn.Value.AbsOrigin.Y} {player.Pawn.Value.AbsOrigin.Z}";
+                Console.WriteLine($"Player Jumped!");
             }
         }
 
@@ -21,6 +25,8 @@ namespace SharpTimer
         {
             if (playerJumpStats.TryGetValue(player.Slot, out PlayerJumpStats? playerJumpStat))
             {
+
+
                 playerJumpStat.OnGround = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND; //need hull trace for this to detect surf etc
 
                 if (playerJumpStat.OnGround)
@@ -41,28 +47,50 @@ namespace SharpTimer
                         {
                             char color = GetJSColor(distance);
                             playerJumpStat.LastJumpType = "LJ";
-                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{color} LJ{ChatColors.Default}: {color}{Math.Round((distance * 10) * 0.1, 3)}");
+                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}LJ{ChatColors.Default}]{ChatColors.Default}: " +
+                                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
+                                                            $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
                         }
                         else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && playerJumpStat.LastJumpType == "LJ")
                         {
                             char color = GetJSColor(distance);
                             playerJumpStat.LastJumpType = "BH";
-                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{color} BH{ChatColors.Default}: {color}{Math.Round((distance * 10) * 0.1, 3)}");
+                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}BH{ChatColors.Default}]: " +
+                                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
+                                                            $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
                         }
                         else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "BH" || playerJumpStat.LastJumpType == "MBH"))
                         {
                             char color = GetJSColor(distance);
                             playerJumpStat.LastJumpType = "MBH";
-                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{color} MBH{ChatColors.Default}: {color}{Math.Round((distance * 10) * 0.1, 3)}");
+                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}MBH{ChatColors.Default}]: " +
+                                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
+                                                            $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
                         }
                     }
 
                     playerJumpStat.Jumped = false;
                 }
+                else if (playerJumpStat.FramesOnGround == 0)
+                {
+                    if (playerJumpStat.Jumped)
+                    {
+                        double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos), playerpos);
+                        if (distance != 0 && !playerJumpStat.LastOnGround && playerJumpStat.LastDucked && ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) != PlayerFlags.FL_DUCKING)
+                        {
+                            char color = GetJSColor(distance);
+                            playerJumpStat.LastJumpType = "JB";
+                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}JB{ChatColors.Default}]: " +
+                                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
+                                                            $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
+                        }
+                    }
+                }
 
                 playerJumpStat.LastOnGround = playerJumpStat.OnGround;
                 playerJumpStat.LastPos = $"{playerpos.X} {playerpos.Y} {playerpos.Z}";
-                playerJumpStat.LastSpeed = $"{velocity.X} {velocity.Y} {velocity.Z}";
+                playerJumpStat.LastDucked = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) == PlayerFlags.FL_DUCKING;
+                if (playerJumpStat.OnGround) playerJumpStat.LastSpeed = $"{velocity.X} {velocity.Y} {velocity.Z}";
                 if (playerJumpStat.OnGround) playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
             }
         }
@@ -71,48 +99,56 @@ namespace SharpTimer
         {
             if (distance < 230)
             {
-                return '\x08';
+                return ChatColors.LightBlue;
             }
             else if (distance < 235)
             {
-                return '\x0B';
+                return ChatColors.Blue;
             }
             else if (distance < 240)
             {
-                return '\x04';
+                return ChatColors.Purple;
             }
             else if (distance < 244)
             {
-                return '\x02';
+                return ChatColors.LightRed;
             }
             else if (distance < 246)
             {
-                return '\x10';
+                return ChatColors.Red;
             }
             else
             {
-                return '\x0E';
+                return ChatColors.Gold;
             }
         }
 
         static double Calculate2DDistanceWithVerticalMargins(Vector vector1, Vector vector2)
         {
             float verticalDistance = Math.Abs(vector1.Z - vector2.Z);
-            Console.WriteLine($"DEBUG {verticalDistance}");
 
-            if (verticalDistance > 31) return 0;
+            if (verticalDistance > 31)
+            {
+                return 0;
+            }
 
             double distance2D = Distance(vector1, vector2);
 
             if (distance2D > 50)
-                return distance2D + 32.0f;
+            {
+                double result = distance2D + 32.0f;
+                return result;
+            }
             else
+            {
                 return 0;
+            }
         }
 
         public void InvalidateJS(int playerSlot)
         {
-            if(playerJumpStats.TryGetValue(playerSlot, out PlayerJumpStats? value)) {
+            if (playerJumpStats.TryGetValue(playerSlot, out PlayerJumpStats? value))
+            {
                 value.LastFramesOnGround = 0;
                 value.Jumped = false;
             }

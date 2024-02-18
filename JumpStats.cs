@@ -51,7 +51,7 @@ namespace SharpTimer
                                                             $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
                                                             $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
                         }
-                        else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && playerJumpStat.LastJumpType == "LJ")
+                        else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "LJ" || playerJumpStat.LastJumpType == "JB"))
                         {
                             char color = GetJSColor(distance);
                             playerJumpStat.LastJumpType = "BH";
@@ -59,7 +59,7 @@ namespace SharpTimer
                                                             $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
                                                             $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
                         }
-                        else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "BH" || playerJumpStat.LastJumpType == "MBH"))
+                        else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "BH" || playerJumpStat.LastJumpType == "MBH" || playerJumpStat.LastJumpType == "JB"))
                         {
                             char color = GetJSColor(distance);
                             playerJumpStat.LastJumpType = "MBH";
@@ -83,6 +83,7 @@ namespace SharpTimer
                             player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}JB{ChatColors.Default}]: " +
                                                             $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
                                                             $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
+                            playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
                         }
                     }
                 }

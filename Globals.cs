@@ -113,7 +113,7 @@ namespace SharpTimer
         public bool forcePlayerSpeedEnabled = false;
         public float forcedPlayerSpeed = 250;
 
-        public bool jumpStatsEnabled = true;
+        public bool jumpStatsEnabled = false;
 
         public bool execCustomMapCFG = false;
 

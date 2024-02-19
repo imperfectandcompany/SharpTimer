@@ -1,3 +1,4 @@
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
@@ -50,6 +51,7 @@ namespace SharpTimer
 
                 if (playerJumpStat.FramesOnGround == 1)
                 {
+                    SharpTimerDebug($"{Server.TickCount} playerJumpStat.Landed == true; FramesOnGround = 1");
                     if (playerJumpStat.Jumped)
                     {
                         double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.JumpPos), playerpos);
@@ -71,9 +73,11 @@ namespace SharpTimer
                     }
 
                     playerJumpStat.Jumped = false;
+                    playerJumpStat.LandedFromSound = false;
                 }
                 else if (playerJumpStat.LandedFromSound == true) //workaround for PlayerFlags.FL_ONGROUND being 1 frame late
                 {
+                    SharpTimerDebug($"{Server.TickCount} playerJumpStat.LandedFromSound == true; FramesOnGround = {playerJumpStat.FramesOnGround}");
                     if (playerJumpStat.Jumped)
                     {
                         double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos), playerpos);
@@ -82,10 +86,15 @@ namespace SharpTimer
                             playerJumpStat.LastJumpType = "JB";
                             PrintJS(player, playerJumpStat.LastJumpType, distance, playerJumpStat.LastSpeed);
                             playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
+                            playerJumpStat.Jumped = true; // assume player jumped again if JB is successful
                         }
                     }
-                    playerJumpStat.Jumped = false;
+                    else
+                    {
+                        playerJumpStat.Jumped = false;
+                    }
                     playerJumpStat.LandedFromSound = false;
+                    playerJumpStat.FramesOnGround++;
                 }
 
                 playerJumpStat.LastOnGround = playerJumpStat.OnGround;

@@ -51,7 +51,6 @@ namespace SharpTimer
 
                 if (playerJumpStat.FramesOnGround == 1)
                 {
-                    SharpTimerDebug($"{Server.TickCount} playerJumpStat.Landed == true; FramesOnGround = 1");
                     if (playerJumpStat.Jumped)
                     {
                         double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.JumpPos), playerpos);
@@ -77,7 +76,6 @@ namespace SharpTimer
                 }
                 else if (playerJumpStat.LandedFromSound == true) //workaround for PlayerFlags.FL_ONGROUND being 1 frame late
                 {
-                    SharpTimerDebug($"{Server.TickCount} playerJumpStat.LandedFromSound == true; FramesOnGround = {playerJumpStat.FramesOnGround}");
                     if (playerJumpStat.Jumped)
                     {
                         double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos), playerpos, true);
@@ -137,7 +135,7 @@ namespace SharpTimer
         {
             float verticalDistance = Math.Abs(vector1.Z - vector2.Z);
 
-            if (verticalDistance > 31 && noVertCheck == true)
+            if (verticalDistance > 31 && noVertCheck == false)
             {
                 return 0;
             }
@@ -167,7 +165,7 @@ namespace SharpTimer
         public void PrintJS(CCSPlayerController player, string type, double distance, string lastSpeed)
         {
             char color = GetJSColor(distance);
-            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}{type}{ChatColors.Default}]: " +
+            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{type}]: " +
                                             $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
                                             $"[Pre:{Math.Round(ParseVector(lastSpeed).Length2D(), 3)} | Strafes: 0]");
         }

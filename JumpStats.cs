@@ -80,7 +80,7 @@ namespace SharpTimer
                     SharpTimerDebug($"{Server.TickCount} playerJumpStat.LandedFromSound == true; FramesOnGround = {playerJumpStat.FramesOnGround}");
                     if (playerJumpStat.Jumped)
                     {
-                        double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos), playerpos);
+                        double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos), playerpos, true);
                         if (distance != 0 && !playerJumpStat.LastOnGround && playerJumpStat.LastDucked && ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) != PlayerFlags.FL_DUCKING)
                         {
                             playerJumpStat.LastJumpType = "JB";
@@ -133,11 +133,11 @@ namespace SharpTimer
             }
         }
 
-        static double Calculate2DDistanceWithVerticalMargins(Vector vector1, Vector vector2)
+        static double Calculate2DDistanceWithVerticalMargins(Vector vector1, Vector vector2, bool noVertCheck = false)
         {
             float verticalDistance = Math.Abs(vector1.Z - vector2.Z);
 
-            if (verticalDistance > 31)
+            if (verticalDistance > 31 && noVertCheck == true)
             {
                 return 0;
             }

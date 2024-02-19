@@ -163,6 +163,7 @@ namespace SharpTimer
         public bool Jumped { get; set; }
         public string? LastJumpType { get; set; }
         public bool LastDucked { get; set; }
+        public bool LandedFromSound { get; set; }
     }
 
     //Replay stuff

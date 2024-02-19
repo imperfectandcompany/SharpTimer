@@ -161,6 +161,28 @@ namespace SharpTimer
                 }
             });
 
+            RegisterEventHandler<EventPlayerSound>((@event, info) =>
+            {
+                if (@event.Userid.IsValid)
+                {
+                    var player = @event.Userid;
+
+                    if (player.IsBot || !player.IsValid)
+                    {
+                        return HookResult.Continue;
+                    }
+                    else
+                    {
+                        if (jumpStatsEnabled == true &&  @event.Step == true) OnJumpStatSound(player);
+                        return HookResult.Continue;
+                    }
+                }
+                else
+                {
+                    return HookResult.Continue;
+                }
+            });
+
             RegisterListener<Listeners.OnTick>(TimerOnTick);
 
             HookEntityOutput("trigger_multiple", "OnStartTouch", (CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay) =>

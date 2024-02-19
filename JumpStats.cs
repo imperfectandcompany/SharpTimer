@@ -17,7 +17,19 @@ namespace SharpTimer
                                                             ? $"{player.Pawn.Value.AbsOrigin.X} {player.Pawn.Value.AbsOrigin.Y} {player.Pawn.Value.AbsOrigin.Z}"
                                                             : playerJumpStats[playerSlot].JumpPos;
                 playerJumpStats[playerSlot].JumpPos = $"{player.Pawn.Value.AbsOrigin.X} {player.Pawn.Value.AbsOrigin.Y} {player.Pawn.Value.AbsOrigin.Z}";
-                Console.WriteLine($"Player Jumped!");
+            }
+        }
+
+        public void OnJumpStatSound(CCSPlayerController player)
+        {
+            if (IsAllowedPlayer(player))
+            {
+                int playerSlot = player.Slot;
+                if (playerJumpStats[playerSlot].Jumped == true && playerJumpStats[playerSlot].FramesOnGround == 0)
+                {
+                    playerJumpStats[playerSlot].LandedFromSound = true;
+                }
+
             }
         }
 
@@ -25,8 +37,6 @@ namespace SharpTimer
         {
             if (playerJumpStats.TryGetValue(player.Slot, out PlayerJumpStats? playerJumpStat))
             {
-
-
                 playerJumpStat.OnGround = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND; //need hull trace for this to detect surf etc
 
                 if (playerJumpStat.OnGround)
@@ -45,47 +55,37 @@ namespace SharpTimer
                         double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.JumpPos), playerpos);
                         if (distance != 0 && playerJumpStat.LastFramesOnGround > 2)
                         {
-                            char color = GetJSColor(distance);
                             playerJumpStat.LastJumpType = "LJ";
-                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}LJ{ChatColors.Default}]{ChatColors.Default}: " +
-                                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
-                                                            $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
+                            PrintJS(player, playerJumpStat.LastJumpType, distance, playerJumpStat.LastSpeed);
                         }
                         else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "LJ" || playerJumpStat.LastJumpType == "JB"))
                         {
-                            char color = GetJSColor(distance);
                             playerJumpStat.LastJumpType = "BH";
-                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}BH{ChatColors.Default}]: " +
-                                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
-                                                            $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
+                            PrintJS(player, playerJumpStat.LastJumpType, distance, playerJumpStat.LastSpeed);
                         }
                         else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "BH" || playerJumpStat.LastJumpType == "MBH" || playerJumpStat.LastJumpType == "JB"))
                         {
-                            char color = GetJSColor(distance);
                             playerJumpStat.LastJumpType = "MBH";
-                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}MBH{ChatColors.Default}]: " +
-                                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
-                                                            $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
+                            PrintJS(player, playerJumpStat.LastJumpType, distance, playerJumpStat.LastSpeed);
                         }
                     }
 
                     playerJumpStat.Jumped = false;
                 }
-                else if (playerJumpStat.FramesOnGround == 0)
+                else if (playerJumpStat.LandedFromSound == true) //workaround for PlayerFlags.FL_ONGROUND being 1 frame late
                 {
                     if (playerJumpStat.Jumped)
                     {
                         double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos), playerpos);
                         if (distance != 0 && !playerJumpStat.LastOnGround && playerJumpStat.LastDucked && ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) != PlayerFlags.FL_DUCKING)
                         {
-                            char color = GetJSColor(distance);
                             playerJumpStat.LastJumpType = "JB";
-                            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}JB{ChatColors.Default}]: " +
-                                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
-                                                            $"[Pre:{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | Strafes: 0]");
+                            PrintJS(player, playerJumpStat.LastJumpType, distance, playerJumpStat.LastSpeed);
                             playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
                         }
                     }
+                    playerJumpStat.Jumped = false;
+                    playerJumpStat.LandedFromSound = false;
                 }
 
                 playerJumpStat.LastOnGround = playerJumpStat.OnGround;
@@ -153,6 +153,14 @@ namespace SharpTimer
                 value.LastFramesOnGround = 0;
                 value.Jumped = false;
             }
+        }
+
+        public void PrintJS(CCSPlayerController player, string type, double distance, string lastSpeed)
+        {
+            char color = GetJSColor(distance);
+            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{color}{type}{ChatColors.Default}]: " +
+                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
+                                            $"[Pre:{Math.Round(ParseVector(lastSpeed).Length2D(), 3)} | Strafes: 0]");
         }
     }
 }

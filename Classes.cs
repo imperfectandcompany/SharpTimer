@@ -157,6 +157,7 @@ namespace SharpTimer
         public bool LastOnGround { get; set; }
         public string? LastPos { get; set; }
         public string? LastSpeed { get; set; }
+        public string? LastEyeAngle { get; set; }
         public string? JumpPos { get; set; }
         public string? OldJumpPos { get; set; }
         public string? JumpSpeed { get; set; }
@@ -166,6 +167,7 @@ namespace SharpTimer
         public bool LastDucked { get; set; }
         public bool LandedFromSound { get; set; }
         public int Strafes { get; set; }
+        public int WTicks { get; set; }
         public List<JumpFrames> jumpFrames { get; set; } = new List<JumpFrames>();
 
         public class JumpFrames
@@ -173,8 +175,8 @@ namespace SharpTimer
             public string PositionString { get; set; }
             public string RotationString { get; set; }
             public string SpeedString { get; set; }
-            public double LastHeight { get; set; }
-            public double LastWidth { get; set; }
+            public double MaxSpeed { get; set; }
+            public double MaxHeight { get; set; }
             public ulong? LastButton { get; set; }
         }
     }

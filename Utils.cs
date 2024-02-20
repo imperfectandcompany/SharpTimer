@@ -4,6 +4,7 @@ using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Drawing;
+using System.Numerics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
@@ -430,6 +431,51 @@ namespace SharpTimer
             }
 
             return vector1.Z >= vector2.Z;
+        }
+
+        public static Matrix4x4 ToRotationMatrix(QAngle qAngle)
+        {
+            float x = qAngle.X * (float)Math.PI / 180.0f;
+            float y = qAngle.Y * (float)Math.PI / 180.0f;
+            float z = qAngle.Z * (float)Math.PI / 180.0f;
+
+            float sx = (float)Math.Sin(x);
+            float cx = (float)Math.Cos(x);
+            float sy = (float)Math.Sin(y);
+            float cy = (float)Math.Cos(y);
+            float sz = (float)Math.Sin(z);
+            float cz = (float)Math.Cos(z);
+
+            Matrix4x4 rotationMatrix = new Matrix4x4
+            {
+                M11 = cy * cz,
+                M12 = -cy * sz,
+                M13 = sy,
+                M21 = cz * sx * sy + cx * sz,
+                M22 = cx * cz - sx * sy * sz,
+                M23 = -cy * sx,
+                M31 = -cx * cz * sy + sx * sz,
+                M32 = cz * sx + cx * sy * sz,
+                M33 = cx * cy
+            };
+
+            return rotationMatrix;
+        }
+
+        public static Vector RotateVector(Vector vector, Matrix4x4 rotationMatrix)
+        {
+            Vector rotatedVector = new Vector(vector.X * rotationMatrix.M11 + vector.Y * rotationMatrix.M12 + vector.Z * rotationMatrix.M13, vector.X * rotationMatrix.M21 + vector.Y * rotationMatrix.M22 + vector.Z * rotationMatrix.M23, vector.X * rotationMatrix.M31 + vector.Y * rotationMatrix.M32 + vector.Z * rotationMatrix.M33);
+            return rotatedVector;
+        }
+
+        public static double Dot(Vector v1, Vector v2)
+        {
+            return v1.X * v2.X + v1.Y * v2.Y + v1.Z * v2.Z;
+        }
+
+        public static Vector ScalarMultiply(Vector vector, double scalar)
+        {
+            return new Vector((nint)(vector.X * scalar), (nint)(vector.Y * scalar), (nint)(vector.Z * scalar));
         }
 
         public Dictionary<string, PlayerRecord> GetSortedRecords(int bonusX = 0)

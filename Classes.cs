@@ -161,9 +161,22 @@ namespace SharpTimer
         public string? OldJumpPos { get; set; }
         public string? JumpSpeed { get; set; }
         public bool Jumped { get; set; }
+        public int JumpedTick { get; set; }
         public string? LastJumpType { get; set; }
         public bool LastDucked { get; set; }
         public bool LandedFromSound { get; set; }
+        public int Strafes { get; set; }
+        public List<JumpFrames> jumpFrames { get; set; } = new List<JumpFrames>();
+
+        public class JumpFrames
+        {
+            public string PositionString { get; set; }
+            public string RotationString { get; set; }
+            public string SpeedString { get; set; }
+            public double LastHeight { get; set; }
+            public double LastWidth { get; set; }
+            public ulong? LastButton { get; set; }
+        }
     }
 
     //Replay stuff

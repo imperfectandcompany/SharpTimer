@@ -378,7 +378,7 @@ namespace SharpTimer
                             CheckPlayerTriggerPushCoords(player, playerSpeed);
                         }
 
-                        if (jumpStatsEnabled == true) OnJumpStatTick(player, playerSpeed, player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin);
+                        if (jumpStatsEnabled == true) OnJumpStatTick(player, playerSpeed, player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin, playerButtons);
 
                         if (forcePlayerSpeedEnabled == true) ForcePlayerSpeed(player, player.Pawn.Value.WeaponServices.ActiveWeapon.Value.DesignerName);
 

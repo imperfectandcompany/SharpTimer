@@ -14,6 +14,7 @@ namespace SharpTimer
             {
                 int playerSlot = player.Slot;
                 playerJumpStats[playerSlot].Jumped = true;
+                playerJumpStats[playerSlot].JumpedTick = Server.TickCount;
                 playerJumpStats[playerSlot].OldJumpPos = string.IsNullOrEmpty(playerJumpStats[playerSlot].JumpPos)
                                                             ? $"{player.Pawn.Value.AbsOrigin.X} {player.Pawn.Value.AbsOrigin.Y} {player.Pawn.Value.AbsOrigin.Z}"
                                                             : playerJumpStats[playerSlot].JumpPos;
@@ -34,7 +35,7 @@ namespace SharpTimer
             }
         }
 
-        public void OnJumpStatTick(CCSPlayerController player, Vector velocity, Vector playerpos)
+        public void OnJumpStatTick(CCSPlayerController player, Vector velocity, Vector playerpos, PlayerButtons? buttons)
         {
             if (playerJumpStats.TryGetValue(player.Slot, out PlayerJumpStats? playerJumpStat))
             {
@@ -47,6 +48,7 @@ namespace SharpTimer
                 else
                 {
                     playerJumpStat.FramesOnGround = 0;
+                    OnJumpStatTickInAir(player, playerJumpStat, buttons, playerpos, velocity);
                 }
 
                 if (playerJumpStat.FramesOnGround == 1)
@@ -101,6 +103,42 @@ namespace SharpTimer
                 if (playerJumpStat.OnGround) playerJumpStat.LastSpeed = $"{velocity.X} {velocity.Y} {velocity.Z}";
                 if (playerJumpStat.OnGround) playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
             }
+        }
+
+        public static void OnJumpStatTickInAir(CCSPlayerController player, PlayerJumpStats playerJumpStat, PlayerButtons? buttons, Vector playerpos, Vector velocity)
+        {
+            ulong button;
+            if ((buttons & PlayerButtons.Moveleft) != 0 && (buttons & PlayerButtons.Moveright) != 0)
+                button = 0;
+            else if ((buttons & PlayerButtons.Moveleft) != 0)
+                button = (ulong)PlayerButtons.Moveleft;
+            else if ((buttons & PlayerButtons.Moveright) != 0)
+                button = (ulong)PlayerButtons.Moveright;
+            else
+                button = 0;
+
+            var LastJumpFrame = playerJumpStat.jumpFrames.Last();
+
+            if (LastJumpFrame.LastButton != (ulong?)PlayerButtons.Moveleft && LastJumpFrame.LastButton != 0)
+                playerJumpStat.Strafes++;
+            else if (LastJumpFrame.LastButton != (ulong?)PlayerButtons.Moveright && LastJumpFrame.LastButton != 0)
+                playerJumpStat.Strafes++;
+
+            double height;
+            if (IsVectorHigherThan(playerpos, ParseVector(LastJumpFrame.PositionString)))
+                height = playerpos.Z - ParseVector(playerJumpStat.LastPos).Z;
+            else
+                height = LastJumpFrame?.LastHeight ?? 0;
+            
+            var JumpFrame = new PlayerJumpStats.JumpFrames
+            {
+                PositionString = $"{playerpos.X} {playerpos.Y} {playerpos.Z}",
+                SpeedString = $"{velocity.X} {velocity.Y} {velocity.Z}",
+                LastButton = button,
+                LastHeight = height
+            };
+
+            playerJumpStat.jumpFrames.Add(JumpFrame);
         }
 
         public static char GetJSColor(double distance)
@@ -165,9 +203,13 @@ namespace SharpTimer
         public void PrintJS(CCSPlayerController player, string type, double distance, string lastSpeed)
         {
             char color = GetJSColor(distance);
-            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: " + $"{ChatColors.Default}[{type}]: " +
-                                            $"{color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Default} " +
-                                            $"[Pre:{Math.Round(ParseVector(lastSpeed).Length2D(), 3)} | Strafes: 0]");
+            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: {ChatColors.Grey}" +
+                                            $"{type}: {color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Grey} | " +
+                                            $"Pre: {primaryChatColor}{Math.Round(ParseVector(lastSpeed).Length2D(), 3)}{ChatColors.Grey} | " +
+                                            $"Max {primaryChatColor}0{ChatColors.Grey} | " +
+                                            $"Strafes: {primaryChatColor}0{ChatColors.Grey} | " +
+                                            $"Height {primaryChatColor}0{ChatColors.Grey} | " +
+                                            $"Width {primaryChatColor}0{ChatColors.Grey}");
         }
     }
 }

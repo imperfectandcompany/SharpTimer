@@ -422,6 +422,16 @@ namespace SharpTimer
             return Math.Sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
         }
 
+        public static bool IsVectorHigherThan(Vector vector1, Vector vector2)
+        {
+            if (vector1 == null || vector2 == null)
+            {
+                return false;
+            }
+
+            return vector1.Z >= vector2.Z;
+        }
+
         public Dictionary<string, PlayerRecord> GetSortedRecords(int bonusX = 0)
         {
             string mapRecordsPath = Path.Combine(playerRecordsPath, bonusX == 0 ? $"{currentMapName}.json" : $"{currentMapName}_bonus{bonusX}.json");

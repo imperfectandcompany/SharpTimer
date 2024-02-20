@@ -152,7 +152,10 @@ namespace SharpTimer
 
                 double maxHeight;
                 if (IsVectorHigherThan(playerpos, ParseVector(LastJumpFrame.PositionString)))
-                    maxHeight = playerpos.Z - ParseVector(playerJumpStat.OldJumpPos).Z;
+                    if(((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) == PlayerFlags.FL_DUCKING)
+                        maxHeight = (playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z) - 18; //remove 18units when crouching mid air
+                    else
+                        maxHeight = playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z;
                 else
                     maxHeight = LastJumpFrame?.MaxHeight ?? 0;
 

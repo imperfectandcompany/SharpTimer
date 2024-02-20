@@ -223,7 +223,7 @@ namespace SharpTimer
 
             double distance2D = Distance(vector1, vector2);
 
-            if (distance2D > jumpStatsMinDist)
+            if (distance2D > jumpStatsMinDist || noVertCheck == true)
             {
                 double result = distance2D + 32.0f;
                 return result;

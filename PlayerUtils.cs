@@ -19,13 +19,16 @@ namespace SharpTimer
                 return false;
             }
 
+            int playerSlot = player.Slot;
+
             CsTeam teamNum = (CsTeam)player.TeamNum;
             bool isTeamValid = teamNum == CsTeam.CounterTerrorist || teamNum == CsTeam.Terrorist;
 
             bool isTeamSpectatorOrNone = teamNum != CsTeam.Spectator && teamNum != CsTeam.None;
-            bool isConnected = connectedPlayers.ContainsKey(player.Slot) && playerTimers.ContainsKey(player.Slot);
+            bool isConnected = connectedPlayers.ContainsKey(playerSlot) && playerTimers.ContainsKey(playerSlot);
+            bool isConnectedJS = !jumpStatsEnabled || playerJumpStats.ContainsKey(playerSlot);
 
-            return isTeamValid && isTeamSpectatorOrNone && isConnected;
+            return isTeamValid && isTeamSpectatorOrNone && isConnected && isConnectedJS;
         }
 
         private bool IsAllowedSpectator(CCSPlayerController? player)

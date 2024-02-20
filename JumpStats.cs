@@ -15,7 +15,6 @@ namespace SharpTimer
             {
                 int playerSlot = player.Slot;
                 playerJumpStats[playerSlot].Jumped = true;
-                playerJumpStats[playerSlot].JumpedTick = Server.TickCount;
                 playerJumpStats[playerSlot].OldJumpPos = string.IsNullOrEmpty(playerJumpStats[playerSlot].JumpPos)
                                                             ? $"{player.Pawn.Value.AbsOrigin.X} {player.Pawn.Value.AbsOrigin.Y} {player.Pawn.Value.AbsOrigin.Z}"
                                                             : playerJumpStats[playerSlot].JumpPos;
@@ -32,87 +31,93 @@ namespace SharpTimer
                 {
                     playerJumpStats[playerSlot].LandedFromSound = true;
                 }
-
             }
         }
 
         public void OnJumpStatTick(CCSPlayerController player, Vector velocity, Vector playerpos, PlayerButtons? buttons)
         {
-            if (playerJumpStats.TryGetValue(player.Slot, out PlayerJumpStats? playerJumpStat))
+            try
             {
-                playerJumpStat.OnGround = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND; //need hull trace for this to detect surf etc
+                if (playerJumpStats.TryGetValue(player.Slot, out PlayerJumpStats? playerJumpStat))
+                {
+                    playerJumpStat.OnGround = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND; //need hull trace for this to detect surf etc
 
-                if (playerJumpStat.OnGround)
-                {
-                    playerJumpStat.FramesOnGround++;
-                }
-                else
-                {
-                    playerJumpStat.FramesOnGround = 0;
-                    OnJumpStatTickInAir(player, playerJumpStat, buttons, playerpos, velocity);
-                }
-
-                if (playerJumpStat.FramesOnGround == 1)
-                {
-                    if (playerJumpStat.Jumped)
+                    if (playerJumpStat.OnGround)
                     {
-                        double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.JumpPos), playerpos);
-                        if (distance != 0 && playerJumpStat.LastFramesOnGround > 2)
-                        {
-                            playerJumpStat.LastJumpType = "LJ";
-                            PrintJS(player, playerJumpStat, distance);
-                        }
-                        else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "LJ" || playerJumpStat.LastJumpType == "JB"))
-                        {
-                            playerJumpStat.LastJumpType = "BH";
-                            PrintJS(player, playerJumpStat, distance);
-                        }
-                        else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "BH" || playerJumpStat.LastJumpType == "MBH" || playerJumpStat.LastJumpType == "JB"))
-                        {
-                            playerJumpStat.LastJumpType = "MBH";
-                            PrintJS(player, playerJumpStat, distance);
-                        }
-                    }
-
-                    playerJumpStat.Jumped = false;
-                    playerJumpStat.LandedFromSound = false;
-                    playerJumpStat.jumpFrames.Clear();
-                    playerJumpStat.Strafes = 0;
-                    playerJumpStat.WTicks = 0;
-                }
-                else if (playerJumpStat.LandedFromSound == true) //workaround for PlayerFlags.FL_ONGROUND being 1 frame late
-                {
-                    if (playerJumpStat.Jumped)
-                    {
-                        double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos), playerpos, true);
-                        if (distance != 0 && !playerJumpStat.LastOnGround && playerJumpStat.LastDucked && ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) != PlayerFlags.FL_DUCKING)
-                        {
-                            playerJumpStat.LastJumpType = "JB";
-                            PrintJS(player, playerJumpStat, distance);
-                            playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
-                            playerJumpStat.Jumped = true; // assume player jumped again if JB is successful
-                        }
+                        playerJumpStat.FramesOnGround++;
                     }
                     else
                     {
-                        playerJumpStat.Jumped = false;
+                        playerJumpStat.FramesOnGround = 0;
+                        OnJumpStatTickInAir(player, playerJumpStat, buttons, playerpos, velocity);
                     }
-                    playerJumpStat.jumpFrames.Clear();
-                    playerJumpStat.Strafes = 0;
-                    playerJumpStat.WTicks = 0;
-                    playerJumpStat.LandedFromSound = false;
-                    playerJumpStat.FramesOnGround++;
-                }
 
-                playerJumpStat.LastOnGround = playerJumpStat.OnGround;
-                playerJumpStat.LastPos = $"{playerpos.X} {playerpos.Y} {playerpos.Z}";
-                playerJumpStat.LastDucked = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) == PlayerFlags.FL_DUCKING;
-                if (playerJumpStat.OnGround)
-                {
-                    playerJumpStat.LastSpeed = $"{velocity.X} {velocity.Y} {velocity.Z}";
-                    playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
-                    playerJumpStat.LastEyeAngle = $"{player.PlayerPawn.Value.EyeAngles.X} {player.PlayerPawn.Value.EyeAngles.Y} {player.PlayerPawn.Value.EyeAngles.Z}";
+                    if (playerJumpStat.FramesOnGround == 1)
+                    {
+                        if (playerJumpStat.Jumped)
+                        {
+                            double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.JumpPos), playerpos);
+                            if (distance != 0 && playerJumpStat.LastFramesOnGround > 2)
+                            {
+                                playerJumpStat.LastJumpType = "LJ";
+                                PrintJS(player, playerJumpStat, distance);
+                            }
+                            else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "LJ" || playerJumpStat.LastJumpType == "JB"))
+                            {
+                                playerJumpStat.LastJumpType = "BH";
+                                PrintJS(player, playerJumpStat, distance);
+                            }
+                            else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "BH" || playerJumpStat.LastJumpType == "MBH" || playerJumpStat.LastJumpType == "JB"))
+                            {
+                                playerJumpStat.LastJumpType = "MBH";
+                                PrintJS(player, playerJumpStat, distance);
+                            }
+                        }
+
+                        playerJumpStat.Jumped = false;
+                        playerJumpStat.LandedFromSound = false;
+                        playerJumpStat.jumpFrames.Clear();
+                        playerJumpStat.Strafes = 0;
+                        playerJumpStat.WTicks = 0;
+                    }
+                    else if (playerJumpStat.LandedFromSound == true) //workaround for PlayerFlags.FL_ONGROUND being 1 frame late
+                    {
+                        if (playerJumpStat.Jumped)
+                        {
+                            double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos), playerpos, true);
+                            if (distance != 0 && !playerJumpStat.LastOnGround && playerJumpStat.LastDucked && ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) != PlayerFlags.FL_DUCKING)
+                            {
+                                playerJumpStat.LastJumpType = "JB";
+                                PrintJS(player, playerJumpStat, distance);
+                                playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
+                                playerJumpStat.Jumped = true; // assume player jumped again if JB is successful
+                            }
+                        }
+                        else
+                        {
+                            playerJumpStat.Jumped = false;
+                        }
+                        playerJumpStat.jumpFrames.Clear();
+                        playerJumpStat.Strafes = 0;
+                        playerJumpStat.WTicks = 0;
+                        playerJumpStat.LandedFromSound = false;
+                        playerJumpStat.FramesOnGround++;
+                    }
+
+                    playerJumpStat.LastOnGround = playerJumpStat.OnGround;
+                    playerJumpStat.LastPos = $"{playerpos.X} {playerpos.Y} {playerpos.Z}";
+                    playerJumpStat.LastDucked = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) == PlayerFlags.FL_DUCKING;
+                    if (playerJumpStat.OnGround)
+                    {
+                        playerJumpStat.LastSpeed = $"{velocity.X} {velocity.Y} {velocity.Z}";
+                        playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
+                        playerJumpStat.LastEyeAngle = $"{player.PlayerPawn.Value.EyeAngles.X} {player.PlayerPawn.Value.EyeAngles.Y} {player.PlayerPawn.Value.EyeAngles.Z}";
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerDebug($"Exception in OnJumpStatTick: {ex}");
             }
         }
 
@@ -202,18 +207,23 @@ namespace SharpTimer
             }
         }
 
-        static double Calculate2DDistanceWithVerticalMargins(Vector vector1, Vector vector2, bool noVertCheck = false)
+        double Calculate2DDistanceWithVerticalMargins(Vector vector1, Vector vector2, bool noVertCheck = false)
         {
+            if (vector1 == null || vector2 == null)
+            {
+                return 0;
+            }
+
             float verticalDistance = Math.Abs(vector1.Z - vector2.Z);
 
-            if (verticalDistance > 31 && noVertCheck == false)
+            if (verticalDistance >= 32 && noVertCheck == false)
             {
                 return 0;
             }
 
             double distance2D = Distance(vector1, vector2);
 
-            if (distance2D > 50)
+            if (distance2D > jumpStatsMinDist)
             {
                 double result = distance2D + 32.0f;
                 return result;

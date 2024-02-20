@@ -130,6 +130,49 @@ namespace SharpTimer
             enableSRreplayBot = bool.TryParse(args, out bool enableSRreplayBotValue) ? enableSRreplayBotValue : args != "0" && enableSRreplayBot;
         }
 
+        [ConsoleCommand("sharptimer_jumpstats_enabled", "Whether JumpStats are enabled or not. Default value: false")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerJumpStatsConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            jumpStatsEnabled = bool.TryParse(args, out bool jumpStatsEnabledValue) ? jumpStatsEnabledValue : args != "0" && jumpStatsEnabled;
+        }
+
+        [ConsoleCommand("sharptimer_jumpstats_min_distance", "Defines the minimum distance for a jumpstat to be printed to chat. Default value: 175.0")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerJumpStatsMinDistConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            if (float.TryParse(args, out float dist) && dist > 0)
+            {
+                jumpStatsMinDist = dist;
+                SharpTimerConPrint($"SharpTimer JumpStats min distance set to {dist} units.");
+            }
+            else
+            {
+                SharpTimerConPrint("Invalid JumpStats min distance value. Please provide a positive float.");
+            }
+        }
+
+        [ConsoleCommand("sharptimer_jumpstats_max_vert", "Defines the max vertical distance for a jumpstat to not be printed to chat. Default value: 32.0")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerJumpStatsMaxVertConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            if (float.TryParse(args, out float dist) && dist > 0)
+            {
+                jumpStatsMaxVert = dist;
+                SharpTimerConPrint($"SharpTimer JumpStats max vert distance set to {dist} units.");
+            }
+            else
+            {
+                SharpTimerConPrint("Invalid JumpStats max vert distance value. Please provide a positive float.");
+            }
+        }
+
         [ConsoleCommand("sharptimer_hide_all_players", "Whether all players should be hidden or not. Default value: false")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void SharpTimerHideConvar(CCSPlayerController? player, CommandInfo command)

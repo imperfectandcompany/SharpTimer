@@ -166,7 +166,6 @@ namespace SharpTimer
         public string? LastJumpType { get; set; }
         public bool LastDucked { get; set; }
         public bool LandedFromSound { get; set; }
-        public int Strafes { get; set; }
         public int WTicks { get; set; }
         public List<JumpFrames> jumpFrames { get; set; } = new List<JumpFrames>();
 
@@ -177,7 +176,9 @@ namespace SharpTimer
             public string SpeedString { get; set; }
             public double MaxSpeed { get; set; }
             public double MaxHeight { get; set; }
-            public ulong? LastButton { get; set; }
+            public bool LastLeft { get; set; }
+            public bool LastRight { get; set; }
+            public bool LastLeftRight { get; set; }
         }
     }
 

@@ -77,7 +77,6 @@ namespace SharpTimer
                         playerJumpStat.Jumped = false;
                         playerJumpStat.LandedFromSound = false;
                         playerJumpStat.jumpFrames.Clear();
-                        playerJumpStat.Strafes = 0;
                         playerJumpStat.WTicks = 0;
                     }
                     else if (playerJumpStat.LandedFromSound == true) //workaround for PlayerFlags.FL_ONGROUND being 1 frame late
@@ -98,7 +97,6 @@ namespace SharpTimer
                             playerJumpStat.Jumped = false;
                         }
                         playerJumpStat.jumpFrames.Clear();
-                        playerJumpStat.Strafes = 0;
                         playerJumpStat.WTicks = 0;
                         playerJumpStat.LandedFromSound = false;
                         playerJumpStat.FramesOnGround++;
@@ -129,30 +127,29 @@ namespace SharpTimer
                 {
                     PositionString = $" ",
                     SpeedString = $" ",
-                    LastButton = 0,
+                    LastLeft = false,
+                    LastRight = false,
+                    LastLeftRight = false,
                     MaxHeight = 0,
                     MaxSpeed = 0
                 };
 
-                ulong button;
+                bool left = false;
+                bool right = false;
+                bool leftRight = false;
                 if ((buttons & PlayerButtons.Moveleft) != 0 && (buttons & PlayerButtons.Moveright) != 0)
-                    button = 0;
+                    leftRight = true;
                 else if ((buttons & PlayerButtons.Moveleft) != 0)
-                    button = (ulong)PlayerButtons.Moveleft;
+                    left = true;
                 else if ((buttons & PlayerButtons.Moveright) != 0)
-                    button = (ulong)PlayerButtons.Moveright;
-                else
-                    button = 0;
+                    right = true;
 
                 if ((buttons & PlayerButtons.Forward) != 0)
                     playerJumpStat.WTicks++;
 
-                if (LastJumpFrame.LastButton != button && LastJumpFrame.LastButton != 0)
-                    playerJumpStat.Strafes++;
-
                 double maxHeight;
                 if (IsVectorHigherThan(playerpos, ParseVector(LastJumpFrame.PositionString)))
-                    if(((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) == PlayerFlags.FL_DUCKING)
+                    if (((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) == PlayerFlags.FL_DUCKING)
                         maxHeight = (playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z) - 18; //remove 18units when crouching mid air
                     else
                         maxHeight = playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z;
@@ -169,7 +166,9 @@ namespace SharpTimer
                 {
                     PositionString = $"{playerpos.X} {playerpos.Y} {playerpos.Z}",
                     SpeedString = $"{velocity.X} {velocity.Y} {velocity.Z}",
-                    LastButton = button,
+                    LastLeft = left,
+                    LastRight = right,
+                    LastLeftRight = leftRight,
                     MaxHeight = maxHeight,
                     MaxSpeed = maxSpeed
                 };
@@ -237,6 +236,56 @@ namespace SharpTimer
             }
         }
 
+        public static int CountLeftGroups(PlayerJumpStats playerJumpStat)
+        {
+            int lastLeftGroups = 0;
+            bool inGroup = false;
+
+            foreach (var frame in playerJumpStat.jumpFrames)
+            {
+                if (frame.LastLeftRight)
+                {
+                    if (inGroup)
+                        lastLeftGroups++;
+                    inGroup = false;
+                }
+                else if (frame.LastLeft)
+                {
+                    inGroup = true;
+                }
+            }
+
+            if (inGroup)
+                lastLeftGroups++;
+
+            return lastLeftGroups;
+        }
+
+        public static int CountRightGroups(PlayerJumpStats playerJumpStat)
+        {
+            int lastRightGroups = 0;
+            bool inGroup = false;
+
+            foreach (var frame in playerJumpStat.jumpFrames)
+            {
+                if (frame.LastLeftRight)
+                {
+                    if (inGroup)
+                        lastRightGroups++;
+                    inGroup = false;
+                }
+                else if (frame.LastRight)
+                {
+                    inGroup = true;
+                }
+            }
+
+            if (inGroup)
+                lastRightGroups++;
+
+            return lastRightGroups;
+        }
+
         public void InvalidateJS(int playerSlot)
         {
             if (playerJumpStats.TryGetValue(playerSlot, out PlayerJumpStats? value))
@@ -253,7 +302,7 @@ namespace SharpTimer
                                             $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Grey} | " +
                                             $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)}{ChatColors.Grey} | " +
                                             $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 3)}{ChatColors.Grey} | ");
-            player.PrintToChat(msgPrefix + $"{ChatColors.Grey}Strafes: {primaryChatColor}{playerJumpStat.Strafes}{ChatColors.Grey} | " +
+            player.PrintToChat(msgPrefix + $"{ChatColors.Grey}Strafes: {primaryChatColor}{CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)}{ChatColors.Grey} | " +
                                             $"Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)}{ChatColors.Grey} | " +
                                             $"WT: {primaryChatColor}{playerJumpStat.WTicks}{ChatColors.Grey}");
         }

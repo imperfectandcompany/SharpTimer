@@ -173,6 +173,32 @@ namespace SharpTimer
             }
         }
 
+        [ConsoleCommand("sharptimer_jumpstats_movement_unlocker_cap", "Intended for taming movement unlocker, caps speed on the second tick of a player being on the ground. Default value: true")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerJumpStatsUnlockerCapConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            movementUnlockerCapEnabled = bool.TryParse(args, out bool movementUnlockerCapEnabledValue) ? movementUnlockerCapEnabledValue : args != "0" && movementUnlockerCapEnabled;
+        }
+
+        [ConsoleCommand("sharptimer_jumpstats_movement_unlocker_cap_value", "Speed cap value which will kick in on the second tick of the player being on the ground. Default value: 250.0")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerJumpStatsUnlockerCapValueConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            if (float.TryParse(args, out float value) && value > 0)
+            {
+                movementUnlockerCapValue = value;
+                if (movementUnlockerCapEnabled) SharpTimerConPrint($"SharpTimer JumpStats Movement Unlocker cap value set to {value} units.");
+            }
+            else
+            {
+                SharpTimerConPrint("Invalid JumpStats Movement Unlocker cap value. Please provide a positive float.");
+            }
+        }
+
         [ConsoleCommand("sharptimer_hide_all_players", "Whether all players should be hidden or not. Default value: false")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void SharpTimerHideConvar(CCSPlayerController? player, CommandInfo command)

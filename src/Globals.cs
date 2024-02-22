@@ -116,6 +116,8 @@ namespace SharpTimer
         public bool jumpStatsEnabled = false;
         public float jumpStatsMinDist = 175;
         public float jumpStatsMaxVert = 32;
+        public bool movementUnlockerCapEnabled = true;
+        public float movementUnlockerCapValue = 250;
 
         public bool execCustomMapCFG = false;
 

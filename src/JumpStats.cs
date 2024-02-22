@@ -52,7 +52,18 @@ namespace SharpTimer
                         OnJumpStatTickInAir(player, playerJumpStat, buttons, playerpos, velocity);
                     }
 
-                    if (playerJumpStat.FramesOnGround == 1)
+                    if (playerJumpStat.FramesOnGround == 2)
+                    {
+                        if (movementUnlockerCapEnabled && velocity.Length2D() > movementUnlockerCapValue)
+                        {
+                            float mult = 250.0f / velocity.Length2D();
+                            velocity.X *= mult;
+                            velocity.Y *= mult;
+                            player.PlayerPawn.Value.AbsVelocity.X = velocity.X;
+                            player.PlayerPawn.Value.AbsVelocity.Y = velocity.Y;
+                        }
+                    }
+                    else if (playerJumpStat.FramesOnGround == 1)
                     {
                         if (playerJumpStat.Jumped)
                         {
@@ -150,9 +161,9 @@ namespace SharpTimer
 
                 double maxHeight;
                 if (IsVectorHigherThan(playerpos, ParseVector(LastJumpFrame.PositionString)))
-                        maxHeight = (playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z);
-                    else
-                        maxHeight = LastJumpFrame?.MaxHeight ?? 0;
+                    maxHeight = (playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z);
+                else
+                    maxHeight = LastJumpFrame?.MaxHeight ?? 0;
 
                 double maxSpeed;
                 if (velocity.Length2D() > LastJumpFrame.MaxSpeed)
@@ -296,24 +307,33 @@ namespace SharpTimer
         public void PrintJS(CCSPlayerController player, PlayerJumpStats playerJumpStat, double distance)
         {
             if (playerTimers[player.Slot].HideJumpStats == true) return;
-            
-            char color = GetJSColor(distance);
-            player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: {ChatColors.Grey}" +
-                                            $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Grey} | " +
-                                            $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)}{ChatColors.Grey} | " +
-                                            $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 3)}{ChatColors.Grey} | ");
-            player.PrintToChat(msgPrefix + $"{ChatColors.Grey}Strafes: {primaryChatColor}{CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)}{ChatColors.Grey} | " +
-                                            $"Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)}{ChatColors.Grey} | " +
-                                            $"WT: {primaryChatColor}{playerJumpStat.WTicks}{ChatColors.Grey}");
 
-            player.PrintToConsole(  $"-----------------------------------------------------------------------------------------------------------------------");
-            player.PrintToConsole(  $"JumpStats:");
-            player.PrintToConsole(  $"{playerJumpStat.LastJumpType}: {Math.Round((distance * 10) * 0.1, 3)} | " +
+            char color = GetJSColor(distance);
+
+            string msg1 = $"{primaryChatColor}JumpStats: {ChatColors.Grey}" +
+                            $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Grey} | " +
+                            $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)}{ChatColors.Grey} | " +
+                            $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 3)}{ChatColors.Grey} | ";
+            string msg2 = $"{ChatColors.Grey}Strafes: {primaryChatColor}{CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)}{ChatColors.Grey} | " +
+                            $"Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)}{ChatColors.Grey} | " +
+                            $"Width: {primaryChatColor}n/a{ChatColors.Grey} | " +
+                            $"WT: {primaryChatColor}{playerJumpStat.WTicks}{ChatColors.Grey} | " +
+                            $"Sync: {primaryChatColor}0%";
+
+            player.PrintToChat(msgPrefix + msg1);
+            //print on next server frame so client chat does not bug out that much
+            Server.NextFrame(() => player.PrintToChat(msgPrefix + msg2));
+
+            player.PrintToConsole($"-----------------------------------------------------------------------------------------------------------------------");
+            player.PrintToConsole($"JumpStats:");
+            player.PrintToConsole($"{playerJumpStat.LastJumpType}: {Math.Round((distance * 10) * 0.1, 3)} | " +
                                     $"Pre: {Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | " +
                                     $"Max: {Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 3)} | ");
-            player.PrintToConsole(  $"Strafes: {CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)} | " +
+            player.PrintToConsole($"Strafes: {CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)} | " +
                                     $"Height: {Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)} | " +
-                                    $"WT: {playerJumpStat.WTicks}");
+                                    $"Width: n/a | " +
+                                    $"WT: {playerJumpStat.WTicks} | " +
+                                    $"Sync: 0%");
         }
     }
 }

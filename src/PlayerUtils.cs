@@ -398,7 +398,7 @@ namespace SharpTimer
                         {
                             foreach (var gun in player.PlayerPawn.Value.WeaponServices.MyWeapons)
                             {
-                                if( gun.Value.Render != Color.FromArgb(0, 255, 255, 255) ||
+                                if (gun.Value.Render != Color.FromArgb(0, 255, 255, 255) ||
                                     gun.Value.ShadowStrength != 0.0f)
                                 {
                                     gun.Value.Render = Color.FromArgb(0, 255, 255, 255);
@@ -612,7 +612,7 @@ namespace SharpTimer
             {
                 Vector? playerPos = player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin;
 
-                if (playerPos == null || currentMapStartC1 != null || currentMapStartC2 != null || currentMapEndC1 != null|| currentMapEndC2 != null)
+                if (playerPos == null || currentMapStartC1 != null || currentMapStartC2 != null || currentMapEndC1 != null || currentMapEndC2 != null)
                 {
                     return;
                 }

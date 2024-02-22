@@ -371,7 +371,7 @@ namespace SharpTimer
 
         }
 
-        [ConsoleCommand("css_jumpstats", "Toggles Sounds")]
+        [ConsoleCommand("css_jumpstats", "Toggles JumpStats")]
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void JSSwitchCommand(CCSPlayerController? player, CommandInfo command)
         {

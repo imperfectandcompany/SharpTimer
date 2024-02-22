@@ -90,7 +90,7 @@ SharpTimer is a "simple" Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Co
   - [x] Global server ranks
     - [x] !points
     - [x] Global Point system
-- [x] Surf Stages/Checkpoint support
+- [ ] Surf Stages/Checkpoint support
   - [x] Stage/Checkpoint PBs with u/s
     - [x] Json Stage/Checkpoint PBs saving
     - [ ] MySql Stage/Checkpoint PBs saving
@@ -99,8 +99,21 @@ SharpTimer is a "simple" Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Co
   - [x] Player Server Stats
   - [x] Player Map Stats
 - [x] Replays
-- [ ] Jumpstats
-- [x] Silly Stuff
+- [x] Jumpstats
+  - [x] Distance
+  - [x] Pre
+  - [x] Max
+  - [x] Height
+  - [ ] Width
+  - [ ] Sync
+  - [ ] Jump Types
+    - [x] Long Jump
+    - [x] BunnyHop
+    - [x] MultiBunnyHop
+    - [x] Jump Bug
+    - [ ] Edge Bug
+    - [ ] Ladder Jump
+- [ ] Silly Stuff
   - [x] Color customization
   - [x] Special Tester Gifs
   - [x] Custom Player Gifs

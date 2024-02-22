@@ -90,6 +90,7 @@ namespace SharpTimer
                                 PrintJS(player, playerJumpStat, distance);
                                 playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
                                 playerJumpStat.Jumped = true; // assume player jumped again if JB is successful
+                                if (playerTimers[player.Slot].SoundsEnabled == true) player.ExecuteClientCommand($"play player/death_fem_0{new Random().Next(1, 9)}");
                             }
                         }
                         else
@@ -149,12 +150,9 @@ namespace SharpTimer
 
                 double maxHeight;
                 if (IsVectorHigherThan(playerpos, ParseVector(LastJumpFrame.PositionString)))
-                    if (((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) == PlayerFlags.FL_DUCKING)
-                        maxHeight = (playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z) - 18; //remove 18units when crouching mid air
+                        maxHeight = (playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z);
                     else
-                        maxHeight = playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z;
-                else
-                    maxHeight = LastJumpFrame?.MaxHeight ?? 0;
+                        maxHeight = LastJumpFrame?.MaxHeight ?? 0;
 
                 double maxSpeed;
                 if (velocity.Length2D() > LastJumpFrame.MaxSpeed)
@@ -297,6 +295,8 @@ namespace SharpTimer
 
         public void PrintJS(CCSPlayerController player, PlayerJumpStats playerJumpStat, double distance)
         {
+            if (playerTimers[player.Slot].HideJumpStats == true) return;
+            
             char color = GetJSColor(distance);
             player.PrintToChat(msgPrefix + $"{primaryChatColor}JumpStats: {ChatColors.Grey}" +
                                             $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Grey} | " +
@@ -305,6 +305,15 @@ namespace SharpTimer
             player.PrintToChat(msgPrefix + $"{ChatColors.Grey}Strafes: {primaryChatColor}{CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)}{ChatColors.Grey} | " +
                                             $"Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)}{ChatColors.Grey} | " +
                                             $"WT: {primaryChatColor}{playerJumpStat.WTicks}{ChatColors.Grey}");
+
+            player.PrintToConsole(  $"-----------------------------------------------------------------------------------------------------------------------");
+            player.PrintToConsole(  $"JumpStats:");
+            player.PrintToConsole(  $"{playerJumpStat.LastJumpType}: {Math.Round((distance * 10) * 0.1, 3)} | " +
+                                    $"Pre: {Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | " +
+                                    $"Max: {Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 3)} | ");
+            player.PrintToConsole(  $"Strafes: {CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)} | " +
+                                    $"Height: {Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)} | " +
+                                    $"WT: {playerJumpStat.WTicks}");
         }
     }
 }

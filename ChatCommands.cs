@@ -361,8 +361,35 @@ namespace SharpTimer
 
             playerTimers[player.Slot].SoundsEnabled = playerTimers[player.Slot].SoundsEnabled ? false : true;
 
-            player.PrintToChat(msgPrefix + $" Sounds are now: {(playerTimers[player.Slot].SoundsEnabled ? $"{ChatColors.Green} ON" : $"{ChatColors.Red} OFF")}");
+            player.PrintToChat(msgPrefix + $"Sounds are now:{(playerTimers[player.Slot].SoundsEnabled ? $"{ChatColors.Green} ON" : $"{ChatColors.Red} OFF")}");
             SharpTimerDebug($"Timer Sounds set to: {playerTimers[player.Slot].SoundsEnabled} for {player.PlayerName}");
+
+            if (useMySQL == true)
+            {
+                _ = SetPlayerStats(player, player.SteamID.ToString(), player.PlayerName, player.Slot);
+            }
+
+        }
+
+        [ConsoleCommand("css_jumpstats", "Toggles Sounds")]
+        [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
+        public void JSSwitchCommand(CCSPlayerController? player, CommandInfo command)
+        {
+            if (!IsAllowedPlayer(player) || !jumpStatsEnabled) return;
+            SharpTimerDebug($"{player.PlayerName} calling css_jumpstats...");
+
+            if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
+            {
+                player.PrintToChat(msgPrefix + $" Command is on cooldown. Chill...");
+                return;
+            }
+
+            playerTimers[player.Slot].TicksSinceLastCmd = 0;
+
+            playerTimers[player.Slot].HideJumpStats = playerTimers[player.Slot].HideJumpStats ? false : true;
+
+            player.PrintToChat(msgPrefix + $"Jump Stats are now:{(playerTimers[player.Slot].HideJumpStats ? $"{ChatColors.Red} Hidden" : $"{ChatColors.Green} Shown")}");
+            SharpTimerDebug($"Hide Jump Stats set to: {playerTimers[player.Slot].HideJumpStats} for {player.PlayerName}");
 
             if (useMySQL == true)
             {

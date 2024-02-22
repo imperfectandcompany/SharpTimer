@@ -38,6 +38,7 @@ namespace SharpTimer
                                                     "GlobalPoints INT DEFAULT 0",
                                                     "HideTimerHud BOOL DEFAULT false",
                                                     "HideKeys BOOL DEFAULT false",
+                                                    "HideJS BOOL DEFAULT false",
                                                     "SoundsEnabled BOOL DEFAULT false",
                                                     "IsVip BOOL DEFAULT false",
                                                     "BigGifID VARCHAR(16) DEFAULT 'x'"
@@ -167,6 +168,7 @@ namespace SharpTimer
                                             GlobalPoints INT,
                                             HideTimerHud BOOL,
                                             HideKeys BOOL,
+                                            HideJS BOOL,
                                             SoundsEnabled BOOL,
                                             IsVip BOOL,
                                             BigGifID VARCHAR(16),
@@ -356,6 +358,7 @@ namespace SharpTimer
                 int lastConnected = 0;
                 bool hideTimerHud;
                 bool hideKeys;
+                bool hideJS;
                 bool soundsEnabled;
                 bool isVip;
                 string bigGif;
@@ -366,8 +369,7 @@ namespace SharpTimer
                     await CreatePlayerRecordsTableAsync(connection);
 
 
-                    //string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled FROM PlayerStats WHERE SteamID = @SteamID";
-                    string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints FROM PlayerStats WHERE SteamID = @SteamID";
+                    string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, IsVip, BigGifID, GlobalPoints FROM PlayerStats WHERE SteamID = @SteamID";
                     using (var selectCommand = new MySqlCommand(selectQuery, connection))
                     {
                         selectCommand.Parameters.AddWithValue("@SteamID", steamId);
@@ -380,6 +382,7 @@ namespace SharpTimer
                             timesConnected = row.GetInt32("TimesConnected");
                             hideTimerHud = row.GetBoolean("HideTimerHud");
                             hideKeys = row.GetBoolean("HideKeys");
+                            hideJS = row.GetBoolean("HideJS");
                             soundsEnabled = row.GetBoolean("SoundsEnabled");
                             isVip = row.GetBoolean("IsVip");
                             bigGif = row.GetString("BigGifID");
@@ -394,6 +397,7 @@ namespace SharpTimer
                                 {
                                     value.HideTimerHud = hideTimerHud;
                                     value.HideKeys = hideKeys;
+                                    value.HideJumpStats = hideJS;
                                     value.SoundsEnabled = soundsEnabled;
                                     value.IsVip = isVip;
                                     value.VipPausedGif = bigGif;
@@ -409,8 +413,7 @@ namespace SharpTimer
                             await row.CloseAsync();
                             // Update or insert the record
 
-                            //string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled)";
-                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
+                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @HideJS, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))
                             {
                                 upsertCommand.Parameters.AddWithValue("@PlayerName", playerName);
@@ -419,6 +422,7 @@ namespace SharpTimer
                                 upsertCommand.Parameters.AddWithValue("@LastConnected", lastConnected);
                                 upsertCommand.Parameters.AddWithValue("@HideTimerHud", hideTimerHud);
                                 upsertCommand.Parameters.AddWithValue("@HideKeys", hideKeys);
+                                upsertCommand.Parameters.AddWithValue("@HideJS", hideJS);
                                 upsertCommand.Parameters.AddWithValue("@SoundsEnabled", soundsEnabled);
                                 upsertCommand.Parameters.AddWithValue("@IsVip", isVip);
                                 upsertCommand.Parameters.AddWithValue("@BigGifID", bigGif);
@@ -434,8 +438,7 @@ namespace SharpTimer
                             Server.NextFrame(() => SharpTimerDebug($"No player stats yet"));
                             await row.CloseAsync();
 
-                            //string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled)";
-                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
+                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @HideJS, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))
                             {
                                 upsertCommand.Parameters.AddWithValue("@PlayerName", playerName);
@@ -444,6 +447,7 @@ namespace SharpTimer
                                 upsertCommand.Parameters.AddWithValue("@LastConnected", timeNowUnix);
                                 upsertCommand.Parameters.AddWithValue("@HideTimerHud", false);
                                 upsertCommand.Parameters.AddWithValue("@HideKeys", false);
+                                upsertCommand.Parameters.AddWithValue("@HideJS", false);
                                 upsertCommand.Parameters.AddWithValue("@SoundsEnabled", false);
                                 upsertCommand.Parameters.AddWithValue("@IsVip", false);
                                 upsertCommand.Parameters.AddWithValue("@BigGifID", "x");
@@ -475,6 +479,7 @@ namespace SharpTimer
                 int lastConnected = 0;
                 bool hideTimerHud;
                 bool hideKeys;
+                bool hideJS;
                 bool soundsEnabled;
                 bool isVip;
                 string bigGif;
@@ -485,8 +490,7 @@ namespace SharpTimer
                     await CreatePlayerRecordsTableAsync(connection);
 
 
-                    //string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled FROM PlayerStats WHERE SteamID = @SteamID";
-                    string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints FROM PlayerStats WHERE SteamID = @SteamID";
+                   string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, IsVip, BigGifID, GlobalPoints FROM PlayerStats WHERE SteamID = @SteamID";
                     using (var selectCommand = new MySqlCommand(selectQuery, connection))
                     {
                         selectCommand.Parameters.AddWithValue("@SteamID", steamId);
@@ -500,6 +504,7 @@ namespace SharpTimer
                             lastConnected = row.GetInt32("LastConnected");
                             hideTimerHud = row.GetBoolean("HideTimerHud");
                             hideKeys = row.GetBoolean("HideKeys");
+                            hideJS = row.GetBoolean("HideJS");
                             soundsEnabled = row.GetBoolean("SoundsEnabled");
                             isVip = row.GetBoolean("IsVip");
                             bigGif = row.GetString("BigGifID");
@@ -508,8 +513,7 @@ namespace SharpTimer
                             await row.CloseAsync();
                             // Update or insert the record
 
-                            //string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled)";
-                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
+                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @HideJS, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))
                             {
                                 if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value))
@@ -520,6 +524,7 @@ namespace SharpTimer
                                     upsertCommand.Parameters.AddWithValue("@LastConnected", lastConnected);
                                     upsertCommand.Parameters.AddWithValue("@HideTimerHud", value.HideTimerHud);
                                     upsertCommand.Parameters.AddWithValue("@HideKeys", value.HideKeys);
+                                    upsertCommand.Parameters.AddWithValue("@HideJS", value.HideJumpStats);
                                     upsertCommand.Parameters.AddWithValue("@SoundsEnabled", value.SoundsEnabled);
                                     upsertCommand.Parameters.AddWithValue("@IsVip", isVip);
                                     upsertCommand.Parameters.AddWithValue("@BigGifID", bigGif);
@@ -540,8 +545,7 @@ namespace SharpTimer
                             Server.NextFrame(() => SharpTimerDebug($"No player stats yet"));
                             await row.CloseAsync();
 
-                            //string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled)";
-                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
+                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @HideJS, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))
                             {
                                 if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value))
@@ -552,6 +556,7 @@ namespace SharpTimer
                                     upsertCommand.Parameters.AddWithValue("@LastConnected", timeNowUnix);
                                     upsertCommand.Parameters.AddWithValue("@HideTimerHud", playerTimers[playerSlot].HideTimerHud);
                                     upsertCommand.Parameters.AddWithValue("@HideKeys", playerTimers[playerSlot].HideKeys);
+                                    upsertCommand.Parameters.AddWithValue("@HideJS", playerTimers[playerSlot].HideJumpStats);
                                     upsertCommand.Parameters.AddWithValue("@SoundsEnabled", playerTimers[playerSlot].SoundsEnabled);
                                     upsertCommand.Parameters.AddWithValue("@IsVip", false);
                                     upsertCommand.Parameters.AddWithValue("@BigGifID", "x");

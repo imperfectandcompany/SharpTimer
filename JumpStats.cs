@@ -243,7 +243,7 @@ namespace SharpTimer
 
             foreach (var frame in playerJumpStat.jumpFrames)
             {
-                if (frame.LastLeftRight)
+                if (frame.LastLeftRight || frame.LastRight)
                 {
                     if (inGroup)
                         lastLeftGroups++;
@@ -268,7 +268,7 @@ namespace SharpTimer
 
             foreach (var frame in playerJumpStat.jumpFrames)
             {
-                if (frame.LastLeftRight)
+                if (frame.LastLeftRight || frame.LastLeft)
                 {
                     if (inGroup)
                         lastRightGroups++;

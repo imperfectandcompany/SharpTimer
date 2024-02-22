@@ -1,5 +1,8 @@
 CounterStrikeSharp.API.dll
 bin/
 obj/
-MySql.Data.dll
+addons/
 SuperSecretStuff.cs
+SharpTimer.sln
+MySqlConnector.dll
+Nexd.MySQL.dll

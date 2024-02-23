@@ -555,7 +555,7 @@ namespace SharpTimer
 
         public override void Unload(bool hotReload)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamage, HookMode.Pre);
             }

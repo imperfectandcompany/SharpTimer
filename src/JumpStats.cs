@@ -71,23 +71,24 @@ namespace SharpTimer
                             if (distance != 0 && playerJumpStat.LastFramesOnGround > 2)
                             {
                                 playerJumpStat.LastJumpType = "LJ";
-                                PrintJS(player, playerJumpStat, distance);
+                                PrintJS(player, playerJumpStat, distance, playerpos);
                             }
                             else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "LJ" || playerJumpStat.LastJumpType == "JB"))
                             {
                                 playerJumpStat.LastJumpType = "BH";
-                                PrintJS(player, playerJumpStat, distance);
+                                PrintJS(player, playerJumpStat, distance, playerpos);
                             }
                             else if (distance != 0 && playerJumpStat.LastFramesOnGround <= 2 && (playerJumpStat.LastJumpType == "BH" || playerJumpStat.LastJumpType == "MBH" || playerJumpStat.LastJumpType == "JB"))
                             {
                                 playerJumpStat.LastJumpType = "MBH";
-                                PrintJS(player, playerJumpStat, distance);
+                                PrintJS(player, playerJumpStat, distance, playerpos);
                             }
                         }
 
                         playerJumpStat.Jumped = false;
                         playerJumpStat.LandedFromSound = false;
                         playerJumpStat.jumpFrames.Clear();
+                        playerJumpStat.jumpInterp.Clear();
                         playerJumpStat.WTicks = 0;
                     }
                     else if (playerJumpStat.LandedFromSound == true) //workaround for PlayerFlags.FL_ONGROUND being 1 frame late
@@ -98,7 +99,7 @@ namespace SharpTimer
                             if (distance != 0 && !playerJumpStat.LastOnGround && playerJumpStat.LastDucked && ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) != PlayerFlags.FL_DUCKING)
                             {
                                 playerJumpStat.LastJumpType = "JB";
-                                PrintJS(player, playerJumpStat, distance);
+                                PrintJS(player, playerJumpStat, distance, playerpos);
                                 playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
                                 playerJumpStat.Jumped = true; // assume player jumped again if JB is successful
                                 if (playerTimers[player.Slot].SoundsEnabled == true) player.ExecuteClientCommand($"play player/death_fem_0{new Random().Next(1, 9)}");
@@ -109,6 +110,7 @@ namespace SharpTimer
                             playerJumpStat.Jumped = false;
                         }
                         playerJumpStat.jumpFrames.Clear();
+                        playerJumpStat.jumpInterp.Clear();
                         playerJumpStat.WTicks = 0;
                         playerJumpStat.LandedFromSound = false;
                         playerJumpStat.FramesOnGround++;
@@ -295,6 +297,42 @@ namespace SharpTimer
             return lastRightGroups;
         }
 
+        public static float GetMaxWidth(Vector playerpos, PlayerJumpStats playerJumpStat)
+        {
+            InterpolateVectors(ParseVector(playerJumpStat.JumpPos), playerpos, playerJumpStat, playerJumpStat.jumpFrames.Count);
+
+            float distance = 0;
+            for (int jumpFrameIndex = 0; jumpFrameIndex < Math.Min(playerJumpStat.jumpFrames.Count, playerJumpStat.jumpInterp.Count); jumpFrameIndex++)
+            {
+                var frame = playerJumpStat.jumpFrames[jumpFrameIndex];
+                float width = (float)Distance2D(ParseVector(frame.PositionString), ParseVector(playerJumpStat.jumpInterp[jumpFrameIndex].InterpString));
+                if (width > distance) distance = width;
+            }
+
+            return (float)Math.Round(distance, 2);
+        }
+
+        public static void InterpolateVectors(Vector vector1, Vector vector2, PlayerJumpStats playerJumpStat, int numInterpolations)
+        {
+            float stepX = (vector2.X - vector1.X) / (numInterpolations + 1);
+            float stepY = (vector2.Y - vector1.Y) / (numInterpolations + 1);
+            float stepZ = (vector2.Z - vector1.Z) / (numInterpolations + 1);
+
+            for (int i = 0; i < numInterpolations; i++)
+            {
+                float interpolatedX = vector1.X + stepX * (i + 1);
+                float interpolatedY = vector1.Y + stepY * (i + 1);
+                float interpolatedZ = vector1.Z + stepZ * (i + 1);
+
+                var interpFrame = new PlayerJumpStats.JumpInterp
+                {
+                    InterpString = $"{interpolatedX} {interpolatedY} {interpolatedZ}"
+                };
+
+                playerJumpStat.jumpInterp.Add(interpFrame);
+            }
+        }
+
         public void InvalidateJS(int playerSlot)
         {
             if (playerJumpStats.TryGetValue(playerSlot, out PlayerJumpStats? value))
@@ -304,7 +342,7 @@ namespace SharpTimer
             }
         }
 
-        public void PrintJS(CCSPlayerController player, PlayerJumpStats playerJumpStat, double distance)
+        public void PrintJS(CCSPlayerController player, PlayerJumpStats playerJumpStat, double distance, Vector playerpos)
         {
             if (playerTimers[player.Slot].HideJumpStats == true) return;
 
@@ -316,7 +354,7 @@ namespace SharpTimer
                             $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 3)}{ChatColors.Grey} | ";
             string msg2 = $"{ChatColors.Grey}Strafes: {primaryChatColor}{CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)}{ChatColors.Grey} | " +
                             $"Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)}{ChatColors.Grey} | " +
-                            $"Width: {primaryChatColor}n/a{ChatColors.Grey} | " +
+                            $"Width: {primaryChatColor}{GetMaxWidth(playerpos, playerJumpStat)}{ChatColors.Grey} | " +
                             $"WT: {primaryChatColor}{playerJumpStat.WTicks}{ChatColors.Grey} | " +
                             $"Sync: {primaryChatColor}0%";
 
@@ -331,7 +369,7 @@ namespace SharpTimer
                                     $"Max: {Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 3)} | ");
             player.PrintToConsole($"Strafes: {CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)} | " +
                                     $"Height: {Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)} | " +
-                                    $"Width: n/a | " +
+                                    $"Width: {GetMaxWidth(playerpos, playerJumpStat)} | " +
                                     $"WT: {playerJumpStat.WTicks} | " +
                                     $"Sync: 0%");
         }

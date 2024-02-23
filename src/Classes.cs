@@ -162,7 +162,6 @@ namespace SharpTimer
         public string? OldJumpPos { get; set; }
         public string? JumpSpeed { get; set; }
         public bool Jumped { get; set; }
-        public int JumpedTick { get; set; }
         public string? LastJumpType { get; set; }
         public bool LastDucked { get; set; }
         public bool LandedFromSound { get; set; }
@@ -179,6 +178,12 @@ namespace SharpTimer
             public bool LastLeft { get; set; }
             public bool LastRight { get; set; }
             public bool LastLeftRight { get; set; }
+        }
+
+        public List<JumpInterp> jumpInterp { get; set; } = new List<JumpInterp>();
+        public class JumpInterp
+        {
+            public string InterpString { get; set; }
         }
     }
 

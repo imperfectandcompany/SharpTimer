@@ -173,7 +173,7 @@ namespace SharpTimer
                     }
                     else
                     {
-                        if (jumpStatsEnabled == true &&  @event.Step == true) OnJumpStatSound(player);
+                        if (jumpStatsEnabled == true && @event.Step == true) OnJumpStatSound(player);
                         return HookResult.Continue;
                     }
                 }
@@ -534,15 +534,18 @@ namespace SharpTimer
                 }
             });
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
+            Server.NextFrame(() =>
             {
-                VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(this.OnTakeDamage, HookMode.Pre);
-            }
-            else
-            {
-                SharpTimerDebug($"disableDamage: Platform is Windows. Using different method...");
-                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Pre);
-            }
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
+                {
+                    VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(this.OnTakeDamage, HookMode.Pre);
+                }
+                else if (disableDamage == true)
+                {
+                    SharpTimerDebug($"disableDamage: Platform is Windows. Using different method...");
+                    RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Pre);
+                }
+            });
 
             AddCommandListener("say", OnPlayerChatAll);
             AddCommandListener("say_team", OnPlayerChatTeam);
@@ -552,7 +555,7 @@ namespace SharpTimer
 
         public override void Unload(bool hotReload)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
             {
                 VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamage, HookMode.Pre);
             }

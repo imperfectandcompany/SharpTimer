@@ -602,6 +602,8 @@ namespace SharpTimer
                 player.PrintToChat($"{msgPrefix}{(currentMapName.Contains("surf_") ? "!prevloc (css_prevloc) - Teleports you one Loc back" : "!prevcp (css_prevcp) - Teleports you one Checkpoint back")}");
                 player.PrintToChat($"{msgPrefix}{(currentMapName.Contains("surf_") ? "!nextloc (css_nextloc) - Teleports you one Loc forward" : "!nextcp (css_nextcp) - Teleports you one Checkpoint forward")}");
             }
+
+            if (jumpStatsEnabled) player.PrintToChat($"{msgPrefix}!jumpstats (css_jumpstats) - Toggles JumpStats");
         }
 
         private void CheckPlayerCoords(CCSPlayerController? player, Vector playerSpeed)

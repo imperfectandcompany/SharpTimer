@@ -2,7 +2,61 @@
     "bhop_1derland": {
         "Tier": 1
     },
-    "bhop_colour": {
+    "bhop_climbit": {
+        "Tier": 1
+    },
+    "bhop_vergogna": {
+        "Tier": 1
+    },
+    "bhop_crystal": {
+        "Tier": 1
+    },
+    "bhop_cyber": {
+        "Tier": 1
+    },
+    "bhop_cyber": {
+        "Tier": 1
+    },
+    "bhop_3_easy": {
+        "Tier": 1
+    },
+    "bhop_rippcpie": {
+        "Tier": 1
+    },
+    "bhop_classic": {
+        "Tier": 1
+    },
+    "bhop_static": {
+        "Tier": 1
+    },
+    "bhop_violet": {
+        "Tier": 1
+    },
+    "bhop_tron": {
+        "Tier": 1
+    },
+    "bhop_pinkglow": {
+        "Tier": 1
+    },
+    "bhop_whiteglow": {
+        "Tier": 1
+    },
+    "bhop_greenglow": {
+        "Tier": 1
+    },
+    "bhop_rgbglow": {
+        "Tier": 1
+    },
+    "bhop_purpleglow": {
+        "Tier": 1
+    },
+    "bhop_cyanglow": {
+        "Tier": 1
+    },
+    "bhop_amaranthglow": {
+        "Tier": 1
+    },
+    "bhop_blackglow": {
         "Tier": 1
     },
     "bhop_dunedash": {
@@ -752,10 +806,7 @@
     "bhop_zygos": {
         "Tier": 1
     },
-    "": {
-        "Tier": 5
-    },
-    "  Hide contents": {
+    "bhop_colour": {
         "Tier": 2
     },
     "bhop_162": {

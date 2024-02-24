@@ -904,7 +904,7 @@ namespace SharpTimer
             playerTimers[player.Slot].IsBonusTimerRunning = false;
             playerTimers[player.Slot].BonusTimerTicks = 0;
 
-            Server.NextFrame(() =>  RespawnPlayer(player, true));
+            Server.NextFrame(() => RespawnPlayer(player, true));
         }
 
         public void RespawnPlayer(CCSPlayerController? player, bool toEnd = false)

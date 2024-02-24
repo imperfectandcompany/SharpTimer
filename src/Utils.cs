@@ -374,6 +374,11 @@ namespace SharpTimer
 
         static Vector CalculateMiddleVector(Vector corner1, Vector corner2)
         {
+            if (corner1 == null || corner2 == null)
+            {
+                return new Vector(0, 0, 0);
+            }
+
             float middleX = (corner1.X + corner2.X) / 2;
             float middleY = (corner1.Y + corner2.Y) / 2;
             float middleZ = (corner1.Z + corner2.Z) / 2;
@@ -382,6 +387,11 @@ namespace SharpTimer
 
         private static Vector ParseVector(string vectorString)
         {
+            if (string.IsNullOrWhiteSpace(vectorString))
+            {
+                return new Vector(0, 0, 0);
+            }
+
             const char separator = ' ';
 
             var values = vectorString.Split(separator);
@@ -399,6 +409,11 @@ namespace SharpTimer
 
         private static QAngle ParseQAngle(string qAngleString)
         {
+            if (string.IsNullOrWhiteSpace(qAngleString))
+            {
+                return new QAngle(0, 0, 0);
+            }
+
             const char separator = ' ';
 
             var values = qAngleString.Split(separator);
@@ -416,6 +431,11 @@ namespace SharpTimer
 
         public static double Distance(Vector vector1, Vector vector2)
         {
+            if (vector1 == null || vector2 == null)
+            {
+                return 0;
+            }
+
             double deltaX = vector1.X - vector2.X;
             double deltaY = vector1.Y - vector2.Y;
             double deltaZ = vector1.Z - vector2.Z;
@@ -425,11 +445,17 @@ namespace SharpTimer
 
         public static double Distance2D(Vector vector1, Vector vector2)
         {
+            if (vector1 == null || vector2 == null)
+            {
+                return 0;
+            }
+
             double deltaX = vector1.X - vector2.X;
             double deltaY = vector1.Y - vector2.Y;
 
             return Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
         }
+
 
         public static bool IsVectorHigherThan(Vector vector1, Vector vector2)
         {

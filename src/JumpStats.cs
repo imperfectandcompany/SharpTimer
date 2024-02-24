@@ -299,21 +299,35 @@ namespace SharpTimer
 
         public static float GetMaxWidth(Vector playerpos, PlayerJumpStats playerJumpStat)
         {
-            InterpolateVectors(ParseVector(playerJumpStat.JumpPos), playerpos, playerJumpStat, playerJumpStat.jumpFrames.Count);
+            InterpolateVectors(ParseVector(playerJumpStat.JumpPos), playerpos, playerJumpStat);
 
-            float distance = 0;
-            for (int jumpFrameIndex = 0; jumpFrameIndex < Math.Min(playerJumpStat.jumpFrames.Count, playerJumpStat.jumpInterp.Count); jumpFrameIndex++)
+            float maxWidth = 0;
+            foreach (var frame in playerJumpStat.jumpFrames)
             {
-                var frame = playerJumpStat.jumpFrames[jumpFrameIndex];
-                float width = (float)Distance2D(ParseVector(frame.PositionString), ParseVector(playerJumpStat.jumpInterp[jumpFrameIndex].InterpString));
-                if (width > distance) distance = width;
+                float minDistance = float.MaxValue;
+                string closestVector = "0, 0, 0";
+
+                foreach (var interpVec in playerJumpStat.jumpInterp)
+                {
+                    float closestDistance = (float)Distance2D(ParseVector(interpVec.InterpString), ParseVector(frame.PositionString));
+                    if (closestDistance < minDistance)
+                    {
+                        minDistance = closestDistance;
+                        closestVector = interpVec.InterpString;
+                    }
+                }
+
+                float width = (float)Distance2D(ParseVector(frame.PositionString), ParseVector(closestVector));
+                if (width > maxWidth)
+                    maxWidth = width;
             }
 
-            return (float)Math.Round(distance, 2);
+            return (float)Math.Round(maxWidth, 2);
         }
 
-        public static void InterpolateVectors(Vector vector1, Vector vector2, PlayerJumpStats playerJumpStat, int numInterpolations)
+        public static void InterpolateVectors(Vector vector1, Vector vector2, PlayerJumpStats playerJumpStat)
         {
+            int numInterpolations = playerJumpStat.jumpFrames.Count;
             float stepX = (vector2.X - vector1.X) / (numInterpolations + 1);
             float stepY = (vector2.Y - vector1.Y) / (numInterpolations + 1);
             float stepZ = (vector2.Z - vector1.Z) / (numInterpolations + 1);

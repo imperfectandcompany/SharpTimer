@@ -2,6 +2,66 @@
     "bhop_1derland": {
         "Tier": 1
     },
+    "bhop_climbit": {
+        "Tier": 1
+    },
+    "bhop_vergogna": {
+        "Tier": 1
+    },
+    "bhop_crystal": {
+        "Tier": 1
+    },
+    "bhop_cyber": {
+        "Tier": 2
+    },
+    "bhop_3_easy": {
+        "Tier": 1
+    },
+    "bhop_rippcpie": {
+        "Tier": 2
+    },
+    "bhop_classic": {
+        "Tier": 1
+    },
+    "bhop_static": {
+        "Tier": 1
+    },
+    "bhop_violet": {
+        "Tier": 1
+    },
+    "bhop_tron": {
+        "Tier": 1
+    },
+    "bhop_pinkglow": {
+        "Tier": 2
+    },
+    "bhop_whiteglow": {
+        "Tier": 2
+    },
+    "bhop_greenglow": {
+        "Tier": 2
+    },
+    "bhop_rgbglow": {
+        "Tier": 1
+    },
+    "bhop_purpleglow": {
+        "Tier": 1
+    },
+    "bhop_cyanglow": {
+        "Tier": 1
+    },
+    "bhop_amaranthglow": {
+        "Tier": 1
+    },
+    "bhop_blackglow": {
+        "Tier": 1
+    },
+    "bhop_dunedash": {
+        "Tier": 1
+    },
+    "bhop_vaporwave": {
+        "Tier": 1
+    },
     "bhop_1n5an3": {
         "Tier": 1
     },
@@ -713,9 +773,6 @@
     "bhop_vertex_fast": {
         "Tier": 1
     },
-    "bhop_violet": {
-        "Tier": 1
-    },
     "bhop_white_sr": {
         "Tier": 1
     },
@@ -743,10 +800,7 @@
     "bhop_zygos": {
         "Tier": 1
     },
-    "": {
-        "Tier": 5
-    },
-    "  Hide contents": {
+    "bhop_colour": {
         "Tier": 2
     },
     "bhop_162": {
@@ -929,9 +983,6 @@
     "bhop_craton": {
         "Tier": 2
     },
-    "bhop_cyber": {
-        "Tier": 2
-    },
     "bhop_cyon": {
         "Tier": 2
     },
@@ -1071,9 +1122,6 @@
         "Tier": 2
     },
     "bhop_green_shade": {
-        "Tier": 2
-    },
-    "bhop_greenglow": {
         "Tier": 2
     },
     "bhop_haunt": {
@@ -1298,9 +1346,6 @@
     "bhop_pikkulauantai": {
         "Tier": 2
     },
-    "bhop_pinkglow": {
-        "Tier": 2
-    },
     "bhop_pisco": {
         "Tier": 2
     },
@@ -1338,9 +1383,6 @@
         "Tier": 2
     },
     "bhop_ripdream": {
-        "Tier": 2
-    },
-    "bhop_rippcpie": {
         "Tier": 2
     },
     "bhop_rising": {
@@ -1491,9 +1533,6 @@
         "Tier": 2
     },
     "bhop_velstand": {
-        "Tier": 2
-    },
-    "bhop_whiteglow": {
         "Tier": 2
     },
     "bhop_whitepillar": {

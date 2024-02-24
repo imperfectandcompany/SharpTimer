@@ -1731,10 +1731,8 @@ namespace SharpTimer
                 string stripedClanTag = RemovePlayerTags(player.Clan ?? "");
 
                 player.Clan = $"{stripedClanTag}{(playerTimers[player.Slot].IsVip ? $"[{customVIPTag}]" : "")}[{tag}]";
-                //player.Clan = $"{stripedClanTag}[{tag}]";
 
-                SchemaString<CBasePlayerController> playerName = new SchemaString<CBasePlayerController>(player, "m_iszPlayerName");
-                playerName.Set(originalPlayerName + " ");
+                player.PlayerName = originalPlayerName + " ";
 
                 AddTimer(0.1f, () =>
                 {
@@ -1747,7 +1745,7 @@ namespace SharpTimer
 
                 AddTimer(0.2f, () =>
                 {
-                    if (player.IsValid) playerName.Set(originalPlayerName);
+                    if (player.IsValid) player.PlayerName = originalPlayerName;
                 });
 
                 AddTimer(0.3f, () =>
@@ -1771,8 +1769,7 @@ namespace SharpTimer
             if (player == null || !player.IsValid)
                 return;
 
-            SchemaString<CBasePlayerController> playerName = new SchemaString<CBasePlayerController>(player, "m_iszPlayerName");
-            playerName.Set(name + " ");
+            player.PlayerName = name + " ";
 
             AddTimer(0.1f, () =>
             {
@@ -1785,7 +1782,7 @@ namespace SharpTimer
 
             AddTimer(0.2f, () =>
             {
-                if (player.IsValid) playerName.Set(name);
+                if (player.IsValid) player.PlayerName = name;
             });
 
             AddTimer(0.3f, () =>

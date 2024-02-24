@@ -548,9 +548,11 @@ namespace SharpTimer
             string mapPlacement = await GetPlayerMapPlacementWithTotal(player, steamId, playerName, false, true);
 
             string serverPoints = "";
+            string serverPlacement = "";
             if (useMySQL && globalRanksEnabled)
             {
                 serverPoints = await GetPlayerServerPlacement(player, steamId, playerName, false, false, true);
+                serverPlacement = await GetPlayerServerPlacement(player, steamId, playerName, false, true, false);
             }
 
             int pbTicks;
@@ -579,8 +581,8 @@ namespace SharpTimer
                 Server.NextFrame(() =>
                 {
                     if (!IsAllowedPlayer(player)) return;
-                    player.PrintToChat(msgPrefix + $" You are currently {primaryChatColor}{ranking}{((useMySQL && globalRanksEnabled) ? $" {ChatColors.Default}({primaryChatColor}{serverPoints}{ChatColors.Default})" : "")}");
-                    if (pbTicks != 0) player.PrintToChat(msgPrefix + $" Your current PB on {primaryChatColor}{currentMapName}{ChatColors.Default}: {primaryChatColor}{FormatTime(pbTicks)} {mapPlacement}");
+                    player.PrintToChat(msgPrefix + $" You are currently {primaryChatColor}{ranking}{((useMySQL && globalRanksEnabled) ? $" {ChatColors.Default}({primaryChatColor}{serverPoints}{ChatColors.Default}) [{primaryChatColor}{serverPlacement}{ChatColors.Default}]" : "")}");
+                    if (pbTicks != 0) player.PrintToChat(msgPrefix + $" Your current PB on {primaryChatColor}{currentMapName}{ChatColors.Default}: {primaryChatColor}{FormatTime(pbTicks)}{ChatColors.Default} [{primaryChatColor}{mapPlacement}{ChatColors.Default}]");
                 });
             }
         }

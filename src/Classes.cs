@@ -257,34 +257,4 @@ namespace SharpTimer
             PushMaxs = pushMaxs;
         }
     }
-
-    public class SchemaString<SchemaClass> : NativeObject where SchemaClass : NativeObject
-    {
-        public SchemaString(SchemaClass instance, string member) : base(Schema.GetSchemaValue<nint>(instance.Handle, typeof(SchemaClass).Name!, member))
-        { }
-
-        public unsafe void Set(string str)
-        {
-            try
-            {
-                byte[] bytes = this.GetStringBytes(str);
-
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    Unsafe.Write((void*)(this.Handle.ToInt64() + i), bytes[i]);
-                }
-
-                Unsafe.Write((void*)(this.Handle.ToInt64() + bytes.Length), 0);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in SchemaString Set (unsafe): {ex.Message}");
-            }
-        }
-
-        private byte[] GetStringBytes(string str)
-        {
-            return Encoding.UTF8.GetBytes(str);
-        }
-    }
 }

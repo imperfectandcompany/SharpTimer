@@ -301,28 +301,15 @@ namespace SharpTimer
         {
             InterpolateVectors(ParseVector(playerJumpStat.JumpPos), playerpos, playerJumpStat);
 
-            float maxWidth = 0;
-            foreach (var frame in playerJumpStat.jumpFrames)
+            float distance = 0;
+            for (int jumpFrameIndex = 0; jumpFrameIndex < Math.Min(playerJumpStat.jumpFrames.Count, playerJumpStat.jumpInterp.Count); jumpFrameIndex++)
             {
-                float minDistance = float.MaxValue;
-                string closestVector = "0, 0, 0";
-
-                foreach (var interpVec in playerJumpStat.jumpInterp)
-                {
-                    float closestDistance = (float)Distance2D(ParseVector(interpVec.InterpString), ParseVector(frame.PositionString));
-                    if (closestDistance < minDistance)
-                    {
-                        minDistance = closestDistance;
-                        closestVector = interpVec.InterpString;
-                    }
-                }
-
-                float width = (float)Distance2D(ParseVector(frame.PositionString), ParseVector(closestVector));
-                if (width > maxWidth)
-                    maxWidth = width;
+                var frame = playerJumpStat.jumpFrames[jumpFrameIndex];
+                float width = (float)Distance2D(ParseVector(frame.PositionString), ParseVector(playerJumpStat.jumpInterp[jumpFrameIndex].InterpString));
+                if (width > distance) distance = width;
             }
 
-            return (float)Math.Round(maxWidth, 2);
+            return (float)Math.Round(distance, 2);
         }
 
         public static void InterpolateVectors(Vector vector1, Vector vector2, PlayerJumpStats playerJumpStat)

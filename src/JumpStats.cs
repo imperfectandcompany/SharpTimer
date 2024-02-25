@@ -1,6 +1,7 @@
 using System.Numerics;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
@@ -350,11 +351,11 @@ namespace SharpTimer
             char color = GetJSColor(distance);
 
             string msg1 = $"{primaryChatColor}JumpStats: {ChatColors.Grey}" +
-                            $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 3)}{ChatColors.Grey} | " +
-                            $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)}{ChatColors.Grey} | " +
-                            $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 3)}{ChatColors.Grey} | ";
+                            $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 2)}{ChatColors.Grey} | " +
+                            $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 2)}{ChatColors.Grey} | " +
+                            $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 2)}{ChatColors.Grey} | ";
             string msg2 = $"{ChatColors.Grey}Strafes: {primaryChatColor}{CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)}{ChatColors.Grey} | " +
-                            $"Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)}{ChatColors.Grey} | " +
+                            $"Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 2)}{ChatColors.Grey} | " +
                             $"Width: {primaryChatColor}{GetMaxWidth(playerpos, playerJumpStat)}{ChatColors.Grey} | " +
                             $"WT: {primaryChatColor}{playerJumpStat.WTicks}{ChatColors.Grey} | " +
                             $"Sync: {primaryChatColor}0%";
@@ -364,15 +365,12 @@ namespace SharpTimer
             Server.NextFrame(() => player.PrintToChat(msgPrefix + msg2));
 
             player.PrintToConsole($"-----------------------------------------------------------------------------------------------------------------------");
-            player.PrintToConsole($"JumpStats:");
-            player.PrintToConsole($"{playerJumpStat.LastJumpType}: {Math.Round((distance * 10) * 0.1, 3)} | " +
-                                    $"Pre: {Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 3)} | " +
-                                    $"Max: {Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 3)} | ");
-            player.PrintToConsole($"Strafes: {CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)} | " +
-                                    $"Height: {Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 3)} | " +
-                                    $"Width: {GetMaxWidth(playerpos, playerJumpStat)} | " +
-                                    $"WT: {playerJumpStat.WTicks} | " +
-                                    $"Sync: 0%");
+            player.PrintToConsole(msg1);
+            player.PrintToConsole(msg2);
+            
+            /* this is shit
+            string alertMsg = msg1 + "\n" + msg2;
+            VirtualFunctions.ClientPrintAll(HudDestination.Alert, alertMsg, 0, 0, 0, 0); */
         }
     }
 }

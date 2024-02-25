@@ -405,7 +405,7 @@ namespace SharpTimer
                     //trigger_push.Remove();
                     trigger_push.Speed = 0.0f;
 
-                    SharpTimerDebug($"Killed trigger_push {handle}");
+                    SharpTimerDebug($"trigger_push.Speed {handle} = 0");
                 }
             }
         }

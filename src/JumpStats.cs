@@ -370,7 +370,7 @@ namespace SharpTimer
             
             /* this is shit
             string alertMsg = msg1 + "\n" + msg2;
-            VirtualFunctions.ClientPrintAll(HudDestination.Alert, alertMsg, 0, 0, 0, 0); */
+            VirtualFunctions.ClientPrint(player.Handle, HudDestination.Alert, alertMsg, 0, 0, 0, 0); */
         }
     }
 }

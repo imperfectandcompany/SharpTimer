@@ -74,17 +74,17 @@ namespace SharpTimer
 
         public void SharpTimerDebug(string msg)
         {
-            if (enableDebug == true) Console.WriteLine($"\u001b[33m[SharpTimerDebug] \u001b[37m{msg}");
+            if (enableDebug == true) Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] \u001b[33m[SharpTimerDebug] \u001b[37m{msg}");
         }
 
         public void SharpTimerError(string msg)
         {
-            Console.WriteLine($"\u001b[31m[SharpTimerERROR] \u001b[37m{msg}");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] \u001b[31m[SharpTimerERROR] \u001b[37m{msg}");
         }
 
         public void SharpTimerConPrint(string msg)
         {
-            Console.WriteLine($"\u001b[36m[SharpTimer] \u001b[37m{msg}");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] \u001b[36m[SharpTimer] \u001b[37m{msg}");
         }
 
         private static string FormatTime(int ticks)
@@ -651,15 +651,96 @@ namespace SharpTimer
 
         private void OnMapStartHandler(string mapName)
         {
-            Server.NextFrame(() =>
+            try
             {
-                SharpTimerDebug("OnMapStart:");
-                SharpTimerDebug("Executing SharpTimer/config");
-                Server.ExecuteCommand("sv_autoexec_mapname_cfg 0");
-                Server.ExecuteCommand($"execifexists SharpTimer/config.cfg");
+                Server.NextFrame(() =>
+                {
+                    SharpTimerDebug("OnMapStart:");
+                    SharpTimerDebug("Executing SharpTimer/config");
+                    Server.ExecuteCommand("sv_autoexec_mapname_cfg 0");
+                    Server.ExecuteCommand($"execifexists SharpTimer/config.cfg");
 
-                //delay custom_exec so it executes after map exec
-                SharpTimerDebug("Creating custom_exec 1sec delay");
+                    //delay custom_exec so it executes after map exec
+                    SharpTimerDebug("Creating custom_exec 1sec delay");
+                    var custom_exec_delay = AddTimer(1.0f, () =>
+                    {
+                        SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
+                        Server.ExecuteCommand("execifexists SharpTimer/custom_exec.cfg");
+
+                        if (execCustomMapCFG == true)
+                        {
+                            string MapExecFile = GetClosestMapCFGMatch();
+                            if (!string.IsNullOrEmpty(MapExecFile))
+                                Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{MapExecFile}");
+                            else
+                                SharpTimerError("MapExec Error: file name returned null");
+                        }
+
+                        if (hideAllPlayers == true) Server.ExecuteCommand($"mp_teammates_are_enemies 1");
+                        if (enableSRreplayBot)
+                        {
+                            Server.NextFrame(() =>
+                            {
+                                Server.ExecuteCommand($"sv_hibernate_when_empty 0");
+                                Server.ExecuteCommand($"bot_join_after_player 0");
+                            });
+                        }
+                    });
+
+                    if (enableReplays == true && enableSRreplayBot == true)
+                    {
+                        AddTimer(5.0f, () =>
+                        {
+                            if (ConVar.Find("mp_force_pick_time").GetPrimitiveValue<float>() == 1.0)
+                                _ = SpawnReplayBot();
+                            else
+                            {
+                                Server.PrintToChatAll($" {ChatColors.LightRed}Couldnt Spawn Replay bot!");
+                                Server.PrintToChatAll($" {ChatColors.LightRed}Please make sure mp_force_pick_time is set to 1");
+                                Server.PrintToChatAll($" {ChatColors.LightRed}in your custom_exec.cfg");
+                                SharpTimerError("Couldnt Spawn Replay bot! Please make sure mp_force_pick_time is set to 1 in your custom_exec.cfg");
+                            }
+                        });
+                    }
+
+                    if (removeCrouchFatigueEnabled == true) Server.ExecuteCommand("sv_timebetweenducks 0");
+
+                    bonusRespawnPoses.Clear();
+                    bonusRespawnAngs.Clear();
+
+                    cpTriggers.Clear();         // make sure old data is flushed in case new map uses fake zones
+                    stageTriggers.Clear();
+                    stageTriggerAngs.Clear();
+                    stageTriggerPoses.Clear();
+
+                    _ = CheckTablesAsync();
+
+                    KillServerCommandEnts();
+                });
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"In OnMapStartHandler: {ex}");
+            }
+        }
+
+        private void LoadMapData()
+        {
+            try
+            {
+                currentMapName = Server.MapName;
+
+                string recordsFileName = $"SharpTimer/PlayerRecords/";
+                playerRecordsPath = Path.Join(gameDir + "/csgo/cfg", recordsFileName);
+
+                string mysqlConfigFileName = "SharpTimer/mysqlConfig.json";
+                mySQLpath = Path.Join(gameDir + "/csgo/cfg", mysqlConfigFileName);
+
+                string mapdataFileName = $"SharpTimer/MapData/{currentMapName}.json";
+                string mapdataPath = Path.Join(gameDir + "/csgo/cfg", mapdataFileName);
+
+                Server.ExecuteCommand($"execifexists SharpTimer/config.cfg");
+                SharpTimerDebug("Re-Executing custom_exec with 1sec delay...");
                 var custom_exec_delay = AddTimer(1.0f, () =>
                 {
                     SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
@@ -685,299 +766,59 @@ namespace SharpTimer
                     }
                 });
 
-                if (enableReplays == true && enableSRreplayBot == true)
+                if (srEnabled == true) ServerRecordADtimer();
+
+                entityCache = new EntityCache();
+                UpdateEntityCache();
+
+                SortedCachedRecords = GetSortedRecords();
+
+                ClearMapData();
+
+                _ = GetMapInfo();
+
+                primaryChatColor = ParseColorToSymbol(primaryHUDcolor);
+
+                SharpTimerConPrint($"Trying to find Map data json for map: {currentMapName}!");
+                using JsonDocument jsonDocument = LoadJson(mapdataPath);
+                if (jsonDocument != null)
                 {
-                    AddTimer(5.0f, () =>
+                    var mapInfo = JsonSerializer.Deserialize<MapInfo>(jsonDocument.RootElement.GetRawText());
+                    SharpTimerConPrint($"Map data json found for map: {currentMapName}!");
+
+                    if (!string.IsNullOrEmpty(mapInfo.MapStartC1) && !string.IsNullOrEmpty(mapInfo.MapStartC2) && !string.IsNullOrEmpty(mapInfo.MapEndC1) && !string.IsNullOrEmpty(mapInfo.MapEndC2))
                     {
-                        if (ConVar.Find("mp_force_pick_time").GetPrimitiveValue<float>() == 1.0)
-                            _ = SpawnReplayBot();
-                        else
-                        {
-                            Server.PrintToChatAll($" {ChatColors.LightRed}Couldnt Spawn Replay bot!");
-                            Server.PrintToChatAll($" {ChatColors.LightRed}Please make sure mp_force_pick_time is set to 1");
-                            Server.PrintToChatAll($" {ChatColors.LightRed}in your custom_exec.cfg");
-                            SharpTimerError("Couldnt Spawn Replay bot! Please make sure mp_force_pick_time is set to 1 in your custom_exec.cfg");
-                        }
-                    });
-                }
+                        useTriggers = false;
+                        SharpTimerConPrint($"useTriggers: {useTriggers}!");
+                        currentMapStartC1 = ParseVector(mapInfo.MapStartC1);
+                        currentMapStartC2 = ParseVector(mapInfo.MapStartC2);
+                        currentMapEndC1 = ParseVector(mapInfo.MapEndC1);
+                        currentMapEndC2 = ParseVector(mapInfo.MapEndC2);
+                        currentEndPos = CalculateMiddleVector(currentMapEndC1, currentMapEndC2);
+                        SharpTimerConPrint($"Found Fake Trigger Corners: START {currentMapStartC1}, {currentMapStartC2} | END {currentMapEndC1}, {currentMapEndC2}");
+                    }
 
-                if (removeCrouchFatigueEnabled == true) Server.ExecuteCommand("sv_timebetweenducks 0");
-
-                bonusRespawnPoses.Clear();
-                bonusRespawnAngs.Clear();
-
-                cpTriggers.Clear();         // make sure old data is flushed in case new map uses fake zones
-                stageTriggers.Clear();
-                stageTriggerAngs.Clear();
-                stageTriggerPoses.Clear();
-
-                _ = CheckTablesAsync();
-
-                KillServerCommandEnts();
-            });
-        }
-
-        private void LoadMapData()
-        {
-            Server.ExecuteCommand($"execifexists SharpTimer/config.cfg");
-            SharpTimerDebug("Re-Executing custom_exec with 1sec delay...");
-            var custom_exec_delay = AddTimer(1.0f, () =>
-            {
-                SharpTimerDebug("Re-Executing SharpTimer/custom_exec");
-                Server.ExecuteCommand("execifexists SharpTimer/custom_exec.cfg");
-
-                if (execCustomMapCFG == true)
-                {
-                    string MapExecFile = GetClosestMapCFGMatch();
-                    if (!string.IsNullOrEmpty(MapExecFile))
-                        Server.ExecuteCommand($"execifexists SharpTimer/MapData/MapExecs/{MapExecFile}");
-                    else
-                        SharpTimerError("MapExec Error: file name returned null");
-                }
-
-                if (hideAllPlayers == true) Server.ExecuteCommand($"mp_teammates_are_enemies 1");
-                if (enableSRreplayBot)
-                {
-                    Server.NextFrame(() =>
+                    if (!string.IsNullOrEmpty(mapInfo.MapStartTrigger) && !string.IsNullOrEmpty(mapInfo.MapEndTrigger))
                     {
-                        Server.ExecuteCommand($"sv_hibernate_when_empty 0");
-                        Server.ExecuteCommand($"bot_join_after_player 0");
-                    });
-                }
-            });
+                        currentMapStartTrigger = mapInfo.MapStartTrigger;
+                        currentMapEndTrigger = mapInfo.MapEndTrigger;
+                        useTriggers = true;
+                        SharpTimerConPrint($"Found Trigger Names: START {currentMapStartTrigger} | END {currentMapEndTrigger}");
+                    }
 
-            if (srEnabled == true) ServerRecordADtimer();
-
-            currentMapName = Server.MapName;
-
-            string recordsFileName = $"SharpTimer/PlayerRecords/";
-            playerRecordsPath = Path.Join(gameDir + "/csgo/cfg", recordsFileName);
-
-            string mysqlConfigFileName = "SharpTimer/mysqlConfig.json";
-            mySQLpath = Path.Join(gameDir + "/csgo/cfg", mysqlConfigFileName);
-
-            string mapdataFileName = $"SharpTimer/MapData/{currentMapName}.json";
-            string mapdataPath = Path.Join(gameDir + "/csgo/cfg", mapdataFileName);
-
-            entityCache = new EntityCache();
-            UpdateEntityCache();
-
-            SortedCachedRecords = GetSortedRecords();
-
-            ClearMapData();
-
-            _ = GetMapInfo();
-
-            primaryChatColor = ParseColorToSymbol(primaryHUDcolor);
-
-            try
-            {
-                using (JsonDocument jsonDocument = LoadJson(mapdataPath))
-                {
-                    if (jsonDocument != null)
+                    if (!string.IsNullOrEmpty(mapInfo.RespawnPos))
                     {
-                        var mapInfo = JsonSerializer.Deserialize<MapInfo>(jsonDocument.RootElement.GetRawText());
-                        SharpTimerConPrint($"Map data json found for map: {currentMapName}!");
-
-                        if (!string.IsNullOrEmpty(mapInfo.MapStartC1) && !string.IsNullOrEmpty(mapInfo.MapStartC2) && !string.IsNullOrEmpty(mapInfo.MapEndC1) && !string.IsNullOrEmpty(mapInfo.MapEndC2))
-                        {
-                            currentMapStartC1 = ParseVector(mapInfo.MapStartC1);
-                            currentMapStartC2 = ParseVector(mapInfo.MapStartC2);
-                            currentMapEndC1 = ParseVector(mapInfo.MapEndC1);
-                            currentMapEndC2 = ParseVector(mapInfo.MapEndC2);
-                            currentEndPos = CalculateMiddleVector(currentMapEndC1, currentMapEndC2);
-                            useTriggers = false;
-                            SharpTimerConPrint($"Found Fake Trigger Corners: START {currentMapStartC1}, {currentMapStartC2} | END {currentMapEndC1}, {currentMapEndC2}");
-                        }
-
-                        if (!string.IsNullOrEmpty(mapInfo.MapStartTrigger) && !string.IsNullOrEmpty(mapInfo.MapEndTrigger))
-                        {
-                            currentMapStartTrigger = mapInfo.MapStartTrigger;
-                            currentMapEndTrigger = mapInfo.MapEndTrigger;
-                            useTriggers = true;
-                            SharpTimerConPrint($"Found Trigger Names: START {currentMapStartTrigger} | END {currentMapEndTrigger}");
-                        }
-
-                        if (!string.IsNullOrEmpty(mapInfo.RespawnPos))
-                        {
-                            currentRespawnPos = ParseVector(mapInfo.RespawnPos);
-                            SharpTimerConPrint($"Found RespawnPos: {currentRespawnPos}");
-                        }
-                        else
-                        {
-                            (currentRespawnPos, currentRespawnAng) = FindStartTriggerPos();
-
-                            FindBonusStartTriggerPos();
-                            FindStageTriggers();
-                            FindCheckpointTriggers();
-                            SharpTimerConPrint($"RespawnPos not found, trying to hook trigger pos instead");
-                            if (currentRespawnPos == null)
-                            {
-                                SharpTimerConPrint($"Hooking Trigger RespawnPos Failed!");
-                            }
-                            else
-                            {
-                                SharpTimerConPrint($"Hooking Trigger RespawnPos Success! {currentRespawnPos}");
-                            }
-                        }
-
-                        /* if (mapInfo.OverrideDisableTelehop != null && mapInfo.OverrideDisableTelehop.Any())
-                        {
-                            try
-                            {
-                                SharpTimerConPrint($"Overriding Telehop...");
-                                currentMapOverrideDisableTelehop = mapInfo.OverrideDisableTelehop
-                                    .Split(',')
-                                    .Select(color => color.Trim())
-                                    .ToArray();
-
-                                foreach (var trigger in currentMapOverrideDisableTelehop)
-                                {
-                                    SharpTimerConPrint($"OverrideDisableTelehop for trigger: {trigger}");
-                                }
-
-                            }
-                            catch (Exception ex)
-                            {
-                                SharpTimerError($"Error parsing OverrideDisableTelehop array: {ex.Message}");
-                            }
-                        }
-                        else
-                        {
-                            currentMapOverrideDisableTelehop = new string[0];
-                        } */
-
-                        if (!string.IsNullOrEmpty(mapInfo.OverrideDisableTelehop))
-                        {
-                            try
-                            {
-                                currentMapOverrideDisableTelehop = bool.Parse(mapInfo.OverrideDisableTelehop);
-                                SharpTimerConPrint($"Overriding OverrideDisableTelehop...");
-                            }
-                            catch (FormatException)
-                            {
-                                SharpTimerError("Invalid boolean string format for OverrideDisableTelehop");
-                            }
-                        }
-                        else
-                        {
-                            currentMapOverrideStageRequirement = false;
-                        }
-
-                        if (mapInfo.OverrideMaxSpeedLimit != null && mapInfo.OverrideMaxSpeedLimit.Any())
-                        {
-                            try
-                            {
-                                SharpTimerConPrint($"Overriding MaxSpeedLimit...");
-                                currentMapOverrideMaxSpeedLimit = mapInfo.OverrideMaxSpeedLimit
-                                    .Split(',')
-                                    .Select(color => color.Trim())
-                                    .ToArray();
-
-                                foreach (var trigger in currentMapOverrideMaxSpeedLimit)
-                                {
-                                    SharpTimerConPrint($"OverrideMaxSpeedLimit for trigger: {trigger}");
-                                }
-
-                            }
-                            catch (Exception ex)
-                            {
-                                SharpTimerError($"Error parsing OverrideMaxSpeedLimit array: {ex.Message}");
-                            }
-                        }
-                        else
-                        {
-                            currentMapOverrideMaxSpeedLimit = new string[0];
-                        }
-
-                        if (!string.IsNullOrEmpty(mapInfo.OverrideStageRequirement))
-                        {
-                            try
-                            {
-                                currentMapOverrideStageRequirement = bool.Parse(mapInfo.OverrideStageRequirement);
-                                SharpTimerConPrint($"Overriding StageRequirement...");
-                            }
-                            catch (FormatException)
-                            {
-                                SharpTimerError("Invalid boolean string format for OverrideStageRequirement");
-                            }
-                        }
-                        else
-                        {
-                            currentMapOverrideStageRequirement = false;
-                        }
-
-                        if (!string.IsNullOrEmpty(mapInfo.OverrideTriggerPushFix))
-                        {
-                            try
-                            {
-                                currentMapOverrideTriggerPushFix = bool.Parse(mapInfo.OverrideTriggerPushFix);
-                                SharpTimerConPrint($"Overriding TriggerPushFix...");
-                            }
-                            catch (FormatException)
-                            {
-                                SharpTimerError("Invalid boolean string format for OverrideTriggerPushFix");
-                            }
-                        }
-                        else
-                        {
-                            currentMapOverrideTriggerPushFix = false;
-                        }
-
-                        if (!string.IsNullOrEmpty(mapInfo.GlobalPointsMultiplier))
-                        {
-                            try
-                            {
-                                globalPointsMultiplier = float.Parse(mapInfo.GlobalPointsMultiplier);
-                                SharpTimerConPrint($"Set global points multiplier to x{globalPointsMultiplier}");
-                            }
-                            catch (FormatException)
-                            {
-                                SharpTimerError("Invalid float string format for GlobalPointsMultiplier");
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(mapInfo.MapTier))
-                        {
-                            AddTimer(10.0f, () => //making sure this happens after remote_data is fetched due to github being slow sometimes
-                            {
-                                try
-                                {
-                                    currentMapTier = int.Parse(mapInfo.MapTier);
-                                    SharpTimerConPrint($"Overriding MapTier to {currentMapTier}");
-                                }
-                                catch (FormatException)
-                                {
-                                    SharpTimerError("Invalid int string format for MapTier");
-                                }
-                            });
-                        }
-
-                        if (!string.IsNullOrEmpty(mapInfo.MapType))
-                        {
-                            AddTimer(10.0f, () => //making sure this happens after remote_data is fetched due to github being slow sometimes
-                            {
-                                try
-                                {
-                                    currentMapType = mapInfo.MapType;
-                                    SharpTimerConPrint($"Overriding MapType to {currentMapType}");
-                                }
-                                catch (FormatException)
-                                {
-                                    SharpTimerError("Invalid string format for MapType");
-                                }
-                            });
-                        }
+                        currentRespawnPos = ParseVector(mapInfo.RespawnPos);
+                        SharpTimerConPrint($"Found RespawnPos: {currentRespawnPos}");
                     }
                     else
                     {
-                        SharpTimerConPrint($"Map data json not found for map: {currentMapName}!");
-                        SharpTimerConPrint($"Trying to hook Triggers supported by default!");
                         (currentRespawnPos, currentRespawnAng) = FindStartTriggerPos();
-                        currentEndPos = FindEndTriggerPos();
+
                         FindBonusStartTriggerPos();
                         FindStageTriggers();
                         FindCheckpointTriggers();
+                        SharpTimerConPrint($"RespawnPos not found, trying to hook trigger pos instead");
                         if (currentRespawnPos == null)
                         {
                             SharpTimerConPrint($"Hooking Trigger RespawnPos Failed!");
@@ -986,7 +827,154 @@ namespace SharpTimer
                         {
                             SharpTimerConPrint($"Hooking Trigger RespawnPos Success! {currentRespawnPos}");
                         }
-                        useTriggers = true;
+                    }
+
+                    /* if (mapInfo.OverrideDisableTelehop != null && mapInfo.OverrideDisableTelehop.Any())
+                    {
+                        try
+                        {
+                            SharpTimerConPrint($"Overriding Telehop...");
+                            currentMapOverrideDisableTelehop = mapInfo.OverrideDisableTelehop
+                                .Split(',')
+                                .Select(color => color.Trim())
+                                .ToArray();
+
+                            foreach (var trigger in currentMapOverrideDisableTelehop)
+                            {
+                                SharpTimerConPrint($"OverrideDisableTelehop for trigger: {trigger}");
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+                            SharpTimerError($"Error parsing OverrideDisableTelehop array: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        currentMapOverrideDisableTelehop = new string[0];
+                    } */
+
+                    if (!string.IsNullOrEmpty(mapInfo.OverrideDisableTelehop))
+                    {
+                        try
+                        {
+                            currentMapOverrideDisableTelehop = bool.Parse(mapInfo.OverrideDisableTelehop);
+                            SharpTimerConPrint($"Overriding OverrideDisableTelehop...");
+                        }
+                        catch (FormatException)
+                        {
+                            SharpTimerError("Invalid boolean string format for OverrideDisableTelehop");
+                        }
+                    }
+                    else
+                    {
+                        currentMapOverrideStageRequirement = false;
+                    }
+
+                    if (mapInfo.OverrideMaxSpeedLimit != null && mapInfo.OverrideMaxSpeedLimit.Any())
+                    {
+                        try
+                        {
+                            SharpTimerConPrint($"Overriding MaxSpeedLimit...");
+                            currentMapOverrideMaxSpeedLimit = mapInfo.OverrideMaxSpeedLimit
+                                .Split(',')
+                                .Select(color => color.Trim())
+                                .ToArray();
+
+                            foreach (var trigger in currentMapOverrideMaxSpeedLimit)
+                            {
+                                SharpTimerConPrint($"OverrideMaxSpeedLimit for trigger: {trigger}");
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+                            SharpTimerError($"Error parsing OverrideMaxSpeedLimit array: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        currentMapOverrideMaxSpeedLimit = new string[0];
+                    }
+
+                    if (!string.IsNullOrEmpty(mapInfo.OverrideStageRequirement))
+                    {
+                        try
+                        {
+                            currentMapOverrideStageRequirement = bool.Parse(mapInfo.OverrideStageRequirement);
+                            SharpTimerConPrint($"Overriding StageRequirement...");
+                        }
+                        catch (FormatException)
+                        {
+                            SharpTimerError("Invalid boolean string format for OverrideStageRequirement");
+                        }
+                    }
+                    else
+                    {
+                        currentMapOverrideStageRequirement = false;
+                    }
+
+                    if (!string.IsNullOrEmpty(mapInfo.OverrideTriggerPushFix))
+                    {
+                        try
+                        {
+                            currentMapOverrideTriggerPushFix = bool.Parse(mapInfo.OverrideTriggerPushFix);
+                            SharpTimerConPrint($"Overriding TriggerPushFix...");
+                        }
+                        catch (FormatException)
+                        {
+                            SharpTimerError("Invalid boolean string format for OverrideTriggerPushFix");
+                        }
+                    }
+                    else
+                    {
+                        currentMapOverrideTriggerPushFix = false;
+                    }
+
+                    if (!string.IsNullOrEmpty(mapInfo.GlobalPointsMultiplier))
+                    {
+                        try
+                        {
+                            globalPointsMultiplier = float.Parse(mapInfo.GlobalPointsMultiplier);
+                            SharpTimerConPrint($"Set global points multiplier to x{globalPointsMultiplier}");
+                        }
+                        catch (FormatException)
+                        {
+                            SharpTimerError("Invalid float string format for GlobalPointsMultiplier");
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(mapInfo.MapTier))
+                    {
+                        AddTimer(10.0f, () => //making sure this happens after remote_data is fetched due to github being slow sometimes
+                        {
+                            try
+                            {
+                                currentMapTier = int.Parse(mapInfo.MapTier);
+                                SharpTimerConPrint($"Overriding MapTier to {currentMapTier}");
+                            }
+                            catch (FormatException)
+                            {
+                                SharpTimerError("Invalid int string format for MapTier");
+                            }
+                        });
+                    }
+
+                    if (!string.IsNullOrEmpty(mapInfo.MapType))
+                    {
+                        AddTimer(10.0f, () => //making sure this happens after remote_data is fetched due to github being slow sometimes
+                        {
+                            try
+                            {
+                                currentMapType = mapInfo.MapType;
+                                SharpTimerConPrint($"Overriding MapType to {currentMapType}");
+                            }
+                            catch (FormatException)
+                            {
+                                SharpTimerError("Invalid string format for MapType");
+                            }
+                        });
                     }
 
                     if (useTriggers == false && currentMapStartC1 != null && currentMapStartC2 != null && currentMapEndC1 != null && currentMapEndC2 != null)
@@ -1003,31 +991,57 @@ namespace SharpTimer
                         DrawWireframe3D(startRight, startLeft, startBeamColor);
                         DrawWireframe3D(endRight, endLeft, endBeamColor);
                     }
+
+                    if (triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false)
+                        FindTriggerPushData();
+
+                    KillServerCommandEnts();
                 }
+                else
+                {
+                    SharpTimerConPrint($"Map data json not found for map: {currentMapName}!");
+                    SharpTimerConPrint($"Trying to hook Triggers supported by default!");
+
+                    if (triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false)
+                        FindTriggerPushData();
+
+                    KillServerCommandEnts();
+
+                    (currentRespawnPos, currentRespawnAng) = FindStartTriggerPos();
+                    currentEndPos = FindEndTriggerPos();
+                    FindBonusStartTriggerPos();
+                    FindStageTriggers();
+                    FindCheckpointTriggers();
+
+                    if (currentRespawnPos == null)
+                        SharpTimerConPrint($"Hooking Trigger RespawnPos Failed!");
+                    else
+                        SharpTimerConPrint($"Hooking Trigger RespawnPos Success! {currentRespawnPos}");
+
+                    if (useTriggers == false && currentMapStartC1 != null && currentMapStartC2 != null && currentMapEndC1 != null && currentMapEndC2 != null)
+                    {
+                        DrawWireframe3D(currentMapStartC1, currentMapStartC2, startBeamColor);
+                        DrawWireframe3D(currentMapEndC1, currentMapEndC2, endBeamColor);
+                    }
+                    else
+                    {
+                        var (startRight, startLeft, endRight, endLeft) = FindTriggerBounds();
+
+                        if (startRight == null || startLeft == null || endRight == null || endLeft == null) return;
+
+                        DrawWireframe3D(startRight, startLeft, startBeamColor);
+                        DrawWireframe3D(endRight, endLeft, endBeamColor);
+                    }
+
+                    useTriggers = true;
+                }
+
+                SharpTimerConPrint($"useTriggers: {useTriggers}!");
             }
             catch (Exception ex)
             {
                 SharpTimerError($"Error in LoadMapData: {ex.Message}");
             }
-
-            if (useTriggers == false && currentMapStartC1 != null && currentMapStartC2 != null && currentMapEndC1 != null && currentMapEndC2 != null)
-            {
-                DrawWireframe3D(currentMapStartC1, currentMapStartC2, startBeamColor);
-                DrawWireframe3D(currentMapEndC1, currentMapEndC2, endBeamColor);
-            }
-            else
-            {
-                var (startRight, startLeft, endRight, endLeft) = FindTriggerBounds();
-
-                if (startRight == null || startLeft == null || endRight == null || endLeft == null) return;
-
-                DrawWireframe3D(startRight, startLeft, startBeamColor);
-                DrawWireframe3D(endRight, endLeft, endBeamColor);
-            }
-
-            if (triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false) FindTriggerPushData();
-
-            KillServerCommandEnts();
         }
 
         public void ClearMapData()
@@ -1150,49 +1164,63 @@ namespace SharpTimer
 
         public string GetClosestMapCFGMatch()
         {
-            string[] configFiles;
             try
             {
-                configFiles = Directory.GetFiles(gameDir + "/csgo/cfg/SharpTimer/MapData/MapExecs", "*.cfg");
+                if (gameDir == null)
+                {
+                    SharpTimerError("gameDir is not initialized.");
+                    return "null";
+                }
+
+                string[] configFiles;
+                try
+                {
+                    configFiles = Directory.GetFiles(Path.Combine(gameDir, "csgo", "cfg", "SharpTimer", "MapData", "MapExecs"), "*.cfg");
+                }
+                catch (Exception ex)
+                {
+                    SharpTimerError("Error accessing MapExec directory: " + ex.Message);
+                    return "null";
+                }
+
+                if (configFiles == null || configFiles.Length == 0)
+                {
+                    SharpTimerError("No MapExec files found.");
+                    return "null";
+                }
+
+                string closestMatch = string.Empty;
+                int closestMatchLength = int.MaxValue;
+
+                foreach (string file in configFiles)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(file);
+
+                    if (Server.MapName == fileName)
+                    {
+                        return fileName + ".cfg";
+                    }
+
+                    if (Server.MapName.StartsWith(fileName) && fileName.Length < closestMatchLength)
+                    {
+                        closestMatch = fileName + ".cfg";
+                        closestMatchLength = fileName.Length;
+                    }
+                } // line 1176
+
+                if (closestMatch == null || closestMatch == string.Empty)
+                {
+                    SharpTimerError("No closest MapExec match found.");
+                    return "null";
+                }
+
+                return closestMatch;
             }
             catch (Exception ex)
             {
-                SharpTimerError("Error accessing MapExec directory: " + ex.Message);
-                return null;
+                SharpTimerError($"Error GetClosestMapCFGMatch: {ex.StackTrace}");
+                return "null";
             }
-
-            if (configFiles == null || configFiles.Length == 0)
-            {
-                SharpTimerError("No MapExec files found.");
-                return null;
-            }
-
-            string closestMatch = string.Empty;
-            int closestMatchLength = int.MaxValue;
-
-            foreach (string file in configFiles)
-            {
-                string fileName = Path.GetFileNameWithoutExtension(file);
-
-                if (currentMapName == fileName)
-                {
-                    return fileName + ".cfg";
-                }
-
-                if (currentMapName.StartsWith(fileName) && fileName.Length < closestMatchLength)
-                {
-                    closestMatch = fileName + ".cfg";
-                    closestMatchLength = fileName.Length;
-                }
-            }
-
-            if (string.IsNullOrEmpty(closestMatch))
-            {
-                SharpTimerError("No closest MapExec match found.");
-                return null;
-            }
-
-            return closestMatch;
         }
     }
 }

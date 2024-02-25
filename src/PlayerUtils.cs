@@ -608,13 +608,18 @@ namespace SharpTimer
 
         private void CheckPlayerCoords(CCSPlayerController? player, Vector playerSpeed)
         {
-            if (player == null || !IsAllowedPlayer(player) || useTriggers == true) return;
-
             try
             {
+                if (player == null || !IsAllowedPlayer(player) || useTriggers == true)
+                {
+                    return;
+                }
+
+                Vector incorrectVector = new Vector(0, 0, 0);
                 Vector? playerPos = player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin;
 
-                if (playerPos == null || currentMapStartC1 != null || currentMapStartC2 != null || currentMapEndC1 != null || currentMapEndC2 != null)
+                if (playerPos == null || currentMapStartC1 == incorrectVector || currentMapStartC2 == incorrectVector ||
+                    currentMapEndC1 == incorrectVector || currentMapEndC2 == incorrectVector)
                 {
                     return;
                 }
@@ -627,7 +632,7 @@ namespace SharpTimer
                     OnTimerStop(player);
                     if (enableReplays) OnRecordingStop(player);
                 }
-                else if (isInsideStartBox && !isInsideEndBox)
+                else if (isInsideStartBox)
                 {
                     OnTimerStart(player);
                     if (enableReplays) OnRecordingStart(player);
@@ -1720,40 +1725,43 @@ namespace SharpTimer
         {
             try
             {
-                if (string.IsNullOrEmpty(tag))
-                    return;
-
-                if (player == null || !player.IsValid)
-                    return;
-
-                string originalPlayerName = player.PlayerName;
-
-                string stripedClanTag = RemovePlayerTags(player.Clan ?? "");
-
-                player.Clan = $"{stripedClanTag}{(playerTimers[player.Slot].IsVip ? $"[{customVIPTag}]" : "")}[{tag}]";
-
-                player.PlayerName = originalPlayerName + " ";
-
-                AddTimer(0.1f, () =>
+                Server.NextFrame(() =>
                 {
-                    if (player.IsValid)
+                    if (string.IsNullOrEmpty(tag))
+                        return;
+
+                    if (player == null || !player.IsValid)
+                        return;
+
+                    string originalPlayerName = player.PlayerName;
+
+                    string stripedClanTag = RemovePlayerTags(player.Clan ?? "");
+
+                    player.Clan = $"{stripedClanTag}{(playerTimers[player.Slot].IsVip ? $"[{customVIPTag}]" : "")}[{tag}]";
+
+                    player.PlayerName = originalPlayerName + " ";
+
+                    AddTimer(0.1f, () =>
                     {
-                        Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
-                        Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
-                    }
-                });
+                        if (player.IsValid)
+                        {
+                            Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
+                            Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                        }
+                    });
 
-                AddTimer(0.2f, () =>
-                {
-                    if (player.IsValid) player.PlayerName = originalPlayerName;
-                });
+                    AddTimer(0.2f, () =>
+                    {
+                        if (player.IsValid) player.PlayerName = originalPlayerName;
+                    });
 
-                AddTimer(0.3f, () =>
-                {
-                    if (player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
-                });
+                    AddTimer(0.3f, () =>
+                    {
+                        if (player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                    });
 
-                SharpTimerDebug($"Set Scoreboard Tag for {player.Clan} {player.PlayerName}");
+                    SharpTimerDebug($"Set Scoreboard Tag for {player.Clan} {player.PlayerName}");
+                });
             }
             catch (Exception ex)
             {

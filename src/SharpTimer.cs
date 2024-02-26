@@ -534,17 +534,9 @@ namespace SharpTimer
                 }
             });
 
-            Server.NextFrame(() =>
+            AddTimer(1.0f, () =>
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
-                {
-                    VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(this.OnTakeDamage, HookMode.Pre);
-                }
-                else if (disableDamage == true)
-                {
-                    SharpTimerDebug($"disableDamage: Platform is Windows. Using different method...");
-                    RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Pre);
-                }
+                DamageHook();
             });
 
             AddCommandListener("say", OnPlayerChatAll);
@@ -564,6 +556,28 @@ namespace SharpTimer
             RemoveCommandListener("say_team", OnPlayerChatTeam, HookMode.Pre);
 
             SharpTimerConPrint("Plugin Unloaded");
+        }
+
+        public void DamageHook()
+        {
+            try
+            {
+                SharpTimerDebug("Init Damage hook...");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
+                {
+                    SharpTimerDebug("Trying to register Linux Damage hook...");
+                    VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(this.OnTakeDamage, HookMode.Pre);
+                }
+                else if (disableDamage == true)
+                {
+                    SharpTimerDebug("Trying to register Windows Damage hook...");
+                    RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Pre);
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Exception in DamageHook, probably due to cs2fixes 😐: {ex.Message}");
+            }
         }
 
         HookResult OnTakeDamage(DynamicHook h)

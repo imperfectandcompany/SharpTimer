@@ -22,7 +22,6 @@ namespace SharpTimer
             }
 
             defaultServerHostname = $"{args}";
-            SharpTimerConPrint($"sharptimer_hostname set to {defaultServerHostname}.");
         }
 
         [ConsoleCommand("sharptimer_autoset_mapinfo_hostname_enabled", "Whether Map Name and Map Tier (if available) should be put into the hostname or not. Default value: false")]
@@ -32,7 +31,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             autosetHostname = bool.TryParse(args, out bool autosetHostnameValue) ? autosetHostnameValue : args != "0" && autosetHostname;
-            SharpTimerConPrint($"sharptimer_autoset_mapinfo_hostname_enabled set to {autosetHostname}.");
         }
 
         [ConsoleCommand("sharptimer_custom_map_cfgs_enabled", "Whether Custom Map .cfg files should be executed for the corresponding maps (found in cfg/SharpTimer/MapData/MapExecs/kz_example.cfg). Default value: true")]
@@ -42,7 +40,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             execCustomMapCFG = bool.TryParse(args, out bool execCustomMapCFGValue) ? execCustomMapCFGValue : args != "0" && execCustomMapCFG;
-            SharpTimerConPrint($"sharptimer_custom_map_cfgs_enabled set to {execCustomMapCFG}.");
         }
 
         [ConsoleCommand("sharptimer_display_rank_tags_chat", "Whether the plugin should display rank tags infront of players names in chat or not. Default value: true")]
@@ -52,7 +49,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             displayChatTags = bool.TryParse(args, out bool displayChatTagsValue) ? displayChatTagsValue : args != "0" && displayChatTags;
-            SharpTimerConPrint($"sharptimer_display_rank_tags_chat set to {displayChatTags}.");
         }
 
         [ConsoleCommand("sharptimer_display_rank_tags_scoreboard", "Whether the plugin should display rank tags infront of players names in scoreboard or not. Default value: true")]
@@ -62,7 +58,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             displayScoreboardTags = bool.TryParse(args, out bool displayScoreboardTagsValue) ? displayScoreboardTagsValue : args != "0" && displayScoreboardTags;
-            SharpTimerConPrint($"sharptimer_display_rank_tags_scoreboard set to {displayScoreboardTags}.");
         }
 
         [ConsoleCommand("sharptimer_global_rank_points_enabled", "Whether the plugin should reward players with global points for completing maps. Default value: false")]
@@ -72,7 +67,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             globalRanksEnabled = bool.TryParse(args, out bool globalRanksEnabledValue) ? globalRanksEnabledValue : args != "0" && globalRanksEnabled;
-            SharpTimerConPrint($"sharptimer_global_rank_points_enabled set to {globalRanksEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_global_rank_free_points_enabled", "Whether the plugin should reward players with free points for completing maps without beating their PB (31xMapTier). Default value: true")]
@@ -82,7 +76,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             globalRanksFreePointsEnabled = bool.TryParse(args, out bool globalRanksFreePointsEnabledValue) ? globalRanksFreePointsEnabledValue : args != "0" && globalRanksFreePointsEnabled;
-            SharpTimerConPrint($"sharptimer_global_rank_free_points_enabled set to {globalRanksFreePointsEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_global_rank_max_free_rewards", "How many times the player should recieve free 'participation' points for finishing the map without a new PB. Default value: 20")]
@@ -126,7 +119,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             enableReplays = bool.TryParse(args, out bool enableReplaysValue) ? enableReplaysValue : args != "0" && enableReplays;
-            SharpTimerConPrint($"sharptimer_replays_enabled set to {enableReplays}.");
         }
 
         [ConsoleCommand("sharptimer_replay_loop_bot_enabled", "Whether a looping Server Record bot should be spawned in or not (requires navmesh fix). Default value: false")]
@@ -136,7 +128,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             enableSRreplayBot = bool.TryParse(args, out bool enableSRreplayBotValue) ? enableSRreplayBotValue : args != "0" && enableSRreplayBot;
-            SharpTimerConPrint($"sharptimer_replay_loop_bot_enabled set to {enableSRreplayBot}.");
         }
 
         [ConsoleCommand("sharptimer_jumpstats_enabled", "Whether JumpStats are enabled or not. Default value: false")]
@@ -146,7 +137,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             jumpStatsEnabled = bool.TryParse(args, out bool jumpStatsEnabledValue) ? jumpStatsEnabledValue : args != "0" && jumpStatsEnabled;
-            SharpTimerConPrint($"sharptimer_jumpstats_enabled set to {jumpStatsEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_jumpstats_min_distance", "Defines the minimum distance for a jumpstat to be printed to chat. Default value: 175.0")]
@@ -190,7 +180,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             movementUnlockerCapEnabled = bool.TryParse(args, out bool movementUnlockerCapEnabledValue) ? movementUnlockerCapEnabledValue : args != "0" && movementUnlockerCapEnabled;
-            SharpTimerConPrint($"sharptimer_jumpstats_movement_unlocker_cap set to {movementUnlockerCapEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_jumpstats_movement_unlocker_cap_value", "Speed cap value which will kick in on the second tick of the player being on the ground. Default value: 250.0")]
@@ -217,7 +206,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             hideAllPlayers = bool.TryParse(args, out bool hideAllPlayersValue) ? hideAllPlayersValue : args != "0" && hideAllPlayers;
-            SharpTimerConPrint($"sharptimer_hide_all_players set to {hideAllPlayers}.");
         }
 
         [ConsoleCommand("sharptimer_kill_pointservercommand_entities", "If True the plugin will kill all point_servercommand ents (necessary to make xplay maps usable due to them being bad ports). Default value: true")]
@@ -227,7 +215,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             killServerCommands = bool.TryParse(args, out bool killServerCommandsValue) ? killServerCommandsValue : args != "0" && killServerCommands;
-            SharpTimerConPrint($"sharptimer_kill_pointservercommand_entities set to {killServerCommands}.");
         }
 
         [ConsoleCommand("sharptimer_enable_timer_hud", "If Timer Hud should be globally enabled or not. Default value: true")]
@@ -237,7 +224,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             hudOverlayEnabled = bool.TryParse(args, out bool hudOverlayEnabledValue) ? hudOverlayEnabledValue : args != "0" && hudOverlayEnabled;
-            SharpTimerConPrint($"sharptimer_enable_timer_hud set to {hudOverlayEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_enable_keys_hud", "If Keys Hud should be globally enabled or not. Default value: true")]
@@ -247,7 +233,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             keysOverlayEnabled = bool.TryParse(args, out bool keysOverlayEnabledValue) ? keysOverlayEnabledValue : args != "0" && keysOverlayEnabled;
-            SharpTimerConPrint($"sharptimer_enable_keys_hud set to {keysOverlayEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_debug_enabled", "Default value: false")]
@@ -257,7 +242,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             enableDebug = bool.TryParse(args, out bool enableDebugValue) ? enableDebugValue : args != "0" && enableDebug;
-            SharpTimerConPrint($"sharptimer_debug_enabled set to {enableDebug}.");
         }
 
         [ConsoleCommand("sharptimer_use2Dspeed_enabled", "Default value: false")]
@@ -267,7 +251,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             use2DSpeed = bool.TryParse(args, out bool use2DSpeedValue) ? use2DSpeedValue : args != "0" && use2DSpeed;
-            SharpTimerConPrint($"sharptimer_use2Dspeed_enabled set to {use2DSpeed}.");
         }
 
         [ConsoleCommand("sharptimer_override_beam_colors_enabled", "Default value: false")]
@@ -277,14 +260,12 @@ namespace SharpTimer
             string args = command.ArgString;
 
             beamColorOverride = bool.TryParse(args, out bool beamColorOverrideValue) ? beamColorOverrideValue : args != "0" && beamColorOverride;
-            SharpTimerConPrint($"sharptimer_override_beam_colors_enabled set to {beamColorOverride}.");
         }
 
         [ConsoleCommand("sharptimer_start_beam_color", "Start beam color, Requires sharptimer_override_beam_colors_enabled true")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void SharpTimerStartBeamColor(CCSPlayerController? player, CommandInfo command)
         {
-
             string args = command.ArgString.Trim();
 
             if (string.IsNullOrEmpty(args))
@@ -294,15 +275,12 @@ namespace SharpTimer
             }
 
             startBeamColor = $"{args}";
-
-            SharpTimerConPrint($"sharptimer_start_beam_color set to {startBeamColor}.");
         }
 
         [ConsoleCommand("sharptimer_end_beam_color", "Start beam color, Requires sharptimer_override_beam_colors_enabled true")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void SharpTimerEndBeamColor(CCSPlayerController? player, CommandInfo command)
         {
-
             string args = command.ArgString.Trim();
 
             if (string.IsNullOrEmpty(args))
@@ -312,7 +290,6 @@ namespace SharpTimer
             }
 
             endBeamColor = $"{args}";
-            SharpTimerConPrint($"sharptimer_end_beam_color set to {endBeamColor}.");
         }
 
         [ConsoleCommand("sharptimer_mysql_enabled", "Whether player times should be put into a mysql database by default or not. Default value: false")]
@@ -322,7 +299,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             useMySQL = bool.TryParse(args, out bool useMySQLValue) ? useMySQLValue : args != "0" && useMySQL;
-            SharpTimerConPrint($"sharptimer_mysql_enabled set to {useMySQL}.");
         }
 
         [ConsoleCommand("sharptimer_command_spam_cooldown", "Defines the time between commands can be called. Default value: 1")]
@@ -349,7 +325,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             respawnEnabled = bool.TryParse(args, out bool respawnEnabledValue) ? respawnEnabledValue : args != "0" && respawnEnabled;
-            SharpTimerConPrint($"sharptimer_respawn_enabled set to {respawnEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_end_enabled", "Whether !end is enabled by default or not. Default value: false")]
@@ -359,7 +334,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             respawnEndEnabled = bool.TryParse(args, out bool respawnEndEnabledValue) ? respawnEndEnabledValue : args != "0" && respawnEndEnabled;
-            SharpTimerConPrint($"sharptimer_end_enabled set to {respawnEndEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_top_enabled", "Whether !top is enabled by default or not. Default value: true")]
@@ -369,7 +343,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             topEnabled = bool.TryParse(args, out bool topEnabledValue) ? topEnabledValue : args != "0" && topEnabled;
-            SharpTimerConPrint($"sharptimer_top_enabled set to {topEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_rank_enabled", "Whether !rank is enabled by default or not. Default value: true")]
@@ -379,7 +352,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             rankEnabled = bool.TryParse(args, out bool rankEnabledValue) ? rankEnabledValue : args != "0" && rankEnabled;
-            SharpTimerConPrint($"sharptimer_rank_enabled set to {rankEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_goto_enabled", "Whether !goto is enabled by default or not. Default value: false")]
@@ -389,7 +361,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             goToEnabled = bool.TryParse(args, out bool goToEnabledValue) ? goToEnabledValue : args != "0" && goToEnabled;
-            SharpTimerConPrint($"sharptimer_goto_enabled set to {goToEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_remove_legs", "Whether Legs should be removed or not. Default value: true")]
@@ -399,7 +370,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             removeLegsEnabled = bool.TryParse(args, out bool removeLegsEnabledValue) ? removeLegsEnabledValue : args != "0" && removeLegsEnabled;
-            SharpTimerConPrint($"sharptimer_remove_legs set to {removeLegsEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_remove_damage", "Whether dealing damage should be disabled or not. Default value: true")]
@@ -409,7 +379,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             disableDamage = bool.TryParse(args, out bool disableDamageValue) ? disableDamageValue : args != "0" && disableDamage;
-            SharpTimerConPrint($"sharptimer_remove_damage set to {disableDamage}.");
         }
 
         [ConsoleCommand("sharptimer_remove_collision", "Whether Player collision should be removed or not. Default value: true")]
@@ -419,7 +388,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             removeCollisionEnabled = bool.TryParse(args, out bool removeCollisionEnabledValue) ? removeCollisionEnabledValue : args != "0" && removeCollisionEnabled;
-            SharpTimerConPrint($"sharptimer_remove_collision set to {removeCollisionEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_trigger_push_fix", "When enabled all trigger_push ents will only push once OnStartTouch. Default value: false")]
@@ -429,7 +397,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             triggerPushFixEnabled = bool.TryParse(args, out bool triggerPushFixEnabledValue) ? triggerPushFixEnabledValue : args != "0" && triggerPushFixEnabled;
-            SharpTimerConPrint($"sharptimer_trigger_push_fix set to {triggerPushFixEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_checkpoints_enabled", "Whether !cp, !tp and !prevcp are enabled by default or not. Default value: false")]
@@ -439,7 +406,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             cpEnabled = bool.TryParse(args, out bool cpEnabledValue) ? cpEnabledValue : args != "0" && cpEnabled;
-            SharpTimerConPrint($"sharptimer_checkpoints_enabled set to {cpEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_remove_checkpoints_restrictions", "Whether checkpoints should save in the air with the current player speed. Default value: false")]
@@ -449,7 +415,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             removeCpRestrictEnabled = bool.TryParse(args, out bool removeCpRestrictEnabledValue) ? removeCpRestrictEnabledValue : args != "0" && removeCpRestrictEnabled;
-            SharpTimerConPrint($"sharptimer_remove_checkpoints_restrictions set to {removeCpRestrictEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_disable_telehop", "Whether the players speed should loose all speed when entring a teleport map trigger or not. Default value: false")]
@@ -459,7 +424,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             resetTriggerTeleportSpeedEnabled = bool.TryParse(args, out bool resetTriggerTeleportSpeedEnabledValue) ? resetTriggerTeleportSpeedEnabledValue : args != "0" && resetTriggerTeleportSpeedEnabled;
-            SharpTimerConPrint($"sharptimer_disable_telehop set to {resetTriggerTeleportSpeedEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_max_start_speed_enabled", "Whether the players speed should be limited on exiting the starting trigger or not. Default value: false")]
@@ -469,7 +433,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             maxStartingSpeedEnabled = bool.TryParse(args, out bool maxStartingSpeedEnabledValue) ? maxStartingSpeedEnabledValue : args != "0" && maxStartingSpeedEnabled;
-            SharpTimerConPrint($"sharptimer_max_start_speed_enabled set to {maxStartingSpeedEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_max_start_speed", "Defines max speed the player is allowed to have while exiting the start trigger. Default value: 120")]
@@ -496,7 +459,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             forcePlayerSpeedEnabled = bool.TryParse(args, out bool forcePlayerSpeedEnabledValue) ? forcePlayerSpeedEnabledValue : args != "0" && forcePlayerSpeedEnabled;
-            SharpTimerConPrint($"sharptimer_force_knife_speed set to {forcePlayerSpeedEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_forced_player_speed", "Speed override for sharptimer_force_knife_speed. Default value: 250")]
@@ -524,7 +486,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             cmdJoinMsgEnabled = bool.TryParse(args, out bool cmdJoinMsgEnabledValue) ? cmdJoinMsgEnabledValue : args != "0" && cmdJoinMsgEnabled;
-            SharpTimerConPrint($"sharptimer_connect_commands_msg_enabled set to {cmdJoinMsgEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_connectmsg_enabled", "Whether connect/disconnect messages are enabled by default or not. Default value: true")]
@@ -534,7 +495,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             connectMsgEnabled = bool.TryParse(args, out bool connectMsgEnabledValue) ? connectMsgEnabledValue : args != "0" && connectMsgEnabled;
-            SharpTimerConPrint($"sharptimer_connectmsg_enabled set to {connectMsgEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_remove_crouch_fatigue", "Whether the player should get no crouch fatigue or not. Default value: true")]
@@ -544,7 +504,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             removeCrouchFatigueEnabled = bool.TryParse(args, out bool removeCrouchFatigueEnabledValue) ? removeCrouchFatigueEnabledValue : args != "0" && removeCrouchFatigueEnabled;
-            SharpTimerConPrint($"sharptimer_remove_crouch_fatigue set to {removeCrouchFatigueEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_ad_enabled", "Whether timed Server Record messages are enabled by default or not. Default value: true")]
@@ -554,7 +513,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             srEnabled = bool.TryParse(args, out bool srEnabledValue) ? srEnabledValue : args != "0" && srEnabled;
-            SharpTimerConPrint($"sharptimer_ad_enabled set to {srEnabled}.");
         }
 
         [ConsoleCommand("sharptimer_checkpoints_only_when_timer_stopped", "Will only allow checkpoints if timer is stopped using !timer")]
@@ -564,7 +522,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             cpOnlyWhenTimerStopped = bool.TryParse(args, out bool cpOnlyWhenTimerStoppedValue) ? cpOnlyWhenTimerStoppedValue : args != "0" && cpOnlyWhenTimerStopped;
-            SharpTimerConPrint($"sharptimer_checkpoints_only_when_timer_stopped set to {cpOnlyWhenTimerStopped}.");
         }
 
         [ConsoleCommand("sharptimer_velo_bar_enabled", "Whether the alternative speedometer is enabled by default or not. Default value: false")]
@@ -574,7 +531,6 @@ namespace SharpTimer
             string args = command.ArgString;
 
             alternativeSpeedometer = bool.TryParse(args, out bool alternativeSpeedometerValue) ? alternativeSpeedometerValue : args != "0" && alternativeSpeedometer;
-            SharpTimerConPrint($"sharptimer_velo_bar_enabled set to {alternativeSpeedometer}.");
         }
 
         [ConsoleCommand("sharptimer_velo_bar_max_speed", "The alternative speedometer max speed. Default value: 3000")]
@@ -625,7 +581,6 @@ namespace SharpTimer
             }
 
             msgPrefix = $" {ParseColorToSymbol(primaryHUDcolor)} {args} {ChatColors.White}";
-            SharpTimerConPrint($"sharptimer_chat_prefix set to {msgPrefix}.");
         }
 
         [ConsoleCommand("sharptimer_hud_primary_color", "Primary Color for Timer HUD. Default value: green")]
@@ -642,7 +597,6 @@ namespace SharpTimer
             }
 
             primaryHUDcolor = $"{args}";
-            SharpTimerConPrint($"sharptimer_hud_primary_color set to {primaryHUDcolor}.");
         }
 
         [ConsoleCommand("sharptimer_hud_secondary_color", "Secondary Color for Timer HUD. Default value: orange")]
@@ -659,7 +613,6 @@ namespace SharpTimer
             }
 
             secondaryHUDcolor = $"{args}";
-            SharpTimerConPrint($"sharptimer_hud_secondary_color set to {secondaryHUDcolor}.");
         }
 
         [ConsoleCommand("sharptimer_hud_tertiary_color", "Tertiary Color for Timer HUD. Default value: white")]
@@ -676,7 +629,6 @@ namespace SharpTimer
             }
 
             tertiaryHUDcolor = $"{args}";
-            SharpTimerConPrint($"sharptimer_hud_tertiary_color set to {tertiaryHUDcolor}.");
         }
 
         [ConsoleCommand("sharptimer_fake_trigger_height", " ")]
@@ -710,7 +662,6 @@ namespace SharpTimer
             }
 
             remoteBhopDataSource = $"{args}";
-            SharpTimerConPrint($"sharptimer_remote_data_bhop set to {remoteBhopDataSource}.");
         }
 
         [ConsoleCommand("sharptimer_remote_data_kz", "Override for kz remote_data")]
@@ -727,7 +678,6 @@ namespace SharpTimer
             }
 
             remoteKZDataSource = $"{args}";
-            SharpTimerConPrint($"sharptimer_remote_data_kz set to {remoteKZDataSource}.");
         }
 
         [ConsoleCommand("sharptimer_remote_data_surf", "Override for surf remote_data")]
@@ -744,7 +694,6 @@ namespace SharpTimer
             }
 
             remoteSurfDataSource = $"{args}";
-            SharpTimerConPrint($"sharptimer_remote_data_surf set to {remoteSurfDataSource}.");
         }
     }
 }

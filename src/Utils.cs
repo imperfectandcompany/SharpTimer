@@ -74,17 +74,17 @@ namespace SharpTimer
 
         public void SharpTimerDebug(string msg)
         {
-            if (enableDebug == true) Console.WriteLine($"[{Server.TickCount}][{DateTime.Now:HH:mm:ss.fff}] \u001b[33m[SharpTimerDebug] \u001b[37m{msg}");
+            if (enableDebug == true) Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] \u001b[33m[SharpTimerDebug] \u001b[37m{msg}");
         }
 
         public void SharpTimerError(string msg)
         {
-            Console.WriteLine($"[{Server.TickCount}][{DateTime.Now:HH:mm:ss.fff}] \u001b[31m[SharpTimerERROR] \u001b[37m{msg}");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] \u001b[31m[SharpTimerERROR] \u001b[37m{msg}");
         }
 
         public void SharpTimerConPrint(string msg)
         {
-            Console.WriteLine($"[{Server.TickCount}][{DateTime.Now:HH:mm:ss.fff}] \u001b[36m[SharpTimer] \u001b[37m{msg}");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] \u001b[36m[SharpTimer] \u001b[37m{msg}");
         }
 
         private static string FormatTime(int ticks)
@@ -1053,6 +1053,8 @@ namespace SharpTimer
 
             stageTriggerCount = 0;
             useStageTriggers = false;
+
+            useTriggers = true;
 
             currentMapStartC1 = null;
             currentMapStartC2 = null;

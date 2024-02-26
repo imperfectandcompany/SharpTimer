@@ -655,7 +655,7 @@ namespace SharpTimer
         {
             try
             {
-                if (player == null || !IsAllowedPlayer(player)) return;
+                if (player == null || !IsAllowedPlayer(player) || triggerPushData.Count == 0) return;
 
                 Vector? playerPos = player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin;
 

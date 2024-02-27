@@ -340,8 +340,8 @@ namespace SharpTimer
                                             veloLine +
                                             infoLine +
                                             ((playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? playerTimer.TesterPausedGif : "") +
-                                            ((playerTimer.IsVip && !playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? $"<br><img src='https://i.imgur.com/{playerTimer.VipPausedGif}.gif'><br>" : "") +
-                                            ((playerTimer.IsReplaying && playerTimer.VipReplayGif != "x") ? $"<br><img src='https://i.imgur.com/{playerTimer.VipReplayGif}.gif'><br>" : "");
+                                            ((playerTimer.IsVip && !playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? $"<br><img src='https://files.catbox.moe/{playerTimer.VipPausedGif}.gif'><br>" : "") +
+                                            ((playerTimer.IsReplaying && playerTimer.VipReplayGif != "x") ? $"<br><img src='https://files.catbox.moe/{playerTimer.VipReplayGif}.gif'><br>" : "");
 
                         updates[player.Slot] = playerTimer;
 
@@ -552,7 +552,7 @@ namespace SharpTimer
                                         infoLine +
                                         (keysOverlayEnabled == true ? keysLine : "") +
                                         ((playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? playerTimer.TesterPausedGif : "") +
-                                        ((playerTimer.IsVip && !playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? $"<br><img src='https://i.imgur.com/{playerTimer.VipPausedGif}.gif'><br>" : "");
+                                        ((playerTimer.IsVip && !playerTimer.IsTester && !isTimerRunning && !playerTimer.IsBonusTimerRunning && !playerTimer.IsReplaying) ? $"<br><img src='https://files.catbox.moe/{playerTimer.VipPausedGif}.gif'><br>" : "");
 
                     if (playerTimer.HideTimerHud != true && hudOverlayEnabled == true)
                     {

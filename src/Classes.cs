@@ -105,7 +105,7 @@ namespace SharpTimer
 
         //logic
         public int? TicksInAir { get; set; }
-        public int? TicksOnGround { get; set; }
+        public int TicksOnBhopBlock { get; set; }
         public int CheckpointIndex { get; set; }
         public Dictionary<int, int>? StageTimes { get; set; }
         public Dictionary<int, string>? StageVelos { get; set; }
@@ -119,6 +119,7 @@ namespace SharpTimer
         public bool HideKeys { get; set; }
         public bool SoundsEnabled { get; set; }
         public bool HideJumpStats { get; set; }
+        public int PlayerFov { get; set; }
         public int TimesConnected { get; set; }
         public int TicksSinceLastCmd { get; set; }
         public int TicksSinceLastRankUpdate { get; set; }

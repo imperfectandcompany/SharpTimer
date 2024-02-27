@@ -406,8 +406,19 @@ namespace SharpTimer
 
             if (!Int32.TryParse(command.GetArg(1), out var desiredFov)) return;
 
+            SetFov(player, desiredFov);
+        }
+
+        public void SetFov(CCSPlayerController? player, int desiredFov, bool noMySql = false)
+        {
             player.DesiredFOV = (uint)desiredFov;
             Utilities.SetStateChanged(player, "CBasePlayerController", "m_iDesiredFOV");
+
+            if (noMySql == false) playerTimers[player.Slot].PlayerFov = desiredFov;
+            if (useMySQL == true && noMySql == false)
+            {
+                _ = SetPlayerStats(player, player.SteamID.ToString(), player.PlayerName, player.Slot);
+            }
         }
 
         [ConsoleCommand("css_top", "Prints top players of this map")]

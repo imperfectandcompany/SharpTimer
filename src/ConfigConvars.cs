@@ -318,6 +318,23 @@ namespace SharpTimer
             }
         }
 
+        [ConsoleCommand("sharptimer_max_bhop_block_time", "Defines the time the player is allowed to stand on a Bhop block (if the map supports it). Default value: 1")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerBhopBlockConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            if (float.TryParse(args, out float cooldown) && cooldown > 0)
+            {
+                cmdCooldown = (int)(cooldown * 64);
+                SharpTimerConPrint($"SharpTimer command cooldown set to {cooldown} seconds.");
+            }
+            else
+            {
+                SharpTimerConPrint("Invalid command cooldown value. Please provide a positive integer.");
+            }
+        }
+
         [ConsoleCommand("sharptimer_respawn_enabled", "Whether !r is enabled by default or not. Default value: true")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void SharpTimerRespawnConvar(CCSPlayerController? player, CommandInfo command)

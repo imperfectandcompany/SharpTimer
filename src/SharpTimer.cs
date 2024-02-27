@@ -107,7 +107,16 @@ namespace SharpTimer
                         {
                             RemovePlayerCollision(player);
                         }
+
                         specTargets[player.Pawn.Value.EntityHandle.Index] = new CCSPlayerController(player.Handle);
+                        AddTimer(5.0f, () =>
+                        {
+                            if (useMySQL && player.DesiredFOV != (uint)playerTimers[player.Slot].PlayerFov)
+                            {
+                                SharpTimerDebug($"{player.PlayerName} has wrong PlayerFov {player.DesiredFOV}... SetFov to {(uint)playerTimers[player.Slot].PlayerFov}");
+                                SetFov(player, playerTimers[player.Slot].PlayerFov, true);
+                            }
+                        });
                         return HookResult.Continue;
                     }
                 }
@@ -206,6 +215,12 @@ namespace SharpTimer
                     }
 
                     if (!IsAllowedPlayer(player) || caller.Entity.Name == null) return HookResult.Continue;
+
+                    /* if (caller.Entity.Name.ToString() == "bhop_block" && IsAllowedPlayer(player) && !playerTimers[player.Slot].IsTimerBlocked && playerTimers[player.Slot].TicksOnBhopBlock > bhopBlockTime)
+                    {
+                        RespawnPlayer(player);
+                        return HookResult.Continue;
+                    } */
 
                     if (useStageTriggers == true && stageTriggers.ContainsKey(caller.Handle) && playerTimers[player.Slot].IsTimerBlocked == false && playerTimers[player.Slot].IsTimerRunning == true && IsAllowedPlayer(player))
                     {
@@ -352,6 +367,13 @@ namespace SharpTimer
                     }
 
                     if (!IsAllowedPlayer(player) || caller.Entity.Name == null) return HookResult.Continue;
+
+                    /* if (caller.Entity.Name.ToString() == "bhop_block" && IsAllowedPlayer(player) && !playerTimers[player.Slot].IsTimerBlocked)
+                    {
+                        playerTimers[player.Slot].TicksOnBhopBlock = 0;
+
+                        return HookResult.Continue;
+                    } */
 
                     if (IsValidStartTriggerName(caller.Entity.Name.ToString()) && IsAllowedPlayer(player) && !playerTimers[player.Slot].IsTimerBlocked)
                     {
@@ -547,11 +569,8 @@ namespace SharpTimer
 
         public override void Unload(bool hotReload)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamage, HookMode.Pre);
-            }
-
+            DamageUnHook();
+            
             RemoveCommandListener("say", OnPlayerChatAll, HookMode.Pre);
             RemoveCommandListener("say_team", OnPlayerChatTeam, HookMode.Pre);
 
@@ -577,6 +596,21 @@ namespace SharpTimer
             catch (Exception ex)
             {
                 SharpTimerError($"Exception in DamageHook, probably due to cs2fixes 😐: {ex.Message}");
+            }
+        }
+
+        public void DamageUnHook()
+        {
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamage, HookMode.Pre);
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Exception in DamageUnHook, probably due to cs2fixes 😐: {ex.Message}");
             }
         }
 

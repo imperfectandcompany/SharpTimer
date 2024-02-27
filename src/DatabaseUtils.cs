@@ -604,7 +604,9 @@ namespace SharpTimer
                 int lastConnected = 0;
                 bool hideTimerHud;
                 bool hideKeys;
+                bool hideJS;
                 bool soundsEnabled;
+                int playerFov = 0;
                 bool isVip;
                 string bigGif;
                 int playerPoints = 0;
@@ -615,7 +617,7 @@ namespace SharpTimer
                     await CreatePlayerRecordsTableAsync(connection);
 
                     //string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID FROM PlayerStats WHERE SteamID = @SteamID";
-                    string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints FROM PlayerStats WHERE SteamID = @SteamID";
+                    string selectQuery = "SELECT PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, PlayerFov, IsVip, BigGifID, GlobalPoints FROM PlayerStats WHERE SteamID = @SteamID";
                     using (var selectCommand = new MySqlCommand(selectQuery, connection))
                     {
                         selectCommand.Parameters.AddWithValue("@SteamID", steamId);
@@ -629,7 +631,9 @@ namespace SharpTimer
                             lastConnected = row.GetInt32("LastConnected");
                             hideTimerHud = row.GetBoolean("HideTimerHud");
                             hideKeys = row.GetBoolean("HideKeys");
+                            hideJS = row.GetBoolean("HideJS");
                             soundsEnabled = row.GetBoolean("SoundsEnabled");
+                            playerFov = row.GetInt32("PlayerFov");
                             isVip = row.GetBoolean("IsVip");
                             bigGif = row.GetString("BigGifID");
                             playerPoints = row.GetInt32("GlobalPoints");
@@ -641,7 +645,7 @@ namespace SharpTimer
                             // Update or insert the record
 
                             // string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, GlobalPoints) VALUES (@PlayerName, @SteamID, @GlobalPoints)";
-                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
+                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, PlayerFov, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @HideJS, @SoundsEnabled, @PlayerFov, @IsVip, @BigGifID, @GlobalPoints)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))
                             {
                                 if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value) || playerSlot == -1)
@@ -652,7 +656,9 @@ namespace SharpTimer
                                     upsertCommand.Parameters.AddWithValue("@LastConnected", lastConnected);
                                     upsertCommand.Parameters.AddWithValue("@HideTimerHud", playerSlot == -1 ? false : value.HideTimerHud);
                                     upsertCommand.Parameters.AddWithValue("@HideKeys", playerSlot == -1 ? false : value.HideKeys);
+                                    upsertCommand.Parameters.AddWithValue("@HideJS", playerSlot == -1 ? false : value.HideJumpStats);
                                     upsertCommand.Parameters.AddWithValue("@SoundsEnabled", playerSlot == -1 ? false : value.SoundsEnabled);
+                                    upsertCommand.Parameters.AddWithValue("@PlayerFov", playerSlot == -1 ? 0 : value.PlayerFov);
                                     upsertCommand.Parameters.AddWithValue("@IsVip", isVip);
                                     upsertCommand.Parameters.AddWithValue("@BigGifID", bigGif);
                                     upsertCommand.Parameters.AddWithValue("@GlobalPoints", newPoints);
@@ -676,7 +682,7 @@ namespace SharpTimer
 
                             await row.CloseAsync();
 
-                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, SoundsEnabled, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @SoundsEnabled, @IsVip, @BigGifID, @GlobalPoints)";
+                            string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, PlayerFov, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @HideJS, @SoundsEnabled, @PlayerFov, @IsVip, @BigGifID, @GlobalPoints)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))
                             {
                                 if (playerTimers.TryGetValue(playerSlot, out PlayerTimerInfo? value) || playerSlot == -1)
@@ -687,7 +693,9 @@ namespace SharpTimer
                                     upsertCommand.Parameters.AddWithValue("@LastConnected", timeNowUnix);
                                     upsertCommand.Parameters.AddWithValue("@HideTimerHud", playerSlot == -1 ? false : value.HideTimerHud);
                                     upsertCommand.Parameters.AddWithValue("@HideKeys", playerSlot == -1 ? false : value.HideKeys);
+                                    upsertCommand.Parameters.AddWithValue("@HideJS", playerSlot == -1 ? false : value.HideJumpStats);
                                     upsertCommand.Parameters.AddWithValue("@SoundsEnabled", playerSlot == -1 ? false : value.SoundsEnabled);
+                                    upsertCommand.Parameters.AddWithValue("@PlayerFov", playerSlot == -1 ? 0 : value.PlayerFov);
                                     upsertCommand.Parameters.AddWithValue("@IsVip", false);
                                     upsertCommand.Parameters.AddWithValue("@BigGifID", "x");
                                     upsertCommand.Parameters.AddWithValue("@GlobalPoints", newPoints);

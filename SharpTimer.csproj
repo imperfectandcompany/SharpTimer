@@ -6,8 +6,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CounterStrikeSharp.API" Version="1.0.176" />
-    <PackageReference Include="Nexd.MySQL" Version="1.0.2" />
+    <PackageReference Include="CounterStrikeSharp.API" Version="*">
+        <PrivateAssets>none</PrivateAssets>
+        <ExcludeAssets>runtime</ExcludeAssets>
+        <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Nexd.MySQL" Version="1.0.2"/>
   </ItemGroup>
 
   <Target Name="Date" BeforeTargets="BeforeBuild">
@@ -15,13 +19,5 @@
     <ItemGroup>
         <Compile Include="$(IntermediateOutputPath)gen.cs" />
     </ItemGroup>
-  </Target>
-
-  <Target Name="CopyPackageReferences" AfterTargets="Build">
-    <Copy SourceFiles="@(PackageReference->'%(ResolvedPath)')" DestinationFolder="$(CustomOutputPath)" SkipUnchangedFiles="true" />
-  </Target>
-
-  <Target Name="AfterBuild" AfterTargets="Build">
-    <Copy SourceFiles="$(OutputPath)\$(AssemblyName).dll" DestinationFolder="$(CustomOutputPath)" />
   </Target>
 </Project>

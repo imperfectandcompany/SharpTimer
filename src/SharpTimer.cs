@@ -594,7 +594,10 @@ namespace SharpTimer
             }
             catch (Exception ex)
             {
-                SharpTimerError($"Exception in DamageHook, probably due to cs2fixes 😐: {ex.Message}");
+                if (ex.Message == "Invalid function pointer")
+                    SharpTimerError($"Error in DamageHook: Conflict between cs2fixes and SharpTimer");
+                else
+                    SharpTimerError($"Error in DamageHook: {ex.Message}");
             }
         }
 
@@ -609,7 +612,10 @@ namespace SharpTimer
             }
             catch (Exception ex)
             {
-                SharpTimerError($"Exception in DamageUnHook, probably due to cs2fixes 😐: {ex.Message}");
+                if (ex.Message == "Invalid function pointer")
+                    SharpTimerError($"Error in DamageUnHook: Conflict between cs2fixes and SharpTimer");
+                else
+                    SharpTimerError($"Error in DamageUnHook: {ex.Message}");
             }
         }
 

@@ -464,7 +464,6 @@ namespace SharpTimer
                         playerBonusTime = null;
                         keysLineNoHtml = null;
                         hudContent = null;
-                        //@event = null;
                     }
                 }
 
@@ -1173,7 +1172,7 @@ namespace SharpTimer
 
         public async Task<string> GetPlayerMapPlacementWithTotal(CCSPlayerController? player, string steamId, string playerName, bool getRankImg = false, bool getPlacementOnly = false)
         {
-            if (!IsAllowedPlayer(player) && !IsAllowedSpectator(player))
+            if (!IsAllowedPlayer(player) || !IsAllowedSpectator(player))
                 return "";
 
             int savedPlayerTime = useMySQL ? await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName, playerName) : GetPreviousPlayerRecord(player);
@@ -1192,274 +1191,125 @@ namespace SharpTimer
 
         public async Task<string> GetPlayerServerPlacement(CCSPlayerController? player, string steamId, string playerName, bool getRankImg = false, bool getPlacementOnly = false, bool getPointsOnly = false)
         {
-            if (IsAllowedPlayer(player) || IsAllowedSpectator(player))
-            {
-                int savedPlayerPoints;
-                if (useMySQL == true)
-                {
-                    savedPlayerPoints = await GetPlayerPointsFromDatabase(player, steamId, playerName);
-                }
-                else
-                {
-                    savedPlayerPoints = 0;
-                }
-
-                if (getPointsOnly == true)
-                {
-                    return savedPlayerPoints.ToString();
-                }
-
-                if ((savedPlayerPoints == 0 || savedPlayerPoints <= minGlobalPointsForRank) && getRankImg == false)
-                {
-                    return "Unranked";
-                }
-                else if (savedPlayerPoints == 0 || savedPlayerPoints <= minGlobalPointsForRank)
-                {
-                    return unrankedIcon;
-                }
-
-                Dictionary<string, PlayerPoints> sortedPoints;
-                if (useMySQL == true)
-                {
-                    sortedPoints = await GetSortedPointsFromDatabase();
-                }
-                else
-                {
-                    //sortedRecords = GetSortedRecords();
-                    sortedPoints = new Dictionary<string, PlayerPoints>();
-                }
-
-                int placement = 1;
-
-                foreach (var kvp in sortedPoints)
-                {
-                    int recordPoints = kvp.Value.GlobalPoints;
-
-                    if (savedPlayerPoints < recordPoints)
-                    {
-                        placement++;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-
-                int totalPlayers = sortedPoints.Count;
-
-                double percentage = (double)placement / totalPlayers * 100;
-
-                return CalculateRankStuff(totalPlayers, placement, percentage, getRankImg, getPlacementOnly);
-            }
-            else
-            {
+            if (!IsAllowedPlayer(player) || !IsAllowedSpectator(player))
                 return "";
-            }
+
+            int savedPlayerPoints = useMySQL ? await GetPlayerPointsFromDatabase(player, steamId, playerName) : 0;
+
+            if (getPointsOnly)
+                return savedPlayerPoints.ToString();
+
+            if (savedPlayerPoints == 0 || savedPlayerPoints <= minGlobalPointsForRank)
+                return getRankImg ? unrankedIcon : "Unranked";
+
+            Dictionary<string, PlayerPoints> sortedPoints = useMySQL ? await GetSortedPointsFromDatabase() : new Dictionary<string, PlayerPoints>();
+
+            int placement = sortedPoints.Count(kv => kv.Value.GlobalPoints > savedPlayerPoints) + 1;
+            int totalPlayers = sortedPoints.Count;
+            double percentage = (double)placement / totalPlayers * 100;
+
+            return CalculateRankStuff(totalPlayers, placement, percentage, getRankImg, getPlacementOnly);
         }
 
-        public string CalculateRankStuff(int totalPlayers, int placement, double percentage, bool getRankImg = false, bool getPlacementOnly = false)
+        public static string CalculateRankStuff(int totalPlayers, int placement, double percentage, bool getRankImg = false, bool getPlacementOnly = false)
         {
-            if (getRankImg)
+            if (totalPlayers < 100)
             {
-                if (totalPlayers < 100)
-                {
-                    if (placement <= 1)
-                        return god3Icon; // God 3
-                    else if (placement <= 2)
-                        return god2Icon; // God 2
-                    else if (placement <= 3)
-                        return god1Icon; // God 1
-                    else if (placement <= 10)
-                        return royalty3Icon; // Royal 3
-                    else if (placement <= 15)
-                        return royalty2Icon; // Royal 2
-                    else if (placement <= 20)
-                        return royalty1Icon; // Royal 1
-                    else if (placement <= 25)
-                        return legend3Icon; // Legend 3
-                    else if (placement <= 30)
-                        return legend2Icon; // Legend 2
-                    else if (placement <= 35)
-                        return legend1Icon; // Legend 1
-                    else if (placement <= 40)
-                        return master3Icon; // Master 3
-                    else if (placement <= 45)
-                        return master2Icon; // Master 2
-                    else if (placement <= 50)
-                        return master1Icon; // Master 1
-                    else if (placement <= 55)
-                        return diamond3Icon; // Diamond 3
-                    else if (placement <= 60)
-                        return diamond2Icon; // Diamond 2
-                    else if (placement <= 65)
-                        return diamond1Icon; // Diamond 1
-                    else if (placement <= 70)
-                        return platinum3Icon; // Platinum 3
-                    else if (placement <= 75)
-                        return platinum2Icon; // Platinum 2
-                    else if (placement <= 80)
-                        return platinum1Icon; // Platinum 1
-                    else if (placement <= 85)
-                        return gold3Icon; // Gold 3
-                    else if (placement <= 90)
-                        return gold2Icon; // Gold 2
-                    else if (placement <= 95)
-                        return gold1Icon; // Gold 1
-                    else
-                        return silver1Icon; // Silver 1
-                }
+                if (placement <= 1)
+                    return getRankImg ? god3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God III");
+                else if (placement <= 2)
+                    return getRankImg ? god2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God II");
+                else if (placement <= 3)
+                    return getRankImg ? god1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God I");
+                else if (placement <= 10)
+                    return getRankImg ? royalty3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty III");
+                else if (placement <= 15)
+                    return getRankImg ? royalty2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty II");
+                else if (placement <= 20)
+                    return getRankImg ? royalty1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty I");
+                else if (placement <= 25)
+                    return getRankImg ? legend3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend III");
+                else if (placement <= 30)
+                    return getRankImg ? legend2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend II");
+                else if (placement <= 35)
+                    return getRankImg ? legend1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend I");
+                else if (placement <= 40)
+                    return getRankImg ? master3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master III");
+                else if (placement <= 45)
+                    return getRankImg ? master2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master II");
+                else if (placement <= 50)
+                    return getRankImg ? master1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master I");
+                else if (placement <= 55)
+                    return getRankImg ? diamond3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond III");
+                else if (placement <= 60)
+                    return getRankImg ? diamond2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond II");
+                else if (placement <= 65)
+                    return getRankImg ? diamond1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond I");
+                else if (placement <= 70)
+                    return getRankImg ? platinum3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum III");
+                else if (placement <= 75)
+                    return getRankImg ? platinum2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum II");
+                else if (placement <= 80)
+                    return getRankImg ? platinum1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum I");
+                else if (placement <= 85)
+                    return getRankImg ? gold3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold III");
+                else if (placement <= 90)
+                    return getRankImg ? gold2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold II");
+                else if (placement <= 95)
+                    return getRankImg ? gold1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold I");
                 else
-                {
-                    if (placement <= 1)
-                        return god3Icon; // God 3
-                    else if (placement <= 2)
-                        return god2Icon; // God 2
-                    else if (placement <= 3)
-                        return god1Icon; // God 1
-                    else if (percentage <= 1)
-                        return royalty3Icon; // Royal 3
-                    else if (percentage <= 5.0)
-                        return royalty2Icon; // Royalty 2
-                    else if (percentage <= 10.0)
-                        return royalty1Icon; // Royalty 1
-                    else if (percentage <= 15.0)
-                        return legend3Icon; // Legend 3
-                    else if (percentage <= 20.0)
-                        return legend2Icon; // Legend 2
-                    else if (percentage <= 25.0)
-                        return legend1Icon; // Legend 1
-                    else if (percentage <= 30.0)
-                        return master3Icon; // Master 3
-                    else if (percentage <= 35.0)
-                        return master2Icon; // Master 2
-                    else if (percentage <= 40.0)
-                        return master1Icon; // Master 1
-                    else if (percentage <= 45.0)
-                        return diamond3Icon; // Diamond 3
-                    else if (percentage <= 50.0)
-                        return diamond2Icon; // Diamond 2
-                    else if (percentage <= 55.0)
-                        return diamond1Icon; // Diamond 1
-                    else if (percentage <= 60.0)
-                        return platinum3Icon; // Platinum 3
-                    else if (percentage <= 65.0)
-                        return platinum2Icon; // Platinum 2
-                    else if (percentage <= 70.0)
-                        return platinum1Icon; // Platinum 1
-                    else if (percentage <= 75.0)
-                        return gold3Icon; // Gold 3
-                    else if (percentage <= 80.0)
-                        return gold2Icon; // Gold 2
-                    else if (percentage <= 85.0)
-                        return gold1Icon; // Gold 1
-                    else if (percentage <= 90.0)
-                        return silver3Icon; // Silver 3
-                    else if (percentage <= 95.0)
-                        return silver2Icon; // Silver 2
-                    else
-                        return silver1Icon; // Silver 1
-                }
+                    return getRankImg ? silver1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver I");
             }
             else
             {
-                if (totalPlayers < 100)
-                {
-                    if (placement <= 1)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God III";
-                    else if (placement <= 2)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God II";
-                    else if (placement <= 3)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God I";
-                    else if (placement <= 10)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty III";
-                    else if (placement <= 15)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty II";
-                    else if (placement <= 20)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty I";
-                    else if (placement <= 25)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend III";
-                    else if (placement <= 30)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend II";
-                    else if (placement <= 35)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend I";
-                    else if (placement <= 40)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master III";
-                    else if (placement <= 45)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master II";
-                    else if (placement <= 50)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master I";
-                    else if (placement <= 55)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond III";
-                    else if (placement <= 60)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond II";
-                    else if (placement <= 65)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond I";
-                    else if (placement <= 70)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum III";
-                    else if (placement <= 75)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum II";
-                    else if (placement <= 80)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum I";
-                    else if (placement <= 85)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold III";
-                    else if (placement <= 90)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold II";
-                    else if (placement <= 95)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold I";
-                    else
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver I";
-                }
+                if (placement <= 1)
+                    return getRankImg ? god3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God III");
+                else if (placement <= 2)
+                    return getRankImg ? god2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God II");
+                else if (placement <= 3)
+                    return getRankImg ? god1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God I");
+                else if (percentage <= 1)
+                    return getRankImg ? royalty3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty III");
+                else if (percentage <= 5.0)
+                    return getRankImg ? royalty2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty II");
+                else if (percentage <= 10.0)
+                    return getRankImg ? royalty1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty I");
+                else if (percentage <= 15.0)
+                    return getRankImg ? legend3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend III");
+                else if (percentage <= 20.0)
+                    return getRankImg ? legend2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend II");
+                else if (percentage <= 25.0)
+                    return getRankImg ? legend1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend I");
+                else if (percentage <= 30.0)
+                    return getRankImg ? master3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master III");
+                else if (percentage <= 35.0)
+                    return getRankImg ? master2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master II");
+                else if (percentage <= 40.0)
+                    return getRankImg ? master1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master I");
+                else if (percentage <= 45.0)
+                    return getRankImg ? diamond3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond III");
+                else if (percentage <= 50.0)
+                    return getRankImg ? diamond2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond II");
+                else if (percentage <= 55.0)
+                    return getRankImg ? diamond1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond I");
+                else if (percentage <= 60.0)
+                    return getRankImg ? platinum3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum III");
+                else if (percentage <= 65.0)
+                    return getRankImg ? platinum2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum II");
+                else if (percentage <= 70.0)
+                    return getRankImg ? platinum1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum I");
+                else if (percentage <= 75.0)
+                    return getRankImg ? gold3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold III");
+                else if (percentage <= 80.0)
+                    return getRankImg ? gold2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold II");
+                else if (percentage <= 85.0)
+                    return getRankImg ? gold1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold I");
+                else if (percentage <= 90.0)
+                    return getRankImg ? silver3Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver III");
+                else if (percentage <= 95.0)
+                    return getRankImg ? silver2Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver II");
                 else
-                {
-                    if (placement <= 1)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God III";
-                    else if (placement <= 2)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God II";
-                    else if (placement <= 3)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"God I";
-                    else if (percentage <= 1)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty III";
-                    else if (percentage <= 5.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty II";
-                    else if (percentage <= 10.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Royalty I";
-                    else if (percentage <= 15.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend III";
-                    else if (percentage <= 20.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend II";
-                    else if (percentage <= 25.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Legend I";
-                    else if (percentage <= 30.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master III";
-                    else if (percentage <= 35.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master II";
-                    else if (percentage <= 40.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Master I";
-                    else if (percentage <= 45.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond III";
-                    else if (percentage <= 50.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond II";
-                    else if (percentage <= 55.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Diamond I";
-                    else if (percentage <= 60.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum III";
-                    else if (percentage <= 65.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum II";
-                    else if (percentage <= 70.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Platinum I";
-                    else if (percentage <= 75.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold III";
-                    else if (percentage <= 80.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold II";
-                    else if (percentage <= 85.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Gold I";
-                    else if (percentage <= 90.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver III";
-                    else if (percentage <= 95.0)
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver II";
-                    else
-                        return getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver I";
-                }
+                    return getRankImg ? silver1Icon : (getPlacementOnly ? $"{placement}/{totalPlayers}" : $"Silver I");
             }
         }
 

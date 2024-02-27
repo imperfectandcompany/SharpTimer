@@ -314,7 +314,7 @@ namespace SharpTimer
             }
             else
             {
-                SharpTimerConPrint("Invalid command cooldown value. Please provide a positive integer.");
+                SharpTimerConPrint("Invalid command cooldown value. Please provide a positive float.");
             }
         }
 
@@ -324,14 +324,14 @@ namespace SharpTimer
         {
             string args = command.ArgString;
 
-            if (float.TryParse(args, out float cooldown) && cooldown > 0)
+            if (float.TryParse(args, out float time) && time > 0)
             {
-                cmdCooldown = (int)(cooldown * 64);
-                SharpTimerConPrint($"SharpTimer command cooldown set to {cooldown} seconds.");
+                bhopBlockTime = (int)(time * 64);
+                SharpTimerConPrint($"SharpTimer max bhop block time set to {time} seconds.");
             }
             else
             {
-                SharpTimerConPrint("Invalid command cooldown value. Please provide a positive integer.");
+                SharpTimerConPrint("Invalid max bhop block time value. Please provide a positive float.");
             }
         }
 

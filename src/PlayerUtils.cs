@@ -275,20 +275,6 @@ namespace SharpTimer
                         continue;
                     }
 
-                    if (playerTimers[player.Slot].TicksSinceLastRankUpdate > 511 && connectedReplayBots.ContainsKey(player.Slot))
-                    {
-                        if (player.PlayerPawn.Value.Render != Color.FromArgb(0, 0, 0, 0))
-                            player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
-
-                        if (player.PlayerName != "SERVER RECORD REPLAY")
-                            ChangePlayerName(player, "SERVER RECORD REPLAY");
-
-                        if (playerTimers[player.Slot].IsReplaying == false)
-                            _ = ReplaySRHandler(player);
-
-                        playerTimers[player.Slot].TicksSinceLastRankUpdate = 0;
-                    }
-
                     if (playerTimers.TryGetValue(player.Slot, out PlayerTimerInfo playerTimer) && IsAllowedPlayer(player))
                     {
                         if (!IsAllowedPlayer(player))
@@ -345,15 +331,15 @@ namespace SharpTimer
 
                         updates[player.Slot] = playerTimer;
 
-                        var @event = new EventShowSurvivalRespawnStatus(false)
-                        {
-                            LocToken = hudContent,
-                            Duration = 999,
-                            Userid = player
-                        };
-
                         if (playerTimer.HideTimerHud != true && hudOverlayEnabled == true)
                         {
+                            var @event = new EventShowSurvivalRespawnStatus(false)
+                            {
+                                LocToken = hudContent,
+                                Duration = 999,
+                                Userid = player
+                            };
+
                             @event.FireEvent(false);
                         }
 
@@ -389,7 +375,6 @@ namespace SharpTimer
                         {
                             SharpTimerDebug($"{player.PlayerName} has rank and pb null... calling handler");
                             _ = RankCommandHandler(player, player.SteamID.ToString(), player.Slot, player.PlayerName, true);
-
 
                             playerTimer.IsRankPbCached = true;
                         }
@@ -479,7 +464,7 @@ namespace SharpTimer
                         playerBonusTime = null;
                         keysLineNoHtml = null;
                         hudContent = null;
-                        @event = null;
+                        //@event = null;
                     }
                 }
 
@@ -1120,29 +1105,30 @@ namespace SharpTimer
 
         private int GetPreviousPlayerRecord(CCSPlayerController? player, int bonusX = 0)
         {
-            if (!IsAllowedPlayer(player)) return 0;
+            if (!IsAllowedPlayer(player))
+            {
+                SharpTimerDebug("Player not allowed.");
+                return 0;
+            }
 
-            string mapRecordsPath = Path.Combine(playerRecordsPath, bonusX == 0 ? $"{currentMapName}.json" : $"{currentMapName}_bonus{bonusX}.json");
-            string steamId = player.SteamID.ToString();
+            string mapRecordsFileName = bonusX == 0 ? $"{currentMapName}.json" : $"{currentMapName}_bonus{bonusX}.json";
+            string mapRecordsPath = Path.Combine(playerRecordsPath, mapRecordsFileName);
+            string steamId = player?.SteamID.ToString();
+
+            if (!File.Exists(mapRecordsPath))
+            {
+                SharpTimerDebug($"Map records file does not exist: {mapRecordsPath}");
+                return 0;
+            }
 
             try
             {
-                using (JsonDocument jsonDocument = LoadJson(mapRecordsPath))
-                {
-                    if (jsonDocument != null)
-                    {
-                        string json = jsonDocument.RootElement.GetRawText();
-                        Dictionary<string, PlayerRecord> records = JsonSerializer.Deserialize<Dictionary<string, PlayerRecord>>(json) ?? new Dictionary<string, PlayerRecord>();
+                string json = File.ReadAllText(mapRecordsPath);
+                Dictionary<string, PlayerRecord> records = JsonSerializer.Deserialize<Dictionary<string, PlayerRecord>>(json) ?? new Dictionary<string, PlayerRecord>();
 
-                        if (records.ContainsKey(steamId))
-                        {
-                            return records[steamId].TimerTicks;
-                        }
-                    }
-                    else
-                    {
-                        SharpTimerDebug($"Error in GetPreviousPlayerRecord: json was null");
-                    }
+                if (records.TryGetValue(steamId, out PlayerRecord playerRecord))
+                {
+                    return playerRecord.TimerTicks;
                 }
             }
             catch (Exception ex)
@@ -1187,63 +1173,21 @@ namespace SharpTimer
 
         public async Task<string> GetPlayerMapPlacementWithTotal(CCSPlayerController? player, string steamId, string playerName, bool getRankImg = false, bool getPlacementOnly = false)
         {
-            if (IsAllowedPlayer(player) || IsAllowedSpectator(player))
-            {
-                int savedPlayerTime;
-                if (useMySQL == true)
-                {
-                    savedPlayerTime = await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName, playerName);
-                }
-                else
-                {
-                    savedPlayerTime = GetPreviousPlayerRecord(player);
-                }
-
-                if (savedPlayerTime == 0 && getRankImg == false)
-                {
-                    return "Unranked";
-                }
-                else if (savedPlayerTime == 0)
-                {
-                    return unrankedIcon;
-                }
-
-                Dictionary<string, PlayerRecord> sortedRecords;
-                if (useMySQL == true)
-                {
-                    sortedRecords = await GetSortedRecordsFromDatabase();
-                }
-                else
-                {
-                    sortedRecords = GetSortedRecords();
-                }
-
-                int placement = 1;
-
-                foreach (var kvp in sortedRecords)
-                {
-                    int recordTimerTicks = kvp.Value.TimerTicks; // Get the timer ticks from the dictionary value
-
-                    if (savedPlayerTime > recordTimerTicks)
-                    {
-                        placement++;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-
-                int totalPlayers = sortedRecords.Count;
-
-                double percentage = (double)placement / totalPlayers * 100;
-
-                return CalculateRankStuff(totalPlayers, placement, percentage, getRankImg, getPlacementOnly);
-            }
-            else
-            {
+            if (!IsAllowedPlayer(player) && !IsAllowedSpectator(player))
                 return "";
-            }
+
+            int savedPlayerTime = useMySQL ? await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName, playerName) : GetPreviousPlayerRecord(player);
+
+            if (savedPlayerTime == 0)
+                return getRankImg ? unrankedIcon : "Unranked";
+
+            Dictionary<string, PlayerRecord> sortedRecords = useMySQL ? await GetSortedRecordsFromDatabase() : GetSortedRecords();
+
+            int placement = sortedRecords.Count(kv => kv.Value.TimerTicks < savedPlayerTime) + 1;
+            int totalPlayers = sortedRecords.Count;
+            double percentage = (double)placement / totalPlayers * 100;
+
+            return CalculateRankStuff(totalPlayers, placement, percentage, getRankImg, getPlacementOnly);
         }
 
         public async Task<string> GetPlayerServerPlacement(CCSPlayerController? player, string steamId, string playerName, bool getRankImg = false, bool getPlacementOnly = false, bool getPointsOnly = false)
@@ -1725,43 +1669,41 @@ namespace SharpTimer
         {
             try
             {
-                Server.NextFrame(() =>
+
+                if (string.IsNullOrEmpty(tag))
+                    return;
+
+                if (player == null || !player.IsValid)
+                    return;
+
+                string originalPlayerName = player.PlayerName;
+
+                string stripedClanTag = RemovePlayerTags(player.Clan ?? "");
+
+                player.Clan = $"{stripedClanTag}{(playerTimers[player.Slot].IsVip ? $"[{customVIPTag}]" : "")}[{tag}]";
+
+                player.PlayerName = originalPlayerName + " ";
+
+                AddTimer(0.1f, () =>
                 {
-                    if (string.IsNullOrEmpty(tag))
-                        return;
-
-                    if (player == null || !player.IsValid)
-                        return;
-
-                    string originalPlayerName = player.PlayerName;
-
-                    string stripedClanTag = RemovePlayerTags(player.Clan ?? "");
-
-                    player.Clan = $"{stripedClanTag}{(playerTimers[player.Slot].IsVip ? $"[{customVIPTag}]" : "")}[{tag}]";
-
-                    player.PlayerName = originalPlayerName + " ";
-
-                    AddTimer(0.1f, () =>
+                    if (player.IsValid)
                     {
-                        if (player.IsValid)
-                        {
-                            Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
-                            Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
-                        }
-                    });
-
-                    AddTimer(0.2f, () =>
-                    {
-                        if (player.IsValid) player.PlayerName = originalPlayerName;
-                    });
-
-                    AddTimer(0.3f, () =>
-                    {
-                        if (player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
-                    });
-
-                    SharpTimerDebug($"Set Scoreboard Tag for {player.Clan} {player.PlayerName}");
+                        Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
+                        Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                    }
                 });
+
+                AddTimer(0.2f, () =>
+                {
+                    if (player.IsValid) player.PlayerName = originalPlayerName;
+                });
+
+                AddTimer(0.3f, () =>
+                {
+                    if (player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
+                });
+
+                SharpTimerDebug($"Set Scoreboard Tag for {player.Clan} {player.PlayerName}");
             }
             catch (Exception ex)
             {

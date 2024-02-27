@@ -9,7 +9,7 @@ using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
 namespace SharpTimer
 {
-    [MinimumApiVersion(172)]
+    [MinimumApiVersion(176)]
     public partial class SharpTimer : BasePlugin
     {
         public override void Load(bool hotReload)
@@ -22,9 +22,8 @@ namespace SharpTimer
             gameDir = Server.GameDirectory;
             SharpTimerDebug($"Set gameDir to {gameDir}");
 
-            string recordsFileName = "SharpTimer/player_records.json";
+            string recordsFileName = $"SharpTimer/PlayerRecords/";
             playerRecordsPath = Path.Join(gameDir + "/csgo/cfg", recordsFileName);
-            SharpTimerDebug($"Set playerRecordsPath to {playerRecordsPath}");
 
             string mysqlConfigFileName = "SharpTimer/mysqlConfig.json";
             mySQLpath = Path.Join(gameDir + "/csgo/cfg", mysqlConfigFileName);
@@ -103,12 +102,12 @@ namespace SharpTimer
                     }
                     else
                     {
-                        if (removeCollisionEnabled == true && player.PlayerPawn != null)
+                        /* if (removeCollisionEnabled == true && player.PlayerPawn != null)
                         {
                             RemovePlayerCollision(player);
                         }
 
-                        specTargets[player.Pawn.Value.EntityHandle.Index] = new CCSPlayerController(player.Handle);
+                        specTargets[player.Pawn.Value.EntityHandle.Index] = new CCSPlayerController(player.Handle); */
                         AddTimer(5.0f, () =>
                         {
                             if (useMySQL && player.DesiredFOV != (uint)playerTimers[player.Slot].PlayerFov)
@@ -570,7 +569,7 @@ namespace SharpTimer
         public override void Unload(bool hotReload)
         {
             DamageUnHook();
-            
+
             RemoveCommandListener("say", OnPlayerChatAll, HookMode.Pre);
             RemoveCommandListener("say_team", OnPlayerChatTeam, HookMode.Pre);
 

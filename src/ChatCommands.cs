@@ -552,29 +552,29 @@ namespace SharpTimer
                 SharpTimerError($"Error in DumpReplayToJson: Player not allowed or not on server anymore");
                 return;
             }
+
             SharpTimerDebug($"Handling !rank for {playerName}...");
 
-            string ranking = (useMySQL && globalRanksEnabled) ? await GetPlayerServerPlacement(player, steamId, playerName) : await GetPlayerMapPlacementWithTotal(player, steamId, playerName);
-            string rankIcon = (useMySQL && globalRanksEnabled) ? await GetPlayerServerPlacement(player, steamId, playerName, true) : await GetPlayerMapPlacementWithTotal(player, steamId, playerName, true);
-            string mapPlacement = await GetPlayerMapPlacementWithTotal(player, steamId, playerName, false, true);
+            string ranking, rankIcon, mapPlacement, serverPoints = "", serverPlacement = "";
+            bool useGlobalRanks = useMySQL && globalRanksEnabled;
+            bool useDatabase = useMySQL && !useGlobalRanks;
 
-            string serverPoints = "";
-            string serverPlacement = "";
-            if (useMySQL && globalRanksEnabled)
+            if (useGlobalRanks)
             {
+                ranking = await GetPlayerServerPlacement(player, steamId, playerName);
+                rankIcon = await GetPlayerServerPlacement(player, steamId, playerName, true);
                 serverPoints = await GetPlayerServerPlacement(player, steamId, playerName, false, false, true);
                 serverPlacement = await GetPlayerServerPlacement(player, steamId, playerName, false, true, false);
             }
-
-            int pbTicks;
-            if (useMySQL == false)
-            {
-                pbTicks = GetPreviousPlayerRecord(player);
-            }
             else
             {
-                pbTicks = await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName, playerName);
+                ranking = await GetPlayerMapPlacementWithTotal(player, steamId, playerName);
+                rankIcon = await GetPlayerMapPlacementWithTotal(player, steamId, playerName, true);
             }
+
+            mapPlacement = await GetPlayerMapPlacementWithTotal(player, steamId, playerName, false, true);
+
+            int pbTicks = useDatabase ? await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName, playerName) : GetPreviousPlayerRecord(player);
 
             Server.NextFrame(() =>
             {
@@ -584,16 +584,24 @@ namespace SharpTimer
                 playerTimers[playerSlot].CachedRank = ranking;
                 playerTimers[playerSlot].CachedMapPlacement = mapPlacement;
 
-                if (displayScoreboardTags == true) AddScoreboardTagToPlayer(player, ranking);
+                if (displayScoreboardTags) AddScoreboardTagToPlayer(player, ranking);
             });
 
-            if (sendRankToHUD == false)
+            if (!sendRankToHUD)
             {
                 Server.NextFrame(() =>
                 {
                     if (!IsAllowedPlayer(player)) return;
-                    player.PrintToChat(msgPrefix + $" You are currently {primaryChatColor}{ranking}{((useMySQL && globalRanksEnabled) ? $" {ChatColors.Default}({primaryChatColor}{serverPoints}{ChatColors.Default}) [{primaryChatColor}{serverPlacement}{ChatColors.Default}]" : "")}");
-                    if (pbTicks != 0) player.PrintToChat(msgPrefix + $" Your current PB on {primaryChatColor}{currentMapName}{ChatColors.Default}: {primaryChatColor}{FormatTime(pbTicks)}{ChatColors.Default} [{primaryChatColor}{mapPlacement}{ChatColors.Default}]");
+                    string rankMessage = $"{msgPrefix} You are currently {primaryChatColor}{ranking}";
+                    if (useGlobalRanks)
+                    {
+                        rankMessage += $" {ChatColors.Default}({primaryChatColor}{serverPoints}{ChatColors.Default}) [{primaryChatColor}{serverPlacement}{ChatColors.Default}]";
+                    }
+                    player.PrintToChat(rankMessage);
+                    if (pbTicks != 0)
+                    {
+                        player.PrintToChat($"{msgPrefix} Your current PB on {primaryChatColor}{currentMapName}{ChatColors.Default}: {primaryChatColor}{FormatTime(pbTicks)}{ChatColors.Default} [{primaryChatColor}{mapPlacement}{ChatColors.Default}]");
+                    }
                 });
             }
         }

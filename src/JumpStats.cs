@@ -31,6 +31,10 @@ namespace SharpTimer
                 if (playerJumpStats[playerSlot].Jumped == true && playerJumpStats[playerSlot].FramesOnGround == 0)
                 {
                     playerJumpStats[playerSlot].LandedFromSound = true;
+                    Server.NextFrame(() =>
+                    {
+                        if (IsAllowedPlayer(player)) playerJumpStats[playerSlot].LandedFromSound = false;
+                    });
                 }
             }
         }
@@ -41,7 +45,7 @@ namespace SharpTimer
             {
                 if (playerJumpStats.TryGetValue(player.Slot, out PlayerJumpStats? playerJumpStat))
                 {
-                    playerJumpStat.OnGround = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND; //need hull trace for this to detect surf etc
+                    playerJumpStat.OnGround = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND; //need hull trace for this to detect surf and edgebug etc
 
                     if (playerJumpStat.OnGround)
                     {
@@ -87,7 +91,7 @@ namespace SharpTimer
                         }
 
                         playerJumpStat.Jumped = false;
-                        playerJumpStat.LandedFromSound = false;
+
                         playerJumpStat.jumpFrames.Clear();
                         playerJumpStat.jumpInterp.Clear();
                         playerJumpStat.WTicks = 0;
@@ -113,9 +117,11 @@ namespace SharpTimer
                         playerJumpStat.jumpFrames.Clear();
                         playerJumpStat.jumpInterp.Clear();
                         playerJumpStat.WTicks = 0;
-                        playerJumpStat.LandedFromSound = false;
+
                         playerJumpStat.FramesOnGround++;
                     }
+
+                    playerJumpStat.LastLandedFromSound = playerJumpStat.LandedFromSound;
 
                     playerJumpStat.LastOnGround = playerJumpStat.OnGround;
                     playerJumpStat.LastPos = $"{playerpos.X} {playerpos.Y} {playerpos.Z}";
@@ -367,7 +373,6 @@ namespace SharpTimer
             player.PrintToConsole($"-----------------------------------------------------------------------------------------------------------------------");
             player.PrintToConsole(msg1);
             player.PrintToConsole(msg2);
-            
             /* this is shit
             string alertMsg = msg1 + "\n" + msg2;
             VirtualFunctions.ClientPrint(player.Handle, HudDestination.Alert, alertMsg, 0, 0, 0, 0); */

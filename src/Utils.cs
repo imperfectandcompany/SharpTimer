@@ -829,32 +829,6 @@ namespace SharpTimer
                         }
                     }
 
-                    /* if (mapInfo.OverrideDisableTelehop != null && mapInfo.OverrideDisableTelehop.Any())
-                    {
-                        try
-                        {
-                            SharpTimerConPrint($"Overriding Telehop...");
-                            currentMapOverrideDisableTelehop = mapInfo.OverrideDisableTelehop
-                                .Split(',')
-                                .Select(color => color.Trim())
-                                .ToArray();
-
-                            foreach (var trigger in currentMapOverrideDisableTelehop)
-                            {
-                                SharpTimerConPrint($"OverrideDisableTelehop for trigger: {trigger}");
-                            }
-
-                        }
-                        catch (Exception ex)
-                        {
-                            SharpTimerError($"Error parsing OverrideDisableTelehop array: {ex.Message}");
-                        }
-                    }
-                    else
-                    {
-                        currentMapOverrideDisableTelehop = new string[0];
-                    } */
-
                     if (!string.IsNullOrEmpty(mapInfo.OverrideDisableTelehop))
                     {
                         try

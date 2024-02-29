@@ -245,7 +245,7 @@ namespace SharpTimer
 
             if (distance2D > jumpStatsMinDist || noVertCheck == true)
             {
-                double result = distance2D + 32.0f;
+                double result = distance2D + 16.0f;
                 return result;
             }
             else
@@ -368,7 +368,7 @@ namespace SharpTimer
 
             player.PrintToChat(msgPrefix + msg1);
             //print on next server frame so client chat does not bug out that much
-            Server.NextFrame(() => player.PrintToChat(msgPrefix + msg2));
+            player.PrintToChat(msgPrefix + msg2);
 
             player.PrintToConsole($"-----------------------------------------------------------------------------------------------------------------------");
             player.PrintToConsole(msg1);

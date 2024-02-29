@@ -29,6 +29,7 @@ namespace SharpTimer
         public string secondaryHUDcolor = "orange";
         public string tertiaryHUDcolor = "white";
         public string primaryChatColor = "";
+        public char NewLine = '\u2029';
         public string startBeamColor = "";
         public string endBeamColor = "";
         public bool beamColorOverride = false;

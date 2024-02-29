@@ -547,62 +547,64 @@ namespace SharpTimer
 
         public async Task RankCommandHandler(CCSPlayerController? player, string steamId, int playerSlot, string playerName, bool sendRankToHUD = false)
         {
-            if (!IsAllowedPlayer(player))
+            try
             {
-                SharpTimerError($"Error in DumpReplayToJson: Player not allowed or not on server anymore");
-                return;
-            }
+                if (!IsAllowedPlayer(player))
+                {
+                    SharpTimerError($"Error in RankCommandHandler: Player not allowed or not on server anymore");
+                    return;
+                }
 
-            SharpTimerDebug($"Handling !rank for {playerName}...");
+                SharpTimerDebug($"Handling !rank for {playerName}...");
 
-            string ranking, rankIcon, mapPlacement, serverPoints = "", serverPlacement = "";
-            bool useGlobalRanks = useMySQL && globalRanksEnabled;
-            bool useDatabase = useMySQL && !useGlobalRanks;
+                string ranking, rankIcon, mapPlacement, serverPoints = "", serverPlacement = "";
+                bool useGlobalRanks = useMySQL && globalRanksEnabled;
+                bool useDatabase = useMySQL && !useGlobalRanks;
 
-            if (useGlobalRanks)
-            {
-                ranking = await GetPlayerServerPlacement(player, steamId, playerName);
-                rankIcon = await GetPlayerServerPlacement(player, steamId, playerName, true);
-                serverPoints = await GetPlayerServerPlacement(player, steamId, playerName, false, false, true);
-                serverPlacement = await GetPlayerServerPlacement(player, steamId, playerName, false, true, false);
-            }
-            else
-            {
                 ranking = await GetPlayerMapPlacementWithTotal(player, steamId, playerName);
                 rankIcon = await GetPlayerMapPlacementWithTotal(player, steamId, playerName, true);
-            }
+                mapPlacement = await GetPlayerMapPlacementWithTotal(player, steamId, playerName, false, true);
 
-            mapPlacement = await GetPlayerMapPlacementWithTotal(player, steamId, playerName, false, true);
+                if (useGlobalRanks)
+                {
+                    serverPoints = await GetPlayerServerPlacement(player, steamId, playerName, false, false, true);
+                    serverPlacement = await GetPlayerServerPlacement(player, steamId, playerName, false, true, false);
+                }
 
-            int pbTicks = useDatabase ? await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName, playerName) : GetPreviousPlayerRecord(player);
+                int pbTicks = useDatabase ? await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName, playerName) : GetPreviousPlayerRecord(player);
 
-            Server.NextFrame(() =>
-            {
-                if (!IsAllowedPlayer(player)) return;
-                playerTimers[playerSlot].RankHUDIcon = $"{(!string.IsNullOrEmpty(rankIcon) ? $" {rankIcon}" : "")}";
-                playerTimers[playerSlot].CachedPB = $"{(pbTicks != 0 ? $" {FormatTime(pbTicks)}" : "")}";
-                playerTimers[playerSlot].CachedRank = ranking;
-                playerTimers[playerSlot].CachedMapPlacement = mapPlacement;
-
-                if (displayScoreboardTags) AddScoreboardTagToPlayer(player, ranking);
-            });
-
-            if (!sendRankToHUD)
-            {
                 Server.NextFrame(() =>
                 {
                     if (!IsAllowedPlayer(player)) return;
-                    string rankMessage = $"{msgPrefix} You are currently {primaryChatColor}{ranking}";
-                    if (useGlobalRanks)
-                    {
-                        rankMessage += $" {ChatColors.Default}({primaryChatColor}{serverPoints}{ChatColors.Default}) [{primaryChatColor}{serverPlacement}{ChatColors.Default}]";
-                    }
-                    player.PrintToChat(rankMessage);
-                    if (pbTicks != 0)
-                    {
-                        player.PrintToChat($"{msgPrefix} Your current PB on {primaryChatColor}{currentMapName}{ChatColors.Default}: {primaryChatColor}{FormatTime(pbTicks)}{ChatColors.Default} [{primaryChatColor}{mapPlacement}{ChatColors.Default}]");
-                    }
+                    playerTimers[playerSlot].RankHUDIcon = $"{(!string.IsNullOrEmpty(rankIcon) ? $" {rankIcon}" : "")}";
+                    playerTimers[playerSlot].CachedPB = $"{(pbTicks != 0 ? $" {FormatTime(pbTicks)}" : "")}";
+                    playerTimers[playerSlot].CachedRank = ranking;
+                    playerTimers[playerSlot].CachedMapPlacement = mapPlacement;
+
+                    if (displayScoreboardTags) AddScoreboardTagToPlayer(player, ranking);
                 });
+
+                if (!sendRankToHUD)
+                {
+                    Server.NextFrame(() =>
+                    {
+                        if (!IsAllowedPlayer(player)) return;
+                        string rankMessage = $"{msgPrefix} You are currently {primaryChatColor}{ranking}";
+                        if (useGlobalRanks)
+                        {
+                            rankMessage += $" {ChatColors.Default}({primaryChatColor}{serverPoints}{ChatColors.Default}) [{primaryChatColor}{serverPlacement}{ChatColors.Default}]";
+                        }
+                        player.PrintToChat(rankMessage);
+                        if (pbTicks != 0)
+                        {
+                            player.PrintToChat($"{msgPrefix} Your current PB on {primaryChatColor}{currentMapName}{ChatColors.Default}: {primaryChatColor}{FormatTime(pbTicks)}{ChatColors.Default} [{primaryChatColor}{mapPlacement}{ChatColors.Default}]");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in RankCommandHandler: {ex}");
             }
         }
 

@@ -49,6 +49,8 @@ SharpTimer is a "simple" Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Co
 
 [**CounterStrikeSharp** *(v178 and up)*](https://github.com/roflmuffin/CounterStrikeSharp/releases)
 
+[**SharpTimerModelSetter** *(optional but recommended for custom player models)*](https://github.com/DEAFPS/SharpTimerModelSetter/)
+
 [**MovementUnlocker** *(optional but recommended)*](https://github.com/Source2ZE/MovementUnlocker)
 
 [**Web panel** *(optional but recommended)*](https://github.com/Letaryat/sharptimer-web-panel)

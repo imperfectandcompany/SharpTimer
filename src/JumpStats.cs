@@ -385,12 +385,12 @@ namespace SharpTimer
             Console.WriteLine("Total Synced Frames: " + syncedFrames);
             Console.WriteLine("Sync Percentage: " + sync + "%");
 
-            string msg1 = $"{primaryChatColor}JumpStats: {ChatColors.Grey}" +
+            string msg1 = $"{primaryChatColor}JS: {ChatColors.Grey}" +
                             $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 2)}{ChatColors.Grey} | " +
                             $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 2)}{ChatColors.Grey} | " +
-                            $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 2)}{ChatColors.Grey} | ";
-            string msg2 = $"{ChatColors.Grey}Strafes: {primaryChatColor}{strafes}{ChatColors.Grey} | " +
-                            $"Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 2)}{ChatColors.Grey} | " +
+                            $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 2)}{ChatColors.Grey} | " +
+                            $"Strafes: {primaryChatColor}{strafes}{ChatColors.Grey} | ";
+            string msg2 =   $"{ChatColors.Grey}Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 2)}{ChatColors.Grey} | " +
                             $"Width: {primaryChatColor}{GetMaxWidth(playerpos, playerJumpStat)}{ChatColors.Grey} | " +
                             $"WT: {primaryChatColor}{playerJumpStat.WTicks}{ChatColors.Grey} | " +
                             $"Sync: {primaryChatColor}{sync}%";

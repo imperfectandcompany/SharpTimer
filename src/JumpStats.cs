@@ -39,7 +39,7 @@ namespace SharpTimer
             }
         }
 
-        public void OnJumpStatTick(CCSPlayerController player, Vector velocity, Vector playerpos, PlayerButtons? buttons)
+        public void OnJumpStatTick(CCSPlayerController player, Vector velocity, Vector playerpos, QAngle eyeangle, PlayerButtons? buttons)
         {
             try
             {
@@ -54,7 +54,7 @@ namespace SharpTimer
                     else
                     {
                         playerJumpStat.FramesOnGround = 0;
-                        OnJumpStatTickInAir(player, playerJumpStat, buttons, playerpos, velocity);
+                        OnJumpStatTickInAir(player, playerJumpStat, buttons, playerpos, velocity, eyeangle);
                     }
 
                     if (playerJumpStat.FramesOnGround == 2)
@@ -124,13 +124,12 @@ namespace SharpTimer
                     playerJumpStat.LastLandedFromSound = playerJumpStat.LandedFromSound;
 
                     playerJumpStat.LastOnGround = playerJumpStat.OnGround;
-                    playerJumpStat.LastPos = $"{playerpos.X} {playerpos.Y} {playerpos.Z}";
                     playerJumpStat.LastDucked = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) == PlayerFlags.FL_DUCKING;
                     if (playerJumpStat.OnGround)
                     {
                         playerJumpStat.LastSpeed = $"{velocity.X} {velocity.Y} {velocity.Z}";
                         playerJumpStat.LastFramesOnGround = playerJumpStat.FramesOnGround;
-                        playerJumpStat.LastEyeAngle = $"{player.PlayerPawn.Value.EyeAngles.X} {player.PlayerPawn.Value.EyeAngles.Y} {player.PlayerPawn.Value.EyeAngles.Z}";
+                        playerJumpStat.LastPosOnGround = $"{playerpos.X} {playerpos.Y} {playerpos.Z}";
                     }
                 }
             }
@@ -140,7 +139,7 @@ namespace SharpTimer
             }
         }
 
-        public void OnJumpStatTickInAir(CCSPlayerController player, PlayerJumpStats playerJumpStat, PlayerButtons? buttons, Vector playerpos, Vector velocity)
+        public void OnJumpStatTickInAir(CCSPlayerController player, PlayerJumpStats playerJumpStat, PlayerButtons? buttons, Vector playerpos, Vector velocity, QAngle eyeangle)
         {
             try
             {
@@ -170,7 +169,7 @@ namespace SharpTimer
 
                 double maxHeight;
                 if (IsVectorHigherThan(playerpos, ParseVector(LastJumpFrame.PositionString)))
-                    maxHeight = (playerpos.Z - ParseVector(playerJumpStat.JumpPos).Z);
+                    maxHeight = playerpos.Z - ParseVector(playerJumpStat.LastPosOnGround ?? "0 0 0").Z;
                 else
                     maxHeight = LastJumpFrame?.MaxHeight ?? 0;
 
@@ -184,6 +183,7 @@ namespace SharpTimer
                 {
                     PositionString = $"{playerpos.X} {playerpos.Y} {playerpos.Z}",
                     SpeedString = $"{velocity.X} {velocity.Y} {velocity.Z}",
+                    RotationString = $"{eyeangle.X} {eyeangle.Y} {eyeangle.Z}",
                     LastLeft = left,
                     LastRight = right,
                     LastLeftRight = leftRight,
@@ -254,10 +254,13 @@ namespace SharpTimer
             }
         }
 
-        public static int CountLeftGroups(PlayerJumpStats playerJumpStat)
+        public static (int lastLeftGroups, int leftSync, int leftFrames) CountLeftGroupsAndSync(PlayerJumpStats playerJumpStat)
         {
             int lastLeftGroups = 0;
+            int leftSync = 0;
+            int leftFrames = 0;
             bool inGroup = false;
+            QAngle previousRotation = null;
 
             foreach (var frame in playerJumpStat.jumpFrames)
             {
@@ -270,19 +273,26 @@ namespace SharpTimer
                 else if (frame.LastLeft)
                 {
                     inGroup = true;
+                    leftFrames++;
+                    if (previousRotation != null && ParseQAngle(frame.RotationString).Y > previousRotation.Y)
+                        leftSync++;
                 }
+                previousRotation = ParseQAngle(frame.RotationString);
             }
 
             if (inGroup)
                 lastLeftGroups++;
 
-            return lastLeftGroups;
+            return (lastLeftGroups, leftSync, leftFrames);
         }
 
-        public static int CountRightGroups(PlayerJumpStats playerJumpStat)
+        public static (int lastRightGroups, int rightSync, int rightFrames) CountRightGroupsAndSync(PlayerJumpStats playerJumpStat)
         {
             int lastRightGroups = 0;
+            int rightSync = 0;
+            int rightFrames = 0;
             bool inGroup = false;
+            QAngle previousRotation = null;
 
             foreach (var frame in playerJumpStat.jumpFrames)
             {
@@ -291,17 +301,22 @@ namespace SharpTimer
                     if (inGroup)
                         lastRightGroups++;
                     inGroup = false;
+
                 }
                 else if (frame.LastRight)
                 {
                     inGroup = true;
+                    rightFrames++;
+                    if (previousRotation != null && ParseQAngle(frame.RotationString).Y < previousRotation.Y)
+                        rightSync++;
                 }
+                previousRotation = ParseQAngle(frame.RotationString);
             }
 
             if (inGroup)
                 lastRightGroups++;
 
-            return lastRightGroups;
+            return (lastRightGroups, rightSync, rightFrames);
         }
 
         public static float GetMaxWidth(Vector playerpos, PlayerJumpStats playerJumpStat)
@@ -356,15 +371,29 @@ namespace SharpTimer
 
             char color = GetJSColor(distance);
 
+            var (lStrafes, lSync, lFrames) = CountLeftGroupsAndSync(playerJumpStat);
+            var (rStrafes, rSync, rFrames) = CountRightGroupsAndSync(playerJumpStat);
+
+            int strafes = rStrafes + lStrafes;
+            int strafeFrames = rFrames + lFrames;
+            int syncedFrames = rSync + lSync;
+
+            double sync = (strafeFrames != 0) ? Math.Round(syncedFrames * 100f / strafeFrames, 2) : 0;
+
+            Console.WriteLine("Total Strafes: " + strafes);
+            Console.WriteLine("Total Strafe Frames: " + strafeFrames);
+            Console.WriteLine("Total Synced Frames: " + syncedFrames);
+            Console.WriteLine("Sync Percentage: " + sync + "%");
+
             string msg1 = $"{primaryChatColor}JumpStats: {ChatColors.Grey}" +
                             $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 2)}{ChatColors.Grey} | " +
                             $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 2)}{ChatColors.Grey} | " +
                             $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 2)}{ChatColors.Grey} | ";
-            string msg2 = $"{ChatColors.Grey}Strafes: {primaryChatColor}{CountLeftGroups(playerJumpStat) + CountRightGroups(playerJumpStat)}{ChatColors.Grey} | " +
+            string msg2 = $"{ChatColors.Grey}Strafes: {primaryChatColor}{strafes}{ChatColors.Grey} | " +
                             $"Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 2)}{ChatColors.Grey} | " +
                             $"Width: {primaryChatColor}{GetMaxWidth(playerpos, playerJumpStat)}{ChatColors.Grey} | " +
                             $"WT: {primaryChatColor}{playerJumpStat.WTicks}{ChatColors.Grey} | " +
-                            $"Sync: {primaryChatColor}0%";
+                            $"Sync: {primaryChatColor}{sync}%";
 
             player.PrintToChat(msgPrefix + msg1);
             //print on next server frame so client chat does not bug out that much

@@ -380,11 +380,6 @@ namespace SharpTimer
 
             double sync = (strafeFrames != 0) ? Math.Round(syncedFrames * 100f / strafeFrames, 2) : 0;
 
-            Console.WriteLine("Total Strafes: " + strafes);
-            Console.WriteLine("Total Strafe Frames: " + strafeFrames);
-            Console.WriteLine("Total Synced Frames: " + syncedFrames);
-            Console.WriteLine("Sync Percentage: " + sync + "%");
-
             string msg1 = $"{primaryChatColor}JS: {ChatColors.Grey}" +
                             $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 2)}{ChatColors.Grey} | " +
                             $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 2)}{ChatColors.Grey} | " +

@@ -107,7 +107,7 @@ SharpTimer is a "simple" Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Co
   - [x] Max
   - [x] Height
   - [x] Width
-  - [ ] Sync
+  - [x] Sync
   - [ ] Jump Types
     - [x] Long Jump
     - [x] BunnyHop

@@ -369,8 +369,6 @@ namespace SharpTimer
 
                         if (jumpStatsEnabled == true) OnJumpStatTick(player, playerSpeed, player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin, player.PlayerPawn?.Value.EyeAngles, playerButtons);
 
-                        Console.WriteLine(player.PlayerPawn?.Value.EyeAngles);
-
                         if (forcePlayerSpeedEnabled == true) ForcePlayerSpeed(player, player.Pawn.Value.WeaponServices.ActiveWeapon.Value.DesignerName);
 
                         if (playerTimer.IsRankPbCached == false)

@@ -381,7 +381,7 @@ namespace SharpTimer
             double sync = (strafeFrames != 0) ? Math.Round(syncedFrames * 100f / strafeFrames, 2) : 0;
 
             string msg1 = $"{primaryChatColor}JS: {ChatColors.Grey}" +
-                            $"{playerJumpStat.LastJumpType}: {color}{Math.Round((distance * 10) * 0.1, 2)}{ChatColors.Grey} | " +
+                            $"{playerJumpStat.LastJumpType}: {color}{Math.Round(distance, 2)}{ChatColors.Grey} | " +
                             $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 2)}{ChatColors.Grey} | " +
                             $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 2)}{ChatColors.Grey} | " +
                             $"Strafes: {primaryChatColor}{strafes}{ChatColors.Grey} | ";

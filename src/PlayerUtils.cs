@@ -137,9 +137,16 @@ namespace SharpTimer
                     SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
                     SharpTimerDebug($"Total playerReplays: {playerReplays.Count}");
 
-                    if (isForBot == true || hideAllPlayers == true) player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
-
-                    if (removeLegsEnabled == true) player.PlayerPawn.Value.Render = Color.FromArgb(254, 254, 254, 254);
+                    if (isForBot == true || hideAllPlayers == true)
+                    {
+                        player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
+                        Utilities.SetStateChanged(player.PlayerPawn.Value, "CBaseModelEntity", "m_clrRender");
+                    }
+                    else if (removeLegsEnabled == true)
+                    {
+                        player.PlayerPawn.Value.Render = Color.FromArgb(254, 254, 254, 254);
+                        Utilities.SetStateChanged(player.PlayerPawn.Value, "CBaseModelEntity", "m_clrRender");
+                    }
                 }
                 finally
                 {
@@ -429,6 +436,7 @@ namespace SharpTimer
                         if (hideAllPlayers == true && player.PlayerPawn.Value.Render != Color.FromArgb(0, 0, 0, 0))
                         {
                             player.PlayerPawn.Value.Render = Color.FromArgb(0, 0, 0, 0);
+                            Utilities.SetStateChanged(player.PlayerPawn.Value, "CBaseModelEntity", "m_clrRender");
                         }
 
                         if (((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) != PlayerFlags.FL_ONGROUND)

@@ -340,14 +340,7 @@ namespace SharpTimer
 
                         if (playerTimer.HideTimerHud != true && hudOverlayEnabled == true)
                         {
-                            var @event = new EventShowSurvivalRespawnStatus(false)
-                            {
-                                LocToken = hudContent,
-                                Duration = 999,
-                                Userid = player
-                            };
-
-                            @event.FireEvent(false);
+                            player.PrintToCenterHtml(hudContent);
                         }
 
                         if (playerTimer.HideKeys != true && playerTimer.IsReplaying != true && keysOverlayEnabled == true)

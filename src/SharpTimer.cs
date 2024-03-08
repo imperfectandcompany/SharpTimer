@@ -9,7 +9,7 @@ using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
 namespace SharpTimer
 {
-    [MinimumApiVersion(178)]
+    [MinimumApiVersion(190)]
     public partial class SharpTimer : BasePlugin
     {
         public override void Load(bool hotReload)

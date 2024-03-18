@@ -270,7 +270,11 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void HelpCommand(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player)) return;
+            if (!IsAllowedPlayer(player))
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
 
             PrintAllEnabledCommands(player);
         }
@@ -295,7 +299,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void HUDSwitchCommand(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player)) return;
+            if (!IsAllowedPlayer(player))
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+
             SharpTimerDebug($"{player.PlayerName} calling css_hud...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
@@ -321,7 +330,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void KeysSwitchCommand(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player)) return;
+            if (!IsAllowedPlayer(player))
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+
             SharpTimerDebug($"{player.PlayerName} calling css_keys...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
@@ -348,7 +362,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void SoundsSwitchCommand(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player)) return;
+            if (!IsAllowedPlayer(player))
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+
             SharpTimerDebug($"{player.PlayerName} calling css_sounds...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
@@ -375,7 +394,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void JSSwitchCommand(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player) || !jumpStatsEnabled) return;
+            if (!IsAllowedPlayer(player) || jumpStatsEnabled == false)
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+
             SharpTimerDebug($"{player.PlayerName} calling css_jumpstats...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
@@ -425,7 +449,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void PrintTopRecords(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player) || topEnabled == false) return;
+            if (!IsAllowedPlayer(player) || topEnabled == false)
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+
             SharpTimerDebug($"{player.PlayerName} calling css_top...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
@@ -443,7 +472,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void PrintTopPoints(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player) || globalRanksEnabled == false) return;
+            if (!IsAllowedPlayer(player) || globalRanksEnabled == false)
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+
             SharpTimerDebug($"{player.PlayerName} calling css_points...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
@@ -461,7 +495,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void PrintTopBonusRecords(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player) || topEnabled == false) return;
+            if (!IsAllowedPlayer(player) || topEnabled == false)
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+
             SharpTimerDebug($"{player.PlayerName} calling css_topbonus...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
@@ -533,7 +572,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void RankCommand(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player) || rankEnabled == false) return;
+            if (!IsAllowedPlayer(player) || rankEnabled == false)
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+
             SharpTimerDebug($"{player.PlayerName} calling css_rank...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)
@@ -612,7 +656,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void SRCommand(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player) || rankEnabled == false) return;
+            if (!IsAllowedPlayer(player) || rankEnabled == false)
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+
             SharpTimerDebug($"{player.PlayerName} calling css_sr...");
 
             if (playerTimers[player.Slot].TicksSinceLastCmd < cmdCooldown)

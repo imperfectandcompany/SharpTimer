@@ -362,6 +362,15 @@ namespace SharpTimer
             topEnabled = bool.TryParse(args, out bool topEnabledValue) ? topEnabledValue : args != "0" && topEnabled;
         }
 
+        [ConsoleCommand("sharptimer_help_enabled", "Whether !help is enabled by default or not. Default value: true")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerHelpConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            helpEnabled = bool.TryParse(args, out bool helpEnabledValue) ? helpEnabledValue : args != "0" && helpEnabled;
+        }
+
         [ConsoleCommand("sharptimer_rank_enabled", "Whether !rank is enabled by default or not. Default value: true")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void SharpTimerRankConvar(CCSPlayerController? player, CommandInfo command)

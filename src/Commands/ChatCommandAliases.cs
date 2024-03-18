@@ -11,6 +11,12 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void StHelpAlias(CCSPlayerController? player, CommandInfo command)
         {
+            if (!IsAllowedPlayer(player) || !helpEnabled)
+            {
+                if(!IsAllowedSpectator(player))
+                     return;
+            }
+            
             PrintAllEnabledCommands(player);
         }
         

@@ -270,7 +270,7 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void HelpCommand(CCSPlayerController? player, CommandInfo command)
         {
-            if (!IsAllowedPlayer(player))
+            if (!IsAllowedPlayer(player) || !helpEnabled)
             {
                 if(!IsAllowedSpectator(player))
                      return;

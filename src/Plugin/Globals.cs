@@ -83,7 +83,7 @@ namespace SharpTimer
         public bool hudOverlayEnabled = true;
         public bool topEnabled = true;
         public bool rankEnabled = true;
-        public bool pbComEnabled = true;
+        public bool helpEnabled = true;
         public bool alternativeSpeedometer = false;
         public bool removeLegsEnabled = false;
         public bool hideAllPlayers = false;

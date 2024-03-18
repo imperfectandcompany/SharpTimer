@@ -1,12 +1,8 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Admin;
-using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
 using CounterStrikeSharp.API.Modules.Utils;
-using System.Drawing;
 using System.Text.Json;
-using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
 namespace SharpTimer
 {
@@ -612,6 +608,25 @@ namespace SharpTimer
                     player.ExecuteClientCommand(command);
                 }
             });
+        }
+
+        public static (int, int) GetPlayerTeamCount()
+        {
+            int ct_count = 0;
+            int t_count = 0;
+            
+            Utilities.GetPlayers().ForEach(player =>
+            {
+                if (player is { PawnIsAlive: true, IsValid: true })
+                {
+                    if(player.Team == CsTeam.CounterTerrorist)
+                        ct_count++;
+                    else if (player.Team == CsTeam.Terrorist)
+                        t_count++;
+                }
+            });
+
+            return (ct_count, t_count);
         }
     }
 }

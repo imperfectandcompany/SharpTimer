@@ -15,7 +15,7 @@ namespace SharpTimer
             try
             {
                 SharpTimerDebug("Init Damage hook...");
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true)
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && disableDamage == true && altDmgHook == false)
                 {
                     SharpTimerDebug("Trying to register Linux Damage hook...");
                     VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(this.OnTakeDamage, HookMode.Pre);

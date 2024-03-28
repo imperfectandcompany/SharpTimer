@@ -5,7 +5,7 @@ using CounterStrikeSharp.API.Modules.Cvars;
 
 namespace SharpTimer
 {
-    [MinimumApiVersion(190)]
+    [MinimumApiVersion(202)]
     public partial class SharpTimer : BasePlugin
     {
         public override void Load(bool hotReload)

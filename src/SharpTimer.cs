@@ -35,20 +35,12 @@ namespace SharpTimer
                 {
                     var player = @event.Userid;
 
-                    if (!player.IsValid || player.IsBot)
-                    {
-                        return HookResult.Continue;
-                    }
-                    else
+                    if (player.IsValid || !player.IsBot)
                     {
                         OnPlayerConnect(player);
-                        return HookResult.Continue;
                     }
                 }
-                else
-                {
-                    return HookResult.Continue;
-                }
+                return HookResult.Continue;
             });
 
             RegisterEventHandler<EventPlayerTeam>((@event, info) =>
@@ -66,15 +58,10 @@ namespace SharpTimer
                                 Server.ExecuteCommand($"kickid {bot.Slot}");
                                 SharpTimerDebug($"Kicking unused bot on spawn...");
                             });
-                            return HookResult.Continue;
                         }
                     }
-                    return HookResult.Continue;
                 }
-                else
-                {
-                    return HookResult.Continue;
-                }
+                return HookResult.Continue;
             });
 
             RegisterEventHandler<EventRoundStart>((@event, info) =>
@@ -112,13 +99,9 @@ namespace SharpTimer
                                 SetFov(player, playerTimers[player.Slot].PlayerFov, true);
                             }
                         });
-                        return HookResult.Continue;
                     }
                 }
-                else
-                {
-                    return HookResult.Continue;
-                }
+                return HookResult.Continue;
             });
 
             RegisterEventHandler<EventPlayerDisconnect>((@event, info) =>
@@ -134,13 +117,9 @@ namespace SharpTimer
                     else
                     {
                         OnPlayerDisconnect(player);
-                        return HookResult.Continue;
                     }
                 }
-                else
-                {
-                    return HookResult.Continue;
-                }
+                return HookResult.Continue;
             });
 
             RegisterEventHandler<EventPlayerJump>((@event, info) =>
@@ -156,13 +135,9 @@ namespace SharpTimer
                     else
                     {
                         if (jumpStatsEnabled == true) OnJumpStatJumped(player);
-                        return HookResult.Continue;
                     }
                 }
-                else
-                {
-                    return HookResult.Continue;
-                }
+                return HookResult.Continue;
             });
 
             RegisterEventHandler<EventPlayerSound>((@event, info) =>
@@ -178,13 +153,9 @@ namespace SharpTimer
                     else
                     {
                         if (jumpStatsEnabled == true && @event.Step == true) OnJumpStatSound(player);
-                        return HookResult.Continue;
                     }
                 }
-                else
-                {
-                    return HookResult.Continue;
-                }
+                return HookResult.Continue;
             });
 
             RegisterListener<Listeners.OnTick>(PlayerOnTick);

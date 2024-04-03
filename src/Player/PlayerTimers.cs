@@ -189,6 +189,7 @@ namespace SharpTimer
                     var playerTimerTicks = playerTimers[playerSlot].TimerTicks; // store so its in sync with player
 
                     var (srSteamID, srPlayerName, srTime) = ("null", "null", "null");
+                    if (playerTimers[playerSlot].CurrentMapStage == stageTrigger || playerTimers[playerSlot] == null) return;
                     if (useMySQL == true)
                     {
                         (srSteamID, srPlayerName, srTime) = await GetMapRecordSteamIDFromDatabase();
@@ -228,25 +229,16 @@ namespace SharpTimer
 
                             if (playerTimer.StageVelos != null && playerTimer.StageTimes != null && playerTimer.IsTimerRunning == true && IsAllowedPlayer(player))
                             {
-                                if (!playerTimer.StageTimes.ContainsKey(stageTrigger))
+                                try
                                 {
-                                    SharpTimerDebug($"Player {playerName} cleared StageTimes before (stageTrigger)");
-                                    playerTimer.StageTimes.Add(stageTrigger, playerTimerTicks);
-                                    playerTimer.StageVelos.Add(stageTrigger, $"{currentStageSpeed}");
+                                    playerTimer.StageTimes[stageTrigger] = playerTimerTicks;
+                                    playerTimer.StageVelos[stageTrigger] = $"{currentStageSpeed}";
+                                    SharpTimerDebug($"Player {playerName} Entering stage {stageTrigger} Time {playerTimer.StageTimes[stageTrigger]}");
                                 }
-                                else
+                                catch (Exception ex)
                                 {
-                                    try
-                                    {
-                                        playerTimer.StageTimes[stageTrigger] = playerTimerTicks;
-                                        playerTimer.StageVelos[stageTrigger] = $"{currentStageSpeed}";
-                                        SharpTimerDebug($"Player {playerName} Entering stage {stageTrigger} Time {playerTimer.StageTimes[stageTrigger]}");
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        SharpTimerError($"Error updating StageTimes dictionary: {ex.Message}");
-                                        SharpTimerDebug($"Player {playerName} dictionary keys: {string.Join(", ", playerTimer.StageTimes.Keys)}");
-                                    }
+                                    SharpTimerError($"Error updating StageTimes dictionary: {ex.Message}");
+                                    SharpTimerDebug($"Player {playerName} dictionary keys: {string.Join(", ", playerTimer.StageTimes.Keys)}");
                                 }
                             }
 
@@ -287,6 +279,7 @@ namespace SharpTimer
                     var playerTimerTicks = playerTimers[playerSlot].TimerTicks; // store so its in sync with player
 
                     var (srSteamID, srPlayerName, srTime) = ("null", "null", "null");
+                    if (playerTimers[playerSlot].CurrentMapCheckpoint == cpTrigger || playerTimers[playerSlot] == null) return;
                     if (useMySQL == true)
                     {
                         (srSteamID, srPlayerName, srTime) = await GetMapRecordSteamIDFromDatabase();

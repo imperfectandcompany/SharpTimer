@@ -605,8 +605,8 @@ namespace SharpTimer
                 bool useGlobalRanks = useMySQL && globalRanksEnabled;
                 bool useDatabase = useMySQL && !useGlobalRanks;
 
-                ranking = await GetPlayerMapPlacementWithTotal(player, steamId, playerName);
-                rankIcon = await GetPlayerMapPlacementWithTotal(player, steamId, playerName, true);
+                ranking = useGlobalRanks ? await GetPlayerServerPlacement(player, steamId, playerName) : await GetPlayerMapPlacementWithTotal(player, steamId, playerName);
+                rankIcon = useGlobalRanks ? await GetPlayerServerPlacement(player, steamId, playerName, true) : await GetPlayerMapPlacementWithTotal(player, steamId, playerName, true);
                 mapPlacement = await GetPlayerMapPlacementWithTotal(player, steamId, playerName, false, true);
 
                 if (useGlobalRanks)

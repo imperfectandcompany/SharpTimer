@@ -16,6 +16,12 @@ namespace SharpTimer
         {
             var connection = new MySqlConnection(GetConnectionStringFromConfigFile(mySQLpath));
             await connection.OpenAsync();
+            
+            if(connection.State != ConnectionState.Open)
+            {
+                useMySQL = false;
+            }
+
             return connection;
         }
 

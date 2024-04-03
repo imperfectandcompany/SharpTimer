@@ -55,9 +55,13 @@ namespace SharpTimer
 
         HookResult OnTakeDamage(DynamicHook h)
         {
-            CEntityInstance player = h.GetParam<CEntityInstance>(0);
+            var ent = h.GetParam<CEntityInstance>(0);
+            var info = h.GetParam<CTakeDamageInfo>(1);
 
-            if (player != null && disableDamage)
+            if (!ent.IsValid || !info.Attacker.IsValid)
+                return HookResult.Continue;
+
+            if (ent.DesignerName == "player" && info.Attacker.Value!.DesignerName == "player" && disableDamage)
                 return HookResult.Handled;
             else
                 return HookResult.Continue;

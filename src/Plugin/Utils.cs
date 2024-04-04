@@ -1182,7 +1182,7 @@ namespace SharpTimer
                         closestMatch = fileName + ".cfg";
                         closestMatchLength = fileName.Length;
                     }
-                } // line 1176
+                }
 
                 if (closestMatch == null || closestMatch == string.Empty)
                 {

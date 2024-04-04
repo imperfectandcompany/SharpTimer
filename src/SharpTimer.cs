@@ -10,7 +10,8 @@ namespace SharpTimer
     {
         public override void Load(bool hotReload)
         {
-            SharpTimerDebug("Loading Plugin...");
+            SharpTimerConPrint("Loading Plugin...");
+            CheckForUpdate();
 
             defaultServerHostname = ConVar.Find("hostname").StringValue;
             Server.ExecuteCommand($"execifexists SharpTimer/config.cfg");

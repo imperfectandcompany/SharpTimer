@@ -4,7 +4,6 @@ using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Drawing;
-using System.Numerics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
@@ -13,6 +12,67 @@ namespace SharpTimer
 {
     public partial class SharpTimer
     {
+        public async Task<(bool IsLatest, string LatestVersion)> IsLatestVersion()
+        {
+            try
+            {
+                string apiUrl = "https://api.github.com/repos/deafps/SharpTimer/releases/latest";
+                var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+                request.Headers.Add("User-Agent", "request");
+
+                HttpResponseMessage response = await httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string json = await response.Content.ReadAsStringAsync();
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+                    var releaseInfo = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
+
+                    string latestVersion = releaseInfo["tag_name"].ToString();
+
+                    return (latestVersion == ModuleVersion, latestVersion);
+                }
+                else
+                {
+                    SharpTimerError($"Failed to fetch data from GitHub API: {response.StatusCode}");
+                    return (false, "null");
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"An error occurred in IsLatestVersion: {ex.Message}");
+                return (false, "null");
+            }
+        }
+
+        public async void CheckForUpdate()
+        {
+            try
+            {
+                (bool isLatest, string latestVersion) = await IsLatestVersion();
+
+                if (!isLatest && latestVersion != "null")
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        SharpTimerConPrint($"-------------------------------------------------------------------------------------------");
+                        SharpTimerConPrint($"PLUGIN VERSION DOES NOT MATCH LATEST GITHUB RELEASE");
+                        SharpTimerConPrint($"CURRENT VERSION: {ModuleVersion}");
+                        SharpTimerConPrint($"LATEST RELEASE VERSION: {latestVersion}");
+                        SharpTimerConPrint($"PLEASE CONSIDER UPDATING SOON!");
+                    }
+                    SharpTimerConPrint($"-------------------------------------------------------------------------------------------");
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"An error occurred in CheckForUpdate: {ex.Message}");
+            }
+        }
+
         private async void ServerRecordADtimer()
         {
             if (isADTimerRunning) return;

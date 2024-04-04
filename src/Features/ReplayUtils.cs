@@ -176,6 +176,8 @@ namespace SharpTimer
                     Directory.CreateDirectory(playerReplaysDirectory);
                 }
 
+                if (playerReplays[player.Slot].replayFrames.Count >= maxReplayFrames) return;
+
                 var indexedReplayFrames = playerReplays[player.Slot].replayFrames
                     .Select((frame, index) => new IndexedReplayFrames { Index = index, Frame = frame })
                     .ToList();

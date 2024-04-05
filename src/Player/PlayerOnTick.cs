@@ -114,7 +114,7 @@ namespace SharpTimer
 
                         if (triggerPushFixEnabled == true)
                         {
-                            CheckPlayerTriggerPushCoords(player, playerSpeed);
+                            CheckPlayerTriggerPushCoords(player);
                         }
 
                         if (jumpStatsEnabled == true) OnJumpStatTick(player, playerSpeed, player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin, player.PlayerPawn?.Value.EyeAngles, playerButtons);

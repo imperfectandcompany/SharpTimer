@@ -516,6 +516,19 @@ namespace SharpTimer
             return Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
         }
 
+        private static Vector Normalize(Vector vector)
+        {
+            float magnitude = (float)Math.Sqrt(vector.X * vector.X + vector.Y * vector.Y + vector.Z * vector.Z);
+
+            if (magnitude > 0)
+            {
+                return new Vector(vector.X / magnitude, vector.Y / magnitude, vector.Z / magnitude);
+            }
+            else
+            {
+                return vector;
+            }
+        }
 
         public static bool IsVectorHigherThan(Vector vector1, Vector vector2)
         {

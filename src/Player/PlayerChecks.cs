@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 
@@ -123,7 +124,7 @@ namespace SharpTimer
             }
         }
 
-        private void CheckPlayerTriggerPushCoords(CCSPlayerController player, Vector playerSpeed)
+        private void CheckPlayerTriggerPushCoords(CCSPlayerController player)
         {
             try
             {
@@ -136,14 +137,17 @@ namespace SharpTimer
                 var data = GetTriggerPushDataForVector(playerPos);
                 if (data != null)
                 {
-                    var (pushDirEntitySpace, pushSpeed) = data.Value;
-                    float currentSpeed = playerSpeed.Length();
+                    (Vector pushDirEntitySpace, float pushSpeed) = data.Value;
 
-                    player.PlayerPawn.Value.AbsVelocity.X = pushDirEntitySpace.X * pushSpeed;
-                    player.PlayerPawn.Value.AbsVelocity.Y = pushDirEntitySpace.Y * pushSpeed;
-                    player.PlayerPawn.Value.AbsVelocity.Z = pushDirEntitySpace.Z * pushSpeed;
+                    pushDirEntitySpace = Normalize(pushDirEntitySpace);
 
-                    SharpTimerDebug($"trigger_push fix: Player velocity set for {player.PlayerName} to {pushSpeed}");
+                    Vector velocity = pushDirEntitySpace * pushSpeed;
+
+                    player.PlayerPawn.Value.AbsVelocity.X = velocity.X;
+                    player.PlayerPawn.Value.AbsVelocity.Y = velocity.Y;
+                    player.PlayerPawn.Value.AbsVelocity.Z = velocity.Z;
+
+                    SharpTimerDebug($"trigger_push fix: Player velocity set for {player.PlayerName} to {velocity.Length()}");
                 }
             }
             catch (Exception ex)

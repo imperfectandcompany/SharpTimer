@@ -26,8 +26,32 @@ SharpTimer is a "simple" Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Co
 </details>
 
 <details> 
+  <summary>Replays</summary>
+</details>
+
+<details> 
+  <summary>JumpStats</summary>
+</details>
+
+<details> 
+  <summary>Map CFGs</summary>
+</details>
+
+<details> 
+  <summary>Custom PlayerModels</summary>
+</details>
+
+<details> 
+  <summary>VIP Perks</summary>
+</details>
+
+<details> 
     <summary>Bonus stages</summary>
   <img src="https://i.imgur.com/NURlZBK.png">
+</details>
+
+<details> 
+  <summary>Server Point System & Map Ranks</summary>
 </details>
 
 <details> 

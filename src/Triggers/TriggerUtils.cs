@@ -11,7 +11,7 @@ namespace SharpTimer
             try
             {
                 if (string.IsNullOrEmpty(triggerName)) return false;
-                string[] validStartTriggers = { "map_start", "s1_start", "stage1_start", "timer_startzone", "zone_start", currentMapStartTrigger };
+                string[] validStartTriggers = ["map_start", "s1_start", "stage1_start", "timer_startzone", "zone_start", currentMapStartTrigger];
                 return validStartTriggers.Contains(triggerName);
             }
             catch (NullReferenceException ex)
@@ -32,11 +32,11 @@ namespace SharpTimer
             {
                 if (string.IsNullOrEmpty(triggerName)) return (false, 0);
 
-                string[] patterns = {
+                string[] patterns = [
                     @"^b([1-9][0-9]?)_start$",
                     @"^bonus([1-9][0-9]?)_start$",
                     @"^timer_bonus([1-9][0-9]?)_startzone$"
-                };
+                ];
 
                 foreach (var pattern in patterns)
                 {
@@ -63,11 +63,11 @@ namespace SharpTimer
             {
                 if (string.IsNullOrEmpty(triggerName)) return (false, 0);
 
-                string[] patterns = {
+                string[] patterns = [
                     @"^s([1-9][0-9]?)_start$",
                     @"^stage([1-9][0-9]?)_start$",
                     @"^map_start$",
-                };
+                ];
 
                 foreach (var pattern in patterns)
                 {
@@ -76,7 +76,6 @@ namespace SharpTimer
                     {
                         if (pattern == @"^map_start$")
                         {
-                            // If pattern is "^map_start$", set X to 1
                             return (true, 1);
                         }
                         else
@@ -102,10 +101,10 @@ namespace SharpTimer
             {
                 if (string.IsNullOrEmpty(triggerName)) return (false, 0);
 
-                string[] patterns = {
+                string[] patterns = [
                     @"^map_cp([1-9][0-9]?)$",
                     @"^map_checkpoint([1-9][0-9]?)$"
-                };
+                ];
 
                 foreach (var pattern in patterns)
                 {
@@ -131,7 +130,7 @@ namespace SharpTimer
             try
             {
                 if (string.IsNullOrEmpty(triggerName)) return false;
-                string[] validEndTriggers = { "map_end", "timer_endzone", "zone_end", currentMapEndTrigger };
+                string[] validEndTriggers = ["map_end", "timer_endzone", "zone_end", currentMapEndTrigger];
                 return validEndTriggers.Contains(triggerName);
             }
             catch (Exception ex)
@@ -146,11 +145,11 @@ namespace SharpTimer
             try
             {
                 if (string.IsNullOrEmpty(triggerName)) return (false, 0);
-                string[] patterns = {
+                string[] patterns = [
                     @"^b([1-9][0-9]?)_end$",
                     @"^bonus([1-9][0-9]?)_end$",
                     @"^timer_bonus([1-9][0-9]?)_endzone$"
-                };
+                ];
 
                 foreach (var pattern in patterns)
                 {
@@ -177,7 +176,7 @@ namespace SharpTimer
             try
             {
                 if (string.IsNullOrEmpty(triggerName)) return false;
-                string[] validStopTriggers = { "st_stop", "surftimer_stop", "timer_stop" };
+                string[] validStopTriggers = ["st_stop", "surftimer_stop", "timer_stop"];
                 return validStopTriggers.Contains(triggerName);
             }
             catch (Exception ex)
@@ -192,7 +191,7 @@ namespace SharpTimer
             try
             {
                 if (string.IsNullOrEmpty(triggerName)) return false;
-                string[] validResetTriggers = { "st_reset", "surftimer_reset", "timer_reset" };
+                string[] validResetTriggers = ["st_reset", "surftimer_reset", "timer_reset"];
                 return validResetTriggers.Contains(triggerName);
             }
             catch (Exception ex)
@@ -204,7 +203,7 @@ namespace SharpTimer
 
         private void UpdateEntityCache()
         {
-            entityCache.UpdateCache();
+            entityCache!.UpdateCache();
         }
 
         private (Vector?, QAngle?) FindStartTriggerPos()
@@ -212,23 +211,23 @@ namespace SharpTimer
             currentRespawnPos = null;
             currentRespawnAng = null;
 
-            foreach (var trigger in entityCache.Triggers)
+            foreach (var trigger in entityCache!.Triggers)
             {
-                if (trigger == null || trigger.Entity.Name == null || !IsValidStartTriggerName(trigger.Entity.Name.ToString()))
+                if (trigger == null || trigger.Entity!.Name == null || !IsValidStartTriggerName(trigger.Entity.Name.ToString()))
                     continue;
 
                 foreach (var info_tp in entityCache.InfoTeleportDestinations)
                 {
-                    if (info_tp.Entity?.Name != null && IsVectorInsideBox(info_tp.AbsOrigin, trigger.Collision.Mins + trigger.CBodyComponent.SceneNode.AbsOrigin, trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin))
+                    if (info_tp.Entity?.Name != null && IsVectorInsideBox(info_tp.AbsOrigin!, trigger.Collision.Mins + trigger.CBodyComponent!.SceneNode!.AbsOrigin!, trigger.Collision.Maxs + trigger.CBodyComponent!.SceneNode!.AbsOrigin!))
                     {
-                        if (info_tp.CBodyComponent.SceneNode.AbsOrigin != null && info_tp.AbsRotation != null)
+                        if (info_tp.CBodyComponent!.SceneNode!.AbsOrigin != null && info_tp.AbsRotation != null)
                         {
                             return (info_tp.CBodyComponent.SceneNode.AbsOrigin, info_tp.AbsRotation);
                         }
                     }
                 }
 
-                if (trigger.CBodyComponent.SceneNode.AbsOrigin != null)
+                if (trigger.CBodyComponent!.SceneNode!.AbsOrigin != null)
                 {
                     return (trigger.CBodyComponent.SceneNode.AbsOrigin, null);
                 }
@@ -241,12 +240,12 @@ namespace SharpTimer
         {
             currentEndPos = null;
 
-            foreach (var trigger in entityCache.Triggers)
+            foreach (var trigger in entityCache!.Triggers)
             {
-                if (trigger == null || trigger.Entity.Name == null || !IsValidEndTriggerName(trigger.Entity.Name.ToString()))
+                if (trigger == null || trigger.Entity!.Name == null || !IsValidEndTriggerName(trigger.Entity.Name.ToString()))
                     continue;
 
-                if (trigger.CBodyComponent.SceneNode.AbsOrigin != null) return trigger.CBodyComponent.SceneNode.AbsOrigin;
+                if (trigger.CBodyComponent!.SceneNode!.AbsOrigin != null) return trigger.CBodyComponent.SceneNode.AbsOrigin;
 
             }
 
@@ -258,16 +257,16 @@ namespace SharpTimer
             stageTriggers.Clear();
             stageTriggerPoses.Clear();
 
-            foreach (var trigger in entityCache.Triggers)
+            foreach (var trigger in entityCache!.Triggers)
             {
-                if (trigger == null || trigger.Entity.Name == null) continue;
+                if (trigger == null || trigger.Entity!.Name == null) continue;
 
                 var (validStage, X) = IsValidStageTriggerName(trigger.Entity.Name.ToString());
                 if (validStage)
                 {
                     foreach (var info_tp in entityCache.InfoTeleportDestinations)
                     {
-                        if (info_tp.Entity?.Name != null && IsVectorInsideBox(info_tp.AbsOrigin, trigger.Collision.Mins + trigger.CBodyComponent.SceneNode.AbsOrigin, trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin))
+                        if (info_tp.Entity?.Name != null && IsVectorInsideBox(info_tp.AbsOrigin!, trigger.Collision.Mins + trigger.CBodyComponent!.SceneNode!.AbsOrigin, trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin))
                         {
                             if (info_tp.CBodyComponent?.SceneNode?.AbsOrigin != null && info_tp.AbsRotation != null)
                             {
@@ -308,9 +307,9 @@ namespace SharpTimer
         {
             cpTriggers.Clear();
 
-            foreach (var trigger in entityCache.Triggers)
+            foreach (var trigger in entityCache!.Triggers)
             {
-                if (trigger == null || trigger.Entity.Name == null) continue;
+                if (trigger == null || trigger.Entity!.Name == null) continue;
 
                 var (validCp, X) = IsValidCheckpointTriggerName(trigger.Entity.Name.ToString());
                 if (validCp)
@@ -333,9 +332,9 @@ namespace SharpTimer
             bonusRespawnPoses.Clear();
             bonusRespawnAngs.Clear();
 
-            foreach (var trigger in entityCache.Triggers)
+            foreach (var trigger in entityCache!.Triggers)
             {
-                if (trigger == null || trigger.Entity.Name == null) continue;
+                if (trigger == null || trigger.Entity!.Name == null) continue;
 
                 var (validStartBonus, bonusX) = IsValidStartBonusTriggerName(trigger.Entity.Name.ToString());
                 if (validStartBonus)
@@ -344,7 +343,7 @@ namespace SharpTimer
 
                     foreach (var info_tp in entityCache.InfoTeleportDestinations)
                     {
-                        if (info_tp.Entity?.Name != null && IsVectorInsideBox(info_tp.AbsOrigin, trigger.Collision.Mins + trigger.CBodyComponent.SceneNode.AbsOrigin, trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin))
+                        if (info_tp.Entity?.Name != null && IsVectorInsideBox(info_tp.AbsOrigin!, trigger.Collision.Mins + trigger.CBodyComponent!.SceneNode!.AbsOrigin, trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin))
                         {
                             if (info_tp.CBodyComponent?.SceneNode?.AbsOrigin != null && info_tp.AbsRotation != null)
                             {
@@ -370,7 +369,7 @@ namespace SharpTimer
             if (triggerPushFixEnabled)
             {
                 triggerPushData.Clear();
-                var trigger_pushers = entityCache.TriggerPushEntities;
+                var trigger_pushers = entityCache!.TriggerPushEntities;
 
                 foreach (var trigger_push in trigger_pushers)
                 {
@@ -384,7 +383,7 @@ namespace SharpTimer
                     var pushSpeed = trigger_push.Speed;
                     var pushEntitySpace = trigger_push.PushEntitySpace;
                     var pushDirEntitySpace = trigger_push.PushDirEntitySpace;
-                    var collisionMins = trigger_push.Collision.Mins + trigger_push.CBodyComponent.SceneNode.AbsOrigin;
+                    var collisionMins = trigger_push.Collision.Mins + trigger_push.CBodyComponent!.SceneNode!.AbsOrigin;
                     var collisionMaxs = trigger_push.Collision.Maxs + trigger_push.CBodyComponent.SceneNode.AbsOrigin;
 
                     triggerPushData[handle] = new TriggerPushData(
@@ -418,14 +417,14 @@ namespace SharpTimer
             Vector? endMins = null;
             Vector? endMaxs = null;
 
-            foreach (var trigger in entityCache.Triggers)
+            foreach (var trigger in entityCache!.Triggers)
             {
-                if (trigger == null || trigger.Entity.Name == null)
+                if (trigger == null || trigger.Entity!.Name == null)
                     continue;
 
                 if (IsValidStartTriggerName(trigger.Entity.Name.ToString()))
                 {
-                    startMins = trigger.Collision.Mins + trigger.CBodyComponent.SceneNode.AbsOrigin;
+                    startMins = trigger.Collision.Mins + trigger.CBodyComponent!.SceneNode!.AbsOrigin;
                     startMaxs = trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin;
                     currentMapStartTriggerMaxs = startMaxs;
                     currentMapStartTriggerMins = startMins;
@@ -434,7 +433,7 @@ namespace SharpTimer
 
                 if (IsValidEndTriggerName(trigger.Entity.Name.ToString()))
                 {
-                    endMins = trigger.Collision.Mins + trigger.CBodyComponent.SceneNode.AbsOrigin;
+                    endMins = trigger.Collision.Mins + trigger.CBodyComponent!.SceneNode!.AbsOrigin;
                     endMaxs = trigger.Collision.Maxs + trigger.CBodyComponent.SceneNode.AbsOrigin;
                     continue;
                 }

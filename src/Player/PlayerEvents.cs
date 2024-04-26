@@ -25,13 +25,15 @@ namespace SharpTimer
                     return;
                 }
 
-                if (player.PlayerPawn.Value.MovementServices == null)
+                if (player.PlayerPawn.Value!.MovementServices == null)
                 {
                     SharpTimerError("MovementServices is null.");
                     return;
                 }
 
                 int playerSlot = player.Slot;
+                string steamID = player.SteamID.ToString();
+                string playerName = player.PlayerName;
 
                 try
                 {
@@ -39,9 +41,9 @@ namespace SharpTimer
                     playerTimers[playerSlot] = new PlayerTimerInfo();
                     if (enableReplays) playerReplays[playerSlot] = new PlayerReplays();
                     playerTimers[playerSlot].MovementService = new CCSPlayer_MovementServices(player.PlayerPawn.Value.MovementServices!.Handle);
-                    playerTimers[playerSlot].StageTimes = new Dictionary<int, int>();
-                    playerTimers[playerSlot].StageVelos = new Dictionary<int, string>();
-                    if (AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimers[playerSlot].ZoneToolWire = new Dictionary<int, CBeam>();
+                    playerTimers[playerSlot].StageTimes = [];
+                    playerTimers[playerSlot].StageVelos = [];
+                    if (AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimers[playerSlot].ZoneToolWire = [];
                     if (jumpStatsEnabled) playerJumpStats[playerSlot] = new PlayerJumpStats();
                     playerTimers[playerSlot].CurrentMapStage = 0;
                     playerTimers[playerSlot].CurrentMapCheckpoint = 0;
@@ -49,15 +51,15 @@ namespace SharpTimer
                     playerTimers[playerSlot].SetRespawnPos = null;
                     playerTimers[playerSlot].SetRespawnAng = null;
 
-                    if (isForBot == false) _ = IsPlayerATester(player.SteamID.ToString(), playerSlot);
+                    if (isForBot == false) _ = Task.Run(async () => await IsPlayerATester(steamID, playerSlot));
 
                     //PlayerSettings
-                    if (useMySQL == true && isForBot == false) _ = GetPlayerStats(player, player.SteamID.ToString(), player.PlayerName, playerSlot, true);
+                    if (useMySQL == true && isForBot == false) _ = Task.Run(async () => await GetPlayerStats(player, steamID, playerName, playerSlot, true));
 
-                    if (connectMsgEnabled == true && useMySQL == false) Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{player.PlayerName} {ChatColors.White}connected!");
+                    if (connectMsgEnabled == true && useMySQL == false) Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{playerName} {ChatColors.White}connected!");
                     if (cmdJoinMsgEnabled == true && isForBot == false) PrintAllEnabledCommands(player);
 
-                    SharpTimerDebug($"Added player {player.PlayerName} with UserID {player.UserId} to connectedPlayers");
+                    SharpTimerDebug($"Added player {playerName} with Slot {playerSlot} to connectedPlayers");
                     SharpTimerDebug($"Total players connected: {connectedPlayers.Count}");
                     SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
                     SharpTimerDebug($"Total playerReplays: {playerReplays.Count}");
@@ -113,10 +115,10 @@ namespace SharpTimer
                     playerTimers.Remove(player.Slot);
 
                     //schizo removing data from memory
-                    playerCheckpoints[player.Slot] = new List<PlayerCheckpoint>();
+                    playerCheckpoints[player.Slot] = [];
                     playerCheckpoints.Remove(player.Slot);
 
-                    specTargets.Remove(player.Pawn.Value.EntityHandle.Index);
+                    specTargets.Remove(player.Pawn.Value!.EntityHandle.Index);
 
                     if (enableReplays)
                     {

@@ -15,8 +15,8 @@ namespace SharpTimer
                 if (!IsAllowedPlayer(player)) return;
 
                 // Get the player's current position and rotation
-                Vector currentPosition = player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin ?? new Vector(0, 0, 0);
-                Vector currentSpeed = player.PlayerPawn.Value.AbsVelocity ?? new Vector(0, 0, 0);
+                Vector currentPosition = player.Pawn.Value!.CBodyComponent?.SceneNode?.AbsOrigin ?? new Vector(0, 0, 0);
+                Vector currentSpeed = player.PlayerPawn.Value!.AbsVelocity ?? new Vector(0, 0, 0);
                 QAngle currentRotation = player.PlayerPawn.Value.EyeAngles ?? new QAngle(0, 0, 0);
 
                 // Convert position and rotation to strings
@@ -69,14 +69,14 @@ namespace SharpTimer
 
                     if (((PlayerFlags)replayFrame.Flags & PlayerFlags.FL_DUCKING) != 0)
                     {
-                        value.MovementService.DuckAmount = 1;
+                        value.MovementService!.DuckAmount = 1;
                     }
                     else
                     {
-                        value.MovementService.DuckAmount = 0;
+                        value.MovementService!.DuckAmount = 0;
                     }
 
-                    player.PlayerPawn.Value.Teleport(ParseVector(replayFrame.PositionString), ParseQAngle(replayFrame.RotationString), ParseVector(replayFrame.SpeedString));
+                    player.PlayerPawn.Value!.Teleport(ParseVector(replayFrame.PositionString!), ParseQAngle(replayFrame.RotationString!), ParseVector(replayFrame.SpeedString!));
 
                     var replayButtons = $"{((replayFrame.Buttons & PlayerButtons.Moveleft) != 0 ? "A" : "_")} " +
                                         $"{((replayFrame.Buttons & PlayerButtons.Forward) != 0 ? "W" : "_")} " +
@@ -157,52 +157,55 @@ namespace SharpTimer
             }
         }
 
-        private void DumpReplayToJson(CCSPlayerController player, int bonusX = 0)
+        private async Task DumpReplayToJson(CCSPlayerController player, string steamID, int playerSlot, int bonusX = 0)
         {
-            if (!IsAllowedPlayer(player))
+            await Task.Run(() =>
             {
-                SharpTimerError($"Error in DumpReplayToJson: Player not allowed or not on server anymore");
-                return;
-            }
-
-            string fileName = $"{player.SteamID.ToString()}_replay.json";
-            string playerReplaysDirectory = Path.Join(gameDir, "csgo", "cfg", "SharpTimer", "PlayerReplayData", bonusX == 0 ? $"{currentMapName}" : $"{currentMapName}_bonus{bonusX}");
-            string playerReplaysPath = Path.Join(playerReplaysDirectory, fileName);
-
-            try
-            {
-                if (!Directory.Exists(playerReplaysDirectory))
+                if (!IsAllowedPlayer(player))
                 {
-                    Directory.CreateDirectory(playerReplaysDirectory);
+                    SharpTimerError($"Error in DumpReplayToJson: Player not allowed or not on server anymore");
+                    return;
                 }
 
-                if (playerReplays[player.Slot].replayFrames.Count >= maxReplayFrames) return;
+                string fileName = $"{steamID}_replay.json";
+                string playerReplaysDirectory = Path.Join(gameDir, "csgo", "cfg", "SharpTimer", "PlayerReplayData", bonusX == 0 ? $"{currentMapName}" : $"{currentMapName}_bonus{bonusX}");
+                string playerReplaysPath = Path.Join(playerReplaysDirectory, fileName);
 
-                var indexedReplayFrames = playerReplays[player.Slot].replayFrames
-                    .Select((frame, index) => new IndexedReplayFrames { Index = index, Frame = frame })
-                    .ToList();
-
-                using (Stream stream = new FileStream(playerReplaysPath, FileMode.Create))
+                try
                 {
-                    JsonSerializer.Serialize(stream, indexedReplayFrames);
+                    if (!Directory.Exists(playerReplaysDirectory))
+                    {
+                        Directory.CreateDirectory(playerReplaysDirectory);
+                    }
+
+                    if (playerReplays[playerSlot].replayFrames.Count >= maxReplayFrames) return;
+
+                    var indexedReplayFrames = playerReplays[playerSlot].replayFrames
+                        .Select((frame, index) => new IndexedReplayFrames { Index = index, Frame = frame })
+                        .ToList();
+
+                    using (Stream stream = new FileStream(playerReplaysPath, FileMode.Create))
+                    {
+                        JsonSerializer.Serialize(stream, indexedReplayFrames);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                SharpTimerError($"Error during serialization: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    SharpTimerError($"Error during serialization: {ex.Message}");
+                }
+            });
         }
 
-        private void ReadReplayFromJson(CCSPlayerController player, string steamId)
+        private async Task ReadReplayFromJson(CCSPlayerController player, string steamId, int playerSlot, int bonusX = 0)
         {
             string fileName = $"{steamId}_replay.json";
-            string playerReplaysPath = Path.Join(gameDir, "csgo", "cfg", "SharpTimer", "PlayerReplayData", currentMapName, fileName);
+            string playerReplaysPath = Path.Join(gameDir, "csgo", "cfg", "SharpTimer", "PlayerReplayData", bonusX == 0 ? currentMapName : $"{currentMapName}bonus{bonusX}", fileName);
 
             try
             {
                 if (File.Exists(playerReplaysPath))
                 {
-                    string jsonString = File.ReadAllText(playerReplaysPath);
+                    string jsonString = await File.ReadAllTextAsync(playerReplaysPath);
                     var indexedReplayFrames = JsonSerializer.Deserialize<List<IndexedReplayFrames>>(jsonString);
 
                     if (indexedReplayFrames != null)
@@ -212,11 +215,13 @@ namespace SharpTimer
                             .Select(frame => frame.Frame)
                             .ToList();
 
-                        if (!playerReplays.ContainsKey(player.Slot))
+                        if (!playerReplays.TryGetValue(playerSlot, out PlayerReplays? value))
                         {
-                            playerReplays[player.Slot] = new PlayerReplays();
+                            value = new PlayerReplays();
+                            playerReplays[playerSlot] = value;
                         }
-                        playerReplays[player.Slot].replayFrames = replayFrames;
+
+                        value.replayFrames = replayFrames!;
                     }
                     else
                     {
@@ -286,8 +291,8 @@ namespace SharpTimer
                                 {
                                     SharpTimerDebug($"Found replay bot!");
                                     OnReplayBotConnect(tempPlayer);
-                                    tempPlayer.PlayerPawn.Value.Bot.IsSleeping = true;
-                                    tempPlayer.PlayerPawn.Value.Bot.AllowActive = false;
+                                    tempPlayer.PlayerPawn.Value!.Bot!.IsSleeping = true;
+                                    tempPlayer.PlayerPawn.Value!.Bot!.AllowActive = false;
                                     tempPlayer.RemoveWeapons();
                                     foundBot = true;
                                     startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile = true;
@@ -307,14 +312,17 @@ namespace SharpTimer
         {
             try
             {
+                var botSlot = bot.Slot;
+                var botName = bot.PlayerName;
+
                 AddTimer(3.0f, () =>
                 {
                     OnPlayerConnect(bot, true);
-                    connectedReplayBots[bot.Slot] = new CCSPlayerController(bot.Handle);
+                    connectedReplayBots[botSlot] = new CCSPlayerController(bot.Handle);
                     ChangePlayerName(bot, "SERVER RECORD REPLAY");
-                    playerTimers[bot.Slot].IsTimerBlocked = true;
-                    _ = ReplaySRHandler(bot);
-                    SharpTimerDebug($"Starting replay for {bot.PlayerName}");
+                    playerTimers[botSlot].IsTimerBlocked = true;
+                    _ = Task.Run(async () => await ReplayHandler(bot, botSlot));
+                    SharpTimerDebug($"Starting replay for {botName}");
                 });
             }
             catch (Exception ex)
@@ -333,7 +341,7 @@ namespace SharpTimer
             }
             else
             {
-                (srSteamID, srPlayerName, srTime) = GetMapRecordSteamID();
+                (srSteamID, srPlayerName, srTime) = await GetMapRecordSteamID();
             }
 
             if ((srSteamID == "null" || srPlayerName == "null" || srTime == "null") && topSteamID != "x") return false;

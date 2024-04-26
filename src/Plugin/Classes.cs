@@ -1,9 +1,6 @@
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.Json.Serialization;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
 
 namespace SharpTimer
@@ -18,10 +15,10 @@ namespace SharpTimer
 
         public EntityCache()
         {
-            Triggers = new List<CBaseTrigger>();
-            InfoTeleportDestinations = new List<CInfoTeleportDestination>();
-            TriggerPushEntities = new List<CTriggerPush>();
-            InfoTargetEntities = new List<CPointEntity>();
+            Triggers = [];
+            InfoTeleportDestinations = [];
+            TriggerPushEntities = [];
+            InfoTargetEntities = [];
             UpdateCache();
         }
 
@@ -118,6 +115,7 @@ namespace SharpTimer
         public bool HideTimerHud { get; set; }
         public bool HideKeys { get; set; }
         public bool SoundsEnabled { get; set; }
+        public bool BindsDisabled { get; set; }
         public bool HideJumpStats { get; set; }
         public int PlayerFov { get; set; }
         public int TimesConnected { get; set; }
@@ -126,13 +124,13 @@ namespace SharpTimer
 
         //super special stuff for testers
         public bool IsTester { get; set; }
-        public string? TesterSparkleGif { get; set; }
-        public string? TesterPausedGif { get; set; }
+        public string? TesterSmolGif { get; set; }
+        public string? TesterBigGif { get; set; }
 
         //vip stuff 
         public bool IsVip { get; set; }
         public string? VipReplayGif { get; set; }
-        public string? VipPausedGif { get; set; }
+        public string? VipBigGif { get; set; }
 
         //admin stuff
         public bool IsNoclipEnabled { get; set; }
@@ -167,13 +165,13 @@ namespace SharpTimer
         public bool LandedFromSound { get; set; }
         public bool LastLandedFromSound { get; set; }
         public int WTicks { get; set; }
-        public List<JumpFrames> jumpFrames { get; set; } = new List<JumpFrames>();
+        public List<JumpFrames> jumpFrames { get; set; } = [];
 
         public class JumpFrames
         {
-            public string PositionString { get; set; }
-            public string RotationString { get; set; }
-            public string SpeedString { get; set; }
+            public string? PositionString { get; set; }
+            public string? RotationString { get; set; }
+            public string? SpeedString { get; set; }
             public double MaxSpeed { get; set; }
             public double MaxHeight { get; set; }
             public bool LastLeft { get; set; }
@@ -181,10 +179,10 @@ namespace SharpTimer
             public bool LastLeftRight { get; set; }
         }
 
-        public List<JumpInterp> jumpInterp { get; set; } = new List<JumpInterp>();
+        public List<JumpInterp> jumpInterp { get; set; } = [];
         public class JumpInterp
         {
-            public string InterpString { get; set; }
+            public string? InterpString { get; set; }
         }
     }
 
@@ -193,13 +191,13 @@ namespace SharpTimer
     {
         public int CurrentPlaybackFrame { get; set; }
         public int BonusX { get; set; }
-        public List<ReplayFrames> replayFrames { get; set; } = new List<ReplayFrames>();
+        public List<ReplayFrames> replayFrames { get; set; } = [];
 
         public class ReplayFrames
         {
-            public string PositionString { get; set; }
-            public string RotationString { get; set; }
-            public string SpeedString { get; set; }
+            public string? PositionString { get; set; }
+            public string? RotationString { get; set; }
+            public string? SpeedString { get; set; }
             public PlayerButtons? Buttons { get; set; }
             public uint Flags { get; set; }
             public MoveType_t MoveType { get; set; }
@@ -209,7 +207,7 @@ namespace SharpTimer
     public class IndexedReplayFrames
     {
         public int Index { get; set; }
-        public PlayerReplays.ReplayFrames Frame { get; set; }
+        public PlayerReplays.ReplayFrames? Frame { get; set; }
     }
 
     // PlayerRecords for JSON
@@ -242,20 +240,12 @@ namespace SharpTimer
     }
 
     // Trigger push
-    public class TriggerPushData
+    public class TriggerPushData(float pushSpeed, QAngle pushEntitySpace, Vector pushDirEntitySpace, Vector pushMins, Vector pushMaxs)
     {
-        public float PushSpeed { get; set; }
-        public QAngle PushEntitySpace { get; set; }
-        public Vector PushDirEntitySpace { get; set; }
-        public Vector PushMins { get; set; }
-        public Vector PushMaxs { get; set; }
-        public TriggerPushData(float pushSpeed, QAngle pushEntitySpace, Vector pushDirEntitySpace, Vector pushMins, Vector pushMaxs)
-        {
-            PushSpeed = pushSpeed;
-            PushEntitySpace = pushEntitySpace;
-            PushDirEntitySpace = pushDirEntitySpace;
-            PushMins = pushMins;
-            PushMaxs = pushMaxs;
-        }
+        public float PushSpeed { get; set; } = pushSpeed;
+        public QAngle PushEntitySpace { get; set; } = pushEntitySpace;
+        public Vector PushDirEntitySpace { get; set; } = pushDirEntitySpace;
+        public Vector PushMins { get; set; } = pushMins;
+        public Vector PushMaxs { get; set; } = pushMaxs;
     }
 }

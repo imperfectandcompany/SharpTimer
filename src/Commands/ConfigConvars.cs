@@ -147,6 +147,21 @@ namespace SharpTimer
             enableSRreplayBot = bool.TryParse(args, out bool enableSRreplayBotValue) ? enableSRreplayBotValue : args != "0" && enableSRreplayBot;
         }
 
+        [ConsoleCommand("sharptimer_vip_gif_host", "URL where VIP gifs are being hosted on. Default: 'https://files.catbox.moe'")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerVipGifHost(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString.Trim();
+
+            if (string.IsNullOrEmpty(args))
+            {
+                vipGifHost = $"https://files.catbox.moe";
+                return;
+            }
+
+            vipGifHost = $"{args}";
+        }
+
         [ConsoleCommand("sharptimer_jumpstats_enabled", "Whether JumpStats are enabled or not. Default value: false")]
         [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
         public void SharpTimerJumpStatsConvar(CCSPlayerController? player, CommandInfo command)
@@ -316,6 +331,42 @@ namespace SharpTimer
             string args = command.ArgString;
 
             useMySQL = bool.TryParse(args, out bool useMySQLValue) ? useMySQLValue : args != "0" && useMySQL;
+        }
+
+        [ConsoleCommand("sharptimer_discordwebhook_enabled", "Whether player PBs or SRs should be printed into a discord channel or not. Default value: false")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerDiscordWebhookConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            discordWebhookEnabled = bool.TryParse(args, out bool discordWebhookEnabledValue) ? discordWebhookEnabledValue : args != "0" && discordWebhookEnabled;
+        }
+
+        [ConsoleCommand("sharptimer_discordwebhook_print_sr", "Default value: true")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerDiscordWebhookSRConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            discordWebhookPrintSR = bool.TryParse(args, out bool discordWebhookPrintSRValue) ? discordWebhookPrintSRValue : args != "0" && discordWebhookPrintSR;
+        }
+
+        [ConsoleCommand("sharptimer_discordwebhook_print_pb", "Default value: true")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerDiscordWebhookPBConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            discordWebhookPrintPB = bool.TryParse(args, out bool discordWebhookPrintPBValue) ? discordWebhookPrintPBValue : args != "0" && discordWebhookPrintPB;
+        }
+
+        [ConsoleCommand("sharptimer_force_disable_json", "Whether player times should NOT be saved to JSON. Default value: false")]
+        [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+        public void SharpTimerIgnoreJSONConvar(CCSPlayerController? player, CommandInfo command)
+        {
+            string args = command.ArgString;
+
+            ignoreJSON = bool.TryParse(args, out bool ignoreJSONValue) ? ignoreJSONValue : args != "0" && ignoreJSON;
         }
 
         [ConsoleCommand("sharptimer_command_spam_cooldown", "Defines the time between commands can be called. Default value: 1")]
@@ -628,11 +679,11 @@ namespace SharpTimer
 
             if (string.IsNullOrEmpty(args))
             {
-                msgPrefix = $" {ParseColorToSymbol(primaryHUDcolor)} [SharpTimer] {ChatColors.White}";
+                msgPrefix = $" {ChatColors.Green}[SharpTimer] {ChatColors.White}";
                 return;
             }
 
-            msgPrefix = $" {ParseColorToSymbol(primaryHUDcolor)} {args} {ChatColors.White}";
+            msgPrefix = $" {ParsePrefixColors(args)} {ChatColors.White}";
         }
 
         [ConsoleCommand("sharptimer_hud_primary_color", "Primary Color for Timer HUD. Default value: green")]
@@ -709,7 +760,7 @@ namespace SharpTimer
 
             if (string.IsNullOrEmpty(args))
             {
-                remoteBhopDataSource = $"https://raw.githubusercontent.com/DEAFPS/SharpTimer/remote_data/bhop_.json";
+                remoteBhopDataSource = $"https://raw.githubusercontent.com/deafps/SharpTimer/remote_data/bhop_.json";
                 return;
             }
 
@@ -725,7 +776,7 @@ namespace SharpTimer
 
             if (string.IsNullOrEmpty(args))
             {
-                remoteBhopDataSource = $"https://raw.githubusercontent.com/DEAFPS/SharpTimer/remote_data/kz_.json";
+                remoteBhopDataSource = $"https://raw.githubusercontent.com/deafps/SharpTimer/remote_data/kz_.json";
                 return;
             }
 
@@ -741,7 +792,7 @@ namespace SharpTimer
 
             if (string.IsNullOrEmpty(args))
             {
-                remoteBhopDataSource = $"https://raw.githubusercontent.com/DEAFPS/SharpTimer/remote_data/surf_.json";
+                remoteBhopDataSource = $"https://raw.githubusercontent.com/deafps/SharpTimer/remote_data/surf_.json";
                 return;
             }
 

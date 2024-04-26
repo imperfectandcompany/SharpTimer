@@ -1,5 +1,4 @@
 using System.Text.Json;
-using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 
@@ -17,13 +16,15 @@ namespace SharpTimer
             int playerSlot = player.Slot;
 
             CsTeam teamNum = (CsTeam)player.TeamNum;
+
+            bool isAlive = player.PawnIsAlive;
             bool isTeamValid = teamNum == CsTeam.CounterTerrorist || teamNum == CsTeam.Terrorist;
 
             bool isTeamSpectatorOrNone = teamNum != CsTeam.Spectator && teamNum != CsTeam.None;
             bool isConnected = connectedPlayers.ContainsKey(playerSlot) && playerTimers.ContainsKey(playerSlot);
             bool isConnectedJS = !jumpStatsEnabled || playerJumpStats.ContainsKey(playerSlot);
 
-            return isTeamValid && isTeamSpectatorOrNone && isConnected && isConnectedJS;
+            return isTeamValid && isTeamSpectatorOrNone && isConnected && isConnectedJS && isAlive;
         }
 
         private bool IsAllowedSpectator(CCSPlayerController? player)
@@ -36,7 +37,7 @@ namespace SharpTimer
             CsTeam teamNum = (CsTeam)player.TeamNum;
             bool isTeamValid = teamNum == CsTeam.Spectator;
             bool isConnected = connectedPlayers.ContainsKey(player.Slot) && playerTimers.ContainsKey(player.Slot);
-            bool isObservingValid = player.Pawn?.Value.ObserverServices?.ObserverTarget != null &&
+            bool isObservingValid = player.Pawn?.Value!.ObserverServices?.ObserverTarget != null &&
                                      specTargets.ContainsKey(player.Pawn.Value.ObserverServices.ObserverTarget.Index);
 
             return isTeamValid && isConnected && isObservingValid;
@@ -58,12 +59,12 @@ namespace SharpTimer
                         {
                             if (steamData.TryGetProperty("SmolGif", out JsonElement smolGifElement))
                             {
-                                playerTimer.TesterSparkleGif = smolGifElement.GetString() ?? "";
+                                playerTimer.TesterSmolGif = smolGifElement.GetString() ?? "";
                             }
 
                             if (steamData.TryGetProperty("BigGif", out JsonElement bigGifElement))
                             {
-                                playerTimer.TesterPausedGif = bigGifElement.GetString() ?? "";
+                                playerTimer.TesterBigGif = bigGifElement.GetString() ?? "";
                             }
                         }
                     }
@@ -79,6 +80,73 @@ namespace SharpTimer
             }
         }
 
+        async Task<string> GetTesterBigGif(string steamId64)
+        {
+            try
+            {
+                string response = await httpClient.GetStringAsync(testerPersonalGifsSource);
+
+                using (JsonDocument jsonDocument = JsonDocument.Parse(response))
+                {
+                    jsonDocument.RootElement.TryGetProperty(steamId64, out JsonElement steamData);
+
+                    if (steamData.TryGetProperty("BigGif", out JsonElement bigGifElement))
+                        return bigGifElement.GetString() ?? "";
+                    else
+                        return "";
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in GetTesterBigGif: {ex.Message}");
+                return "";
+            }
+        }
+
+        async Task<string> GetTesterSmolGif(string steamId64)
+        {
+            try
+            {
+                string response = await httpClient.GetStringAsync(testerPersonalGifsSource);
+
+                using (JsonDocument jsonDocument = JsonDocument.Parse(response))
+                {
+                    jsonDocument.RootElement.TryGetProperty(steamId64, out JsonElement steamData);
+
+                    if (steamData.TryGetProperty("SmolGif", out JsonElement smolGifElement))
+                        return smolGifElement.GetString() ?? "";
+                    else
+                        return "";
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in GetTesterSmolGif: {ex.Message}");
+                return "";
+            }
+        }
+
+        async Task<bool> IsSteamIDaTester(string steamId64)
+        {
+            try
+            {
+                string response = await httpClient.GetStringAsync(testerPersonalGifsSource);
+
+                using (JsonDocument jsonDocument = JsonDocument.Parse(response))
+                {
+                    if (jsonDocument.RootElement.TryGetProperty(steamId64, out JsonElement isTester))
+                        return true;
+                    else
+                        return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                SharpTimerError($"Error in IsSteamIDaTester: {ex.Message}");
+                return false;
+            }
+        }
+
         private void CheckPlayerCoords(CCSPlayerController? player, Vector playerSpeed)
         {
             try
@@ -88,8 +156,8 @@ namespace SharpTimer
                     return;
                 }
 
-                Vector incorrectVector = new Vector(0, 0, 0);
-                Vector? playerPos = player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin;
+                Vector incorrectVector = new(0, 0, 0);
+                Vector? playerPos = player.Pawn?.Value!.CBodyComponent?.SceneNode!.AbsOrigin;
 
                 if (playerPos == null || currentMapStartC1 == incorrectVector || currentMapStartC2 == incorrectVector ||
                     currentMapEndC1 == incorrectVector || currentMapEndC2 == incorrectVector)
@@ -124,30 +192,31 @@ namespace SharpTimer
             }
         }
 
-        private void CheckPlayerTriggerPushCoords(CCSPlayerController player)
+        private void CheckPlayerTriggerPushCoords(CCSPlayerController player, Vector playerSpeed)
         {
             try
             {
                 if (player == null || !IsAllowedPlayer(player) || triggerPushData.Count == 0) return;
 
-                Vector? playerPos = player.Pawn?.Value.CBodyComponent?.SceneNode.AbsOrigin;
+                Vector? playerPos = player.Pawn?.Value!.CBodyComponent?.SceneNode!.AbsOrigin;
 
                 if (playerPos == null) return;
 
                 var data = GetTriggerPushDataForVector(playerPos);
                 if (data != null)
                 {
-                    (Vector pushDirEntitySpace, float pushSpeed) = data.Value;
+                    var (pushDirEntitySpace, pushSpeed) = data.Value;
+                    float currentSpeed = playerSpeed.Length();
+                    float speedDifference = pushSpeed - currentSpeed;
 
-                    pushDirEntitySpace = Normalize(pushDirEntitySpace);
-
-                    Vector velocity = pushDirEntitySpace * pushSpeed;
-
-                    player.PlayerPawn.Value.AbsVelocity.X = velocity.X;
-                    player.PlayerPawn.Value.AbsVelocity.Y = velocity.Y;
-                    player.PlayerPawn.Value.AbsVelocity.Z = velocity.Z;
-
-                    SharpTimerDebug($"trigger_push fix: Player velocity set for {player.PlayerName} to {velocity.Length()}");
+                    if (speedDifference > 0)
+                    {
+                        float velocityChange = speedDifference;
+                        player.PlayerPawn.Value!.AbsVelocity.X += pushDirEntitySpace.X * velocityChange;
+                        player.PlayerPawn.Value!.AbsVelocity.Y += pushDirEntitySpace.Y * velocityChange;
+                        player.PlayerPawn.Value!.AbsVelocity.Z += pushDirEntitySpace.Z * velocityChange;
+                        SharpTimerDebug($"trigger_push fix: Player velocity adjusted for {player.PlayerName} by {speedDifference}");
+                    }
                 }
             }
             catch (Exception ex)

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Utils;
@@ -9,22 +10,28 @@ namespace SharpTimer
     {
         public override string ModuleName => "SharpTimer";
         public override string ModuleVersion => $"0.2.4 - {new DateTime(Builtin.CompileTime, DateTimeKind.Utc)}";
-        public override string ModuleAuthor => "DEAFPS https://github.com/DEAFPS/";
-        public override string ModuleDescription => "A simple CSS Timer Plugin";
+        public override string ModuleAuthor => "dea https://github.com/deafps/";
+        public override string ModuleDescription => "A CS2 Timer Plugin";
 
-        private Dictionary<int, PlayerTimerInfo> playerTimers = new Dictionary<int, PlayerTimerInfo>();
-        private Dictionary<int, PlayerJumpStats> playerJumpStats = new Dictionary<int, PlayerJumpStats>();
-        private Dictionary<int, PlayerReplays> playerReplays = new Dictionary<int, PlayerReplays>();
-        private Dictionary<int, List<PlayerCheckpoint>> playerCheckpoints = new Dictionary<int, List<PlayerCheckpoint>>();
-        private Dictionary<int, CCSPlayerController> connectedPlayers = new Dictionary<int, CCSPlayerController>();
-        private Dictionary<int, CCSPlayerController> connectedReplayBots = new Dictionary<int, CCSPlayerController>();
-        private Dictionary<uint, CCSPlayerController> specTargets = new Dictionary<uint, CCSPlayerController>();
-        Dictionary<nint, TriggerPushData> triggerPushData = new Dictionary<nint, TriggerPushData>();
+        private Dictionary<int, PlayerTimerInfo> playerTimers = [];
+        private Dictionary<int, PlayerJumpStats> playerJumpStats = [];
+        private Dictionary<int, PlayerReplays> playerReplays = [];
+        private Dictionary<int, List<PlayerCheckpoint>> playerCheckpoints = [];
+        private Dictionary<int, CCSPlayerController> connectedPlayers = [];
+        private Dictionary<int, CCSPlayerController> connectedReplayBots = [];
+        private Dictionary<uint, CCSPlayerController> specTargets = [];
+        private Dictionary<nint, TriggerPushData> triggerPushData = [];
         private EntityCache? entityCache;
-        public Dictionary<string, PlayerRecord>? SortedCachedRecords = new Dictionary<string, PlayerRecord>();
-        private static readonly HttpClient httpClient = new HttpClient();
+        public Dictionary<string, PlayerRecord>? SortedCachedRecords = [];
+        private static readonly HttpClient httpClient = new();
 
-        public string msgPrefix = $"[SharpTimer] ";
+        public static JsonSerializerOptions jsonSerializerOptions = new()
+        {
+            WriteIndented = true,
+            PropertyNameCaseInsensitive = true
+        };
+
+        public string msgPrefix = $" {ChatColors.Green}[SharpTimer]{ChatColors.White} ";
         public string primaryHUDcolor = "green";
         public string secondaryHUDcolor = "orange";
         public string tertiaryHUDcolor = "white";
@@ -37,10 +44,10 @@ namespace SharpTimer
         public Vector? currentMapStartTriggerMaxs = null;
         public Vector? currentMapStartTriggerMins = null;
         public string currentMapEndTrigger = "trigger_endzone";
-        public Vector currentMapStartC1 = new Vector(0, 0, 0);
-        public Vector currentMapStartC2 = new Vector(0, 0, 0);
-        public Vector currentMapEndC1 = new Vector(0, 0, 0);
-        public Vector currentMapEndC2 = new Vector(0, 0, 0);
+        public Vector currentMapStartC1 = new(0, 0, 0);
+        public Vector currentMapStartC2 = new(0, 0, 0);
+        public Vector currentMapEndC1 = new(0, 0, 0);
+        public Vector currentMapEndC2 = new(0, 0, 0);
         public Vector? currentRespawnPos = null;
         public QAngle? currentRespawnAng = null;
         public Vector? currentEndPos = null;
@@ -48,12 +55,12 @@ namespace SharpTimer
         public string[]? currentMapOverrideMaxSpeedLimit = null;
         public bool currentMapOverrideStageRequirement = false;
         public bool currentMapOverrideTriggerPushFix = false;
-        private Dictionary<int, Vector?> bonusRespawnPoses = new Dictionary<int, Vector?>();
-        private Dictionary<int, QAngle?> bonusRespawnAngs = new Dictionary<int, QAngle?>();
-        private Dictionary<nint, int> stageTriggers = new Dictionary<nint, int>();
-        private Dictionary<nint, int> cpTriggers = new Dictionary<nint, int>();
-        private Dictionary<int, Vector?> stageTriggerPoses = new Dictionary<int, Vector?>();
-        private Dictionary<int, QAngle?> stageTriggerAngs = new Dictionary<int, QAngle?>();
+        private Dictionary<int, Vector?> bonusRespawnPoses = [];
+        private Dictionary<int, QAngle?> bonusRespawnAngs = [];
+        private Dictionary<nint, int> stageTriggers = [];
+        private Dictionary<nint, int> cpTriggers = [];
+        private Dictionary<int, Vector?> stageTriggerPoses = [];
+        private Dictionary<int, QAngle?> stageTriggerAngs = [];
         private int stageTriggerCount;
         private int cpTriggerCount;
         private bool useStageTriggers = false;
@@ -64,6 +71,7 @@ namespace SharpTimer
         public bool enableDebug = true;
         public bool killServerCommands = true;
         public bool useMySQL = false;
+        public bool ignoreJSON = false;
         public bool enableReplays = false;
         public bool enableSRreplayBot = false;
         public bool startKickingAllFuckingBotsExceptReplayOneIFuckingHateValveDogshitFuckingCompanySmile = false;
@@ -76,6 +84,7 @@ namespace SharpTimer
         public bool displayChatTags = true;
         public bool displayScoreboardTags = true;
         public string customVIPTag = "VIP";
+        public string vipGifHost = "https://files.catbox.moe";
 
         public bool useTriggers = true;
         public bool respawnEnabled = true;
@@ -135,38 +144,53 @@ namespace SharpTimer
         public string? mySQLpath;
         public string? playerRecordsPath;
         public string? currentMapName;
-        public string? defaultServerHostname = ConVar.Find("hostname").StringValue;
+        public string? defaultServerHostname = ConVar.Find("hostname")?.StringValue;
 
-        public string? remoteBhopDataSource = "https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/bhop_.json";
-        public string? remoteKZDataSource = "https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/kz_.json";
-        public string? remoteSurfDataSource = "https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/surf_.json";
-        public string? testerPersonalGifsSource = "https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/tester_bling.json";
+        public bool discordWebhookEnabled = false;
+        public string discordWebhookBotName = "SharpTimer";
+        public string discordWebhookPFPUrl = "https://cdn.discordapp.com/icons/1196646791450472488/634963a8207fdb1b30bf909d31f05e57.webp";
+        public string discordWebhookImageRepoURL = "https://raw.githubusercontent.com/deafps/SharpTimerDiscordWebhookMapPics/main/images/";
+        public string? discordPBWebhookUrl;
+        public string? discordSRWebhookUrl;
+        public string? discordPBBonusWebhookUrl;
+        public string? discordSRBonusWebhookUrl;
+        public string? discordWebhookFooter;
+        public int discordWebhookRareGifOdds;
+        public string? discordWebhookRareGif;
+        public bool discordWebhookPrintSR = false;
+        public bool discordWebhookPrintPB = false;
 
-        public static string god3Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/god.gif' class=''>";
-        public static string god2Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/god.gif' class=''>";
-        public static string god1Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/god.gif' class=''>";
-        public static string royalty3Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/royal3.png' class=''>";
-        public static string royalty2Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/royal2.png' class=''>";
-        public static string royalty1Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/royal1.png' class=''>";
-        public static string legend3Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/legend3.png' class=''>";
-        public static string legend2Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/legend2.png' class=''>";
-        public static string legend1Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/legend1.png' class=''>";
-        public static string master3Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/master3.png' class=''>";
-        public static string master2Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/master2.png' class=''>";
-        public static string master1Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/master1.png' class=''>";
-        public static string diamond3Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/dia3.png' class=''>";
-        public static string diamond2Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/dia2.png' class=''>";
-        public static string diamond1Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/dia1.png' class=''>";
-        public static string platinum3Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/plat3.png' class=''>";
-        public static string platinum2Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/plat2.png' class=''>";
-        public static string platinum1Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/plat1.png' class=''>";
-        public static string gold3Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/gold3.png' class=''>";
-        public static string gold2Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/gold2.png' class=''>";
-        public static string gold1Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/gold1.png' class=''>";
-        public static string silver3Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/silver3.png' class=''>";
-        public static string silver2Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/silver2.png' class=''>";
-        public static string silver1Icon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/silver1.png' class=''>";
-        public static string unrankedIcon = "<img src='https://raw.githubusercontent.com/DEAFPS/SharpTimer/main/remote_data/rank_icons/unranked.png' class=''>";
+
+        public string? remoteBhopDataSource = "https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/bhop_.json";
+        public string? remoteKZDataSource = "https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/kz_.json";
+        public string? remoteSurfDataSource = "https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/surf_.json";
+        public string? testerPersonalGifsSource = "https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/tester_bling.json";
+
+        public static string god3Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/god.gif' class=''>";
+        public static string god2Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/god.gif' class=''>";
+        public static string god1Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/god.gif' class=''>";
+        public static string royalty3Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/royal3.png' class=''>";
+        public static string royalty2Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/royal2.png' class=''>";
+        public static string royalty1Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/royal1.png' class=''>";
+        public static string legend3Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/legend3.png' class=''>";
+        public static string legend2Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/legend2.png' class=''>";
+        public static string legend1Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/legend1.png' class=''>";
+        public static string master3Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/master3.png' class=''>";
+        public static string master2Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/master2.png' class=''>";
+        public static string master1Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/master1.png' class=''>";
+        public static string diamond3Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/dia3.png' class=''>";
+        public static string diamond2Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/dia2.png' class=''>";
+        public static string diamond1Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/dia1.png' class=''>";
+        public static string platinum3Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/plat3.png' class=''>";
+        public static string platinum2Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/plat2.png' class=''>";
+        public static string platinum1Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/plat1.png' class=''>";
+        public static string gold3Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/gold3.png' class=''>";
+        public static string gold2Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/gold2.png' class=''>";
+        public static string gold1Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/gold1.png' class=''>";
+        public static string silver3Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/silver3.png' class=''>";
+        public static string silver2Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/silver2.png' class=''>";
+        public static string silver1Icon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/silver1.png' class=''>";
+        public static string unrankedIcon = "<img src='https://raw.githubusercontent.com/deafps/SharpTimer/main/remote_data/rank_icons/unranked.png' class=''>";
 
 
         public struct WeaponSpeedStats
@@ -186,7 +210,7 @@ namespace SharpTimer
             }
         }
 
-        Dictionary<string, WeaponSpeedStats> weaponSpeedLookup = new Dictionary<string, WeaponSpeedStats>
+        readonly Dictionary<string, WeaponSpeedStats> weaponSpeedLookup = new()
         {
             {"weapon_glock", new WeaponSpeedStats(240.00, 124.80)},
             {"weapon_usp_silencer", new WeaponSpeedStats(240.00, 124.80)},

@@ -18,16 +18,16 @@ namespace SharpTimer
         {
             if (!IsAllowedPlayer(player)) return;
 
-            if (playerTimers[player.Slot].IsAddingStartZone == true)
+            if (playerTimers[player!.Slot].IsAddingStartZone == true)
             {
                 playerTimers[player.Slot].IsAddingStartZone = false;
                 playerTimers[player.Slot].IsAddingEndZone = false;
-                playerTimers[player.Slot].StartZoneC2 = $"{player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.X} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Y} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Z}";
+                playerTimers[player.Slot].StartZoneC2 = $"{player.Pawn.Value!.CBodyComponent?.SceneNode?.AbsOrigin.X} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Y} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Z}";
                 player.PrintToChat($" {ChatColors.LightPurple}[ZONE TOOL]{ChatColors.Grey}Startzone set...");
             }
             else
             {
-                playerTimers[player.Slot].StartZoneC1 = $"{player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.X} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Y} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Z}";
+                playerTimers[player.Slot].StartZoneC1 = $"{player.Pawn.Value!.CBodyComponent?.SceneNode?.AbsOrigin.X} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Y} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Z}";
                 playerTimers[player.Slot].StartZoneC2 = "";
                 playerTimers[player.Slot].IsAddingStartZone = true;
                 playerTimers[player.Slot].IsAddingEndZone = false;
@@ -43,16 +43,16 @@ namespace SharpTimer
         {
             if (!IsAllowedPlayer(player)) return;
 
-            if (playerTimers[player.Slot].IsAddingEndZone == true)
+            if (playerTimers[player!.Slot].IsAddingEndZone == true)
             {
                 playerTimers[player.Slot].IsAddingStartZone = false;
                 playerTimers[player.Slot].IsAddingEndZone = false;
-                playerTimers[player.Slot].EndZoneC2 = $"{player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.X} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Y} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Z}";
+                playerTimers[player.Slot].EndZoneC2 = $"{player.Pawn.Value!.CBodyComponent?.SceneNode?.AbsOrigin.X} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Y} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Z}";
                 player.PrintToChat($" {ChatColors.LightPurple}[ZONE TOOL]{ChatColors.Grey}Endzone set...");
             }
             else
             {
-                playerTimers[player.Slot].EndZoneC1 = $"{player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.X} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Y} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Z}";
+                playerTimers[player.Slot].EndZoneC1 = $"{player.Pawn.Value!.CBodyComponent?.SceneNode?.AbsOrigin.X} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Y} {player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin.Z}";
                 playerTimers[player.Slot].EndZoneC2 = "";
                 playerTimers[player.Slot].IsAddingStartZone = false;
                 playerTimers[player.Slot].IsAddingEndZone = true;
@@ -69,7 +69,7 @@ namespace SharpTimer
             if (!IsAllowedPlayer(player)) return;
 
             // Get the player's current position
-            Vector currentPosition = player.Pawn.Value.CBodyComponent?.SceneNode?.AbsOrigin ?? new Vector(0, 0, 0);
+            Vector currentPosition = player!.Pawn.Value!.CBodyComponent?.SceneNode?.AbsOrigin ?? new Vector(0, 0, 0);
 
             // Convert position
             string positionString = $"{currentPosition.X} {currentPosition.Y} {currentPosition.Z}";
@@ -84,13 +84,13 @@ namespace SharpTimer
         {
             if (!IsAllowedPlayer(player)) return;
 
-            if (playerTimers[player.Slot].EndZoneC1 == null || playerTimers[player.Slot].EndZoneC2 == null || playerTimers[player.Slot].StartZoneC1 == null || playerTimers[player.Slot].StartZoneC2 == null || playerTimers[player.Slot].RespawnPos == null)
+            if (playerTimers[player!.Slot].EndZoneC1 == null || playerTimers[player.Slot].EndZoneC2 == null || playerTimers[player.Slot].StartZoneC1 == null || playerTimers[player.Slot].StartZoneC2 == null || playerTimers[player.Slot].RespawnPos == null)
             {
                 player.PrintToChat($" {ChatColors.LightPurple}[ZONE TOOL]{ChatColors.Red} Please make sure you have done all 3 zoning steps (!addstartzone, !addendzone, !addrespawnpos)");
                 return;
             }
 
-            MapInfo newMapInfo = new MapInfo
+            MapInfo newMapInfo = new()
             {
                 MapStartC1 = playerTimers[player.Slot].StartZoneC1,
                 MapStartC2 = playerTimers[player.Slot].StartZoneC2,
@@ -102,7 +102,7 @@ namespace SharpTimer
             string mapdataFileName = $"SharpTimer/MapData/{currentMapName}.json"; // Use the map name in the filename
             string mapdataPath = Path.Join(gameDir + "/csgo/cfg", mapdataFileName);
 
-            string updatedJson = JsonSerializer.Serialize(newMapInfo, new JsonSerializerOptions { WriteIndented = true });
+            string updatedJson = JsonSerializer.Serialize(newMapInfo, jsonSerializerOptions);
             File.WriteAllText(mapdataPath, updatedJson);
 
             player.PrintToChat($" {ChatColors.LightPurple}[ZONE TOOL]{ChatColors.Default}Zones saved successfully! {ChatColors.Grey}Reloading data...");
@@ -120,13 +120,13 @@ namespace SharpTimer
                 {
                     if (playerTimer.IsAddingStartZone)
                     {
-                        Vector pawnPosition = player.Pawn?.Value.CBodyComponent?.SceneNode?.AbsOrigin ?? new Vector(0, 0, 0);
-                        DrawZoneToolWireframe(ParseVector(playerTimer.StartZoneC1), pawnPosition, player.Slot);
+                        Vector pawnPosition = player.Pawn?.Value!.CBodyComponent?.SceneNode?.AbsOrigin ?? new Vector(0, 0, 0);
+                        DrawZoneToolWireframe(ParseVector(playerTimer.StartZoneC1!), pawnPosition, player.Slot);
                     }
                     else if (playerTimer.IsAddingEndZone)
                     {
-                        Vector pawnPosition = player.Pawn?.Value.CBodyComponent?.SceneNode?.AbsOrigin ?? new Vector(0, 0, 0);
-                        DrawZoneToolWireframe(ParseVector(playerTimer.EndZoneC1), pawnPosition, player.Slot);
+                        Vector pawnPosition = player.Pawn?.Value!.CBodyComponent?.SceneNode?.AbsOrigin ?? new Vector(0, 0, 0);
+                        DrawZoneToolWireframe(ParseVector(playerTimer.EndZoneC1!), pawnPosition, player.Slot);
                     }
                 }
             }
@@ -141,13 +141,13 @@ namespace SharpTimer
         {
             try
             {
-                Vector corner2 = new Vector(corner1.X, corner8.Y, corner1.Z);
-                Vector corner3 = new Vector(corner8.X, corner8.Y, corner1.Z);
-                Vector corner4 = new Vector(corner8.X, corner1.Y, corner1.Z);
+                Vector corner2 = new(corner1.X, corner8.Y, corner1.Z);
+                Vector corner3 = new(corner8.X, corner8.Y, corner1.Z);
+                Vector corner4 = new(corner8.X, corner1.Y, corner1.Z);
 
-                Vector corner5 = new Vector(corner8.X, corner1.Y, corner8.Z);
-                Vector corner6 = new Vector(corner1.X, corner1.Y, corner8.Z);
-                Vector corner7 = new Vector(corner1.X, corner8.Y, corner8.Z);
+                Vector corner5 = new(corner8.X, corner1.Y, corner8.Z);
+                Vector corner6 = new(corner1.X, corner1.Y, corner8.Z);
+                Vector corner7 = new(corner1.X, corner8.Y, corner8.Z);
 
                 if (corner1 != null && corner2 != null && corner3 != null && corner4 != null &&
                 corner5 != null && corner6 != null && corner7 != null && corner8 != null)
@@ -187,17 +187,17 @@ namespace SharpTimer
             {
                 if (playerTimers.ContainsKey(playerSlot) && playerTimers[playerSlot] != null)
                 {
-                    if (!playerTimers[playerSlot].ZoneToolWire.ContainsKey(wireIndex))
+                    if (!playerTimers[playerSlot].ZoneToolWire!.ContainsKey(wireIndex))
                     {
-                        playerTimers[playerSlot].ZoneToolWire[wireIndex] = Utilities.CreateEntityByName<CBeam>("beam");
+                        playerTimers[playerSlot].ZoneToolWire![wireIndex] = Utilities.CreateEntityByName<CBeam>("beam")!;
                     }
                     else
                     {
-                        playerTimers[playerSlot].ZoneToolWire[wireIndex].Remove();
-                        playerTimers[playerSlot].ZoneToolWire[wireIndex] = Utilities.CreateEntityByName<CBeam>("beam");
+                        playerTimers[playerSlot].ZoneToolWire![wireIndex].Remove();
+                        playerTimers[playerSlot].ZoneToolWire![wireIndex] = Utilities.CreateEntityByName<CBeam>("beam")!;
                     }
 
-                    CBeam wire = playerTimers[playerSlot].ZoneToolWire[wireIndex];
+                    CBeam wire = playerTimers[playerSlot].ZoneToolWire![wireIndex];
 
                     if (wire != null)
                     {

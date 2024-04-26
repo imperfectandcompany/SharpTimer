@@ -1,7 +1,5 @@
-using System.Numerics;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 
@@ -9,7 +7,7 @@ namespace SharpTimer
 {
     public partial class SharpTimer
     {
-        //based on https://github.com/DEAFPS/cs2-kz-lua/blob/main/kz.lua
+        //based on https://github.com/deafps/cs2-kz-lua/blob/main/kz.lua
         public void OnJumpStatJumped(CCSPlayerController player)
         {
             if (IsAllowedPlayer(player))
@@ -17,9 +15,9 @@ namespace SharpTimer
                 int playerSlot = player.Slot;
                 playerJumpStats[playerSlot].Jumped = true;
                 playerJumpStats[playerSlot].OldJumpPos = string.IsNullOrEmpty(playerJumpStats[playerSlot].JumpPos)
-                                                            ? $"{player.Pawn.Value.AbsOrigin.X} {player.Pawn.Value.AbsOrigin.Y} {player.Pawn.Value.AbsOrigin.Z}"
+                                                            ? $"{player.Pawn.Value!.AbsOrigin!.X} {player.Pawn.Value!.AbsOrigin.Y!} {player.Pawn.Value!.AbsOrigin.Z}"
                                                             : playerJumpStats[playerSlot].JumpPos;
-                playerJumpStats[playerSlot].JumpPos = $"{player.Pawn.Value.AbsOrigin.X} {player.Pawn.Value.AbsOrigin.Y} {player.Pawn.Value.AbsOrigin.Z}";
+                playerJumpStats[playerSlot].JumpPos = $"{player.Pawn.Value!.AbsOrigin!.X} {player.Pawn.Value!.AbsOrigin.Y!} {player.Pawn.Value!.AbsOrigin.Z!}";
             }
         }
 
@@ -45,7 +43,7 @@ namespace SharpTimer
             {
                 if (playerJumpStats.TryGetValue(player.Slot, out PlayerJumpStats? playerJumpStat))
                 {
-                    playerJumpStat.OnGround = ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND; //need hull trace for this to detect surf and edgebug etc
+                    playerJumpStat.OnGround = ((PlayerFlags)player.Pawn.Value!.Flags & PlayerFlags.FL_ONGROUND) == PlayerFlags.FL_ONGROUND; //need hull trace for this to detect surf and edgebug etc
 
                     if (playerJumpStat.OnGround)
                     {
@@ -61,18 +59,18 @@ namespace SharpTimer
                     {
                         if (movementUnlockerCapEnabled && velocity.Length2D() > movementUnlockerCapValue)
                         {
-                            float mult = 250.0f / velocity.Length2D();
+                            float mult = movementUnlockerCapValue / velocity.Length2D();
                             velocity.X *= mult;
                             velocity.Y *= mult;
-                            player.PlayerPawn.Value.AbsVelocity.X = velocity.X;
-                            player.PlayerPawn.Value.AbsVelocity.Y = velocity.Y;
+                            player.PlayerPawn.Value!.AbsVelocity.X = velocity.X;
+                            player.PlayerPawn.Value!.AbsVelocity.Y = velocity.Y;
                         }
                     }
                     else if (playerJumpStat.FramesOnGround == 1)
                     {
                         if (playerJumpStat.Jumped)
                         {
-                            double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.JumpPos), playerpos);
+                            double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.JumpPos!), playerpos);
                             if (distance != 0 && playerJumpStat.LastFramesOnGround > 2)
                             {
                                 playerJumpStat.LastJumpType = "LJ";
@@ -100,7 +98,7 @@ namespace SharpTimer
                     {
                         if (playerJumpStat.Jumped)
                         {
-                            double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos), playerpos, true);
+                            double distance = Calculate2DDistanceWithVerticalMargins(ParseVector(playerJumpStat.OldJumpPos!), playerpos, true);
                             if (distance != 0 && !playerJumpStat.LastOnGround && playerJumpStat.LastDucked && ((PlayerFlags)player.Pawn.Value.Flags & PlayerFlags.FL_DUCKING) != PlayerFlags.FL_DUCKING)
                             {
                                 playerJumpStat.LastJumpType = "JB";
@@ -143,7 +141,7 @@ namespace SharpTimer
         {
             try
             {
-                var LastJumpFrame = playerJumpStat.jumpFrames.Any() ? playerJumpStat.jumpFrames.Last() : new PlayerJumpStats.JumpFrames
+                var LastJumpFrame = playerJumpStat.jumpFrames.Count != 0 ? playerJumpStat.jumpFrames.Last() : new PlayerJumpStats.JumpFrames
                 {
                     PositionString = $" ",
                     SpeedString = $" ",
@@ -168,13 +166,13 @@ namespace SharpTimer
                     playerJumpStat.WTicks++;
 
                 double maxHeight;
-                if (IsVectorHigherThan(playerpos, ParseVector(LastJumpFrame.PositionString)))
+                if (IsVectorHigherThan(playerpos, ParseVector(LastJumpFrame.PositionString!)))
                     maxHeight = playerpos.Z - ParseVector(playerJumpStat.LastPosOnGround ?? "0 0 0").Z;
                 else
                     maxHeight = LastJumpFrame?.MaxHeight ?? 0;
 
                 double maxSpeed;
-                if (velocity.Length2D() > LastJumpFrame.MaxSpeed)
+                if (velocity.Length2D() > LastJumpFrame!.MaxSpeed)
                     maxSpeed = velocity.Length2D();
                 else
                     maxSpeed = LastJumpFrame?.MaxSpeed ?? 0;
@@ -260,7 +258,7 @@ namespace SharpTimer
             int leftSync = 0;
             int leftFrames = 0;
             bool inGroup = false;
-            QAngle previousRotation = null;
+            QAngle previousRotation = null!;
 
             foreach (var frame in playerJumpStat.jumpFrames)
             {
@@ -274,10 +272,10 @@ namespace SharpTimer
                 {
                     inGroup = true;
                     leftFrames++;
-                    if (previousRotation != null && ParseQAngle(frame.RotationString).Y > previousRotation.Y)
+                    if (previousRotation != null && ParseQAngle(frame.RotationString!).Y > previousRotation.Y)
                         leftSync++;
                 }
-                previousRotation = ParseQAngle(frame.RotationString);
+                previousRotation = ParseQAngle(frame.RotationString!);
             }
 
             if (inGroup)
@@ -292,7 +290,7 @@ namespace SharpTimer
             int rightSync = 0;
             int rightFrames = 0;
             bool inGroup = false;
-            QAngle previousRotation = null;
+            QAngle previousRotation = null!;
 
             foreach (var frame in playerJumpStat.jumpFrames)
             {
@@ -307,10 +305,10 @@ namespace SharpTimer
                 {
                     inGroup = true;
                     rightFrames++;
-                    if (previousRotation != null && ParseQAngle(frame.RotationString).Y < previousRotation.Y)
+                    if (previousRotation != null && ParseQAngle(frame.RotationString!).Y < previousRotation.Y)
                         rightSync++;
                 }
-                previousRotation = ParseQAngle(frame.RotationString);
+                previousRotation = ParseQAngle(frame.RotationString!);
             }
 
             if (inGroup)
@@ -321,13 +319,13 @@ namespace SharpTimer
 
         public static float GetMaxWidth(Vector playerpos, PlayerJumpStats playerJumpStat)
         {
-            InterpolateVectors(ParseVector(playerJumpStat.JumpPos), playerpos, playerJumpStat);
+            InterpolateVectors(ParseVector(playerJumpStat.JumpPos!), playerpos, playerJumpStat);
 
             float distance = 0;
             for (int jumpFrameIndex = 0; jumpFrameIndex < Math.Min(playerJumpStat.jumpFrames.Count, playerJumpStat.jumpInterp.Count); jumpFrameIndex++)
             {
                 var frame = playerJumpStat.jumpFrames[jumpFrameIndex];
-                float width = (float)Distance2D(ParseVector(frame.PositionString), ParseVector(playerJumpStat.jumpInterp[jumpFrameIndex].InterpString));
+                float width = (float)Distance2D(ParseVector(frame.PositionString!), ParseVector(playerJumpStat.jumpInterp[jumpFrameIndex].InterpString!));
                 if (width > distance) distance = width;
             }
 
@@ -382,7 +380,7 @@ namespace SharpTimer
 
             string msg1 = $"{primaryChatColor}JS: {ChatColors.Grey}" +
                             $"{playerJumpStat.LastJumpType}: {color}{Math.Round(distance, 2)}{ChatColors.Grey} | " +
-                            $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed).Length2D(), 2)}{ChatColors.Grey} | " +
+                            $"Pre: {primaryChatColor}{Math.Round(ParseVector(playerJumpStat.LastSpeed!).Length2D(), 2)}{ChatColors.Grey} | " +
                             $"Max: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxSpeed, 2)}{ChatColors.Grey} | " +
                             $"Strafes: {primaryChatColor}{strafes}{ChatColors.Grey} | ";
             string msg2 =   $"{ChatColors.Grey}Height: {primaryChatColor}{Math.Round(playerJumpStat.jumpFrames.Last().MaxHeight, 2)}{ChatColors.Grey} | " +

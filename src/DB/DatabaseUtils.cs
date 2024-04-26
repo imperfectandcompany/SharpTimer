@@ -14,10 +14,10 @@ namespace SharpTimer
     {
         private async Task<MySqlConnection> OpenDatabaseConnectionAsync()
         {
-            var connection = new MySqlConnection(GetConnectionStringFromConfigFile(mySQLpath));
+            var connection = new MySqlConnection(await GetConnectionStringFromConfigFile(mySQLpath!));
             await connection.OpenAsync();
-            
-            if(connection.State != ConnectionState.Open)
+
+            if (connection.State != ConnectionState.Open)
             {
                 useMySQL = false;
             }
@@ -27,7 +27,7 @@ namespace SharpTimer
 
         private async Task CheckTablesAsync()
         {
-            string[] playerRecordsColumns =     {   "MapName VARCHAR(255) DEFAULT ''",
+            string[] playerRecordsColumns = [   "MapName VARCHAR(255) DEFAULT ''",
                                                     "SteamID VARCHAR(20) DEFAULT ''",
                                                     "PlayerName VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT ''",
                                                     "TimerTicks INT DEFAULT 0",
@@ -35,9 +35,9 @@ namespace SharpTimer
                                                     "UnixStamp INT DEFAULT 0",
                                                     "LastFinished INT DEFAULT 0",
                                                     "TimesFinished INT DEFAULT 0"
-                                                };
+                                                ];
 
-            string[] playerStatsColumns =       {   "SteamID VARCHAR(20) DEFAULT ''",
+            string[] playerStatsColumns = [   "SteamID VARCHAR(20) DEFAULT ''",
                                                     "PlayerName VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT ''",
                                                     "TimesConnected INT DEFAULT 0",
                                                     "LastConnected INT DEFAULT 0",
@@ -49,7 +49,7 @@ namespace SharpTimer
                                                     "PlayerFov INT DEFAULT 0",
                                                     "IsVip BOOL DEFAULT false",
                                                     "BigGifID VARCHAR(16) DEFAULT 'x'"
-                                                };
+                                                ];
 
             using (var connection = await OpenDatabaseConnectionAsync())
             {
@@ -90,7 +90,7 @@ namespace SharpTimer
         private async Task<bool> TableExistsAsync(MySqlConnection connection, string tableName)
         {
             string query = $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{connection.Database}' AND table_name = '{tableName}'";
-            using (MySqlCommand command = new MySqlCommand(query, connection))
+            using (MySqlCommand command = new(query, connection))
             {
                 try
                 {
@@ -108,7 +108,7 @@ namespace SharpTimer
         private async Task<bool> ColumnExistsAsync(MySqlConnection connection, string tableName, string columnName)
         {
             string query = $"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = '{connection.Database}' AND table_name = '{tableName}' AND column_name = '{columnName}'";
-            using (MySqlCommand command = new MySqlCommand(query, connection))
+            using (MySqlCommand command = new(query, connection))
             {
                 try
                 {
@@ -126,7 +126,7 @@ namespace SharpTimer
         private async Task AddColumnToTableAsync(MySqlConnection connection, string tableName, string columnDefinition)
         {
             string query = $"ALTER TABLE {tableName} ADD COLUMN {columnDefinition}";
-            using (MySqlCommand command = new MySqlCommand(query, connection))
+            using (MySqlCommand command = new(query, connection))
             {
                 try
                 {
@@ -195,22 +195,22 @@ namespace SharpTimer
             }
         }
 
-        private string GetConnectionStringFromConfigFile(string mySQLpath)
+        private async Task<string> GetConnectionStringFromConfigFile(string mySQLpath)
         {
             try
             {
-                using (JsonDocument jsonConfig = LoadJson(mySQLpath))
+                using (JsonDocument? jsonConfig = await LoadJson(mySQLpath)!)
                 {
                     if (jsonConfig != null)
                     {
                         JsonElement root = jsonConfig.RootElement;
 
-                        string host = root.TryGetProperty("MySqlHost", out var hostProperty) ? hostProperty.GetString() : "localhost";
-                        string database = root.TryGetProperty("MySqlDatabase", out var databaseProperty) ? databaseProperty.GetString() : "database";
-                        string username = root.TryGetProperty("MySqlUsername", out var usernameProperty) ? usernameProperty.GetString() : "root";
-                        string password = root.TryGetProperty("MySqlPassword", out var passwordProperty) ? passwordProperty.GetString() : "root";
-                        int port = root.TryGetProperty("MySqlPort", out var portProperty) ? portProperty.GetInt32() : 3306;
-                        int timeout = root.TryGetProperty("MySqlTimeout", out var timeoutProperty) ? timeoutProperty.GetInt32() : 30;
+                        string host = root.TryGetProperty("MySqlHost", out var hostProperty) ? hostProperty.GetString()! : "localhost";
+                        string database = root.TryGetProperty("MySqlDatabase", out var databaseProperty) ? databaseProperty.GetString()! : "database";
+                        string username = root.TryGetProperty("MySqlUsername", out var usernameProperty) ? usernameProperty.GetString()! : "root";
+                        string password = root.TryGetProperty("MySqlPassword", out var passwordProperty) ? passwordProperty.GetString()! : "root";
+                        int port = root.TryGetProperty("MySqlPort", out var portProperty) ? portProperty.GetInt32()! : 3306;
+                        int timeout = root.TryGetProperty("MySqlTimeout", out var timeoutProperty) ? timeoutProperty.GetInt32()! : 30;
 
                         return $"Server={host};Database={database};User ID={username};Password={password};Port={port};CharSet=utf8mb4;Connection Timeout={timeout};";
                     }
@@ -234,8 +234,8 @@ namespace SharpTimer
             try
             {
                 if (!IsAllowedPlayer(player)) return;
-                if ((bonusX == 0 && !playerTimers[playerSlot].IsTimerRunning) || (bonusX != 0 && !playerTimers[playerSlot].IsBonusTimerRunning)) return;
-                string currentMapNamee = bonusX == 0 ? currentMapName : $"{currentMapName}_bonus{bonusX}";
+                //if ((bonusX == 0 && !playerTimers[playerSlot].IsTimerRunning) || (bonusX != 0 && !playerTimers[playerSlot].IsBonusTimerRunning)) return;
+                string currentMapNamee = bonusX == 0 ? currentMapName! : $"{currentMapName}_bonus{bonusX}";
 
                 int timeNowUnix = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 // get player columns
@@ -289,7 +289,7 @@ namespace SharpTimer
                                     beatPB = false;
                                     playerPoints = 320000;
                                 }
-                                if (enableReplays == true && useMySQL == true) DumpReplayToJson(player, bonusX);
+                                if (enableReplays == true && useMySQL == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
                             }
                             else
                             {
@@ -311,18 +311,18 @@ namespace SharpTimer
                                 upsertCommand.Parameters.AddWithValue("@FormattedTime", dBFormattedTime);
                                 upsertCommand.Parameters.AddWithValue("@UnixStamp", dBunixStamp);
                                 upsertCommand.Parameters.AddWithValue("@SteamID", steamId);
-                                if (useMySQL == true && globalRanksEnabled == true && ((dBtimesFinished <= maxGlobalFreePoints && globalRanksFreePointsEnabled == true) || beatPB)) await SavePlayerPoints(steamId, playerName, playerSlot, playerPoints, dBtimerTicks, beatPB);
-                                if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == true && timerTicks < dBtimerTicks) Server.NextFrame(() => DumpPlayerStageTimesToJson(player));
+                                if (useMySQL == true && globalRanksEnabled == true && ((dBtimesFinished <= maxGlobalFreePoints && globalRanksFreePointsEnabled == true) || beatPB)) await SavePlayerPoints(steamId, playerName, playerSlot, playerPoints, dBtimerTicks, beatPB, bonusX);
+                                if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == true && timerTicks < dBtimerTicks) Server.NextFrame(() => _ = Task.Run(async () => await DumpPlayerStageTimesToJson(player, steamId, playerSlot)));
                                 await upsertCommand.ExecuteNonQueryAsync();
                                 Server.NextFrame(() => SharpTimerDebug($"Saved player {(bonusX != 0 ? $"bonus {bonusX} time" : "time")} to MySQL for {playerName} {timerTicks} {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"));
                                 if (useMySQL == true && IsAllowedPlayer(player)) await RankCommandHandler(player, steamId, playerSlot, playerName, true);
-                                if (IsAllowedPlayer(player)) Server.NextFrame(() => _ = PrintMapTimeToChat(player, playerName, dBtimerTicks, timerTicks, bonusX, dBtimesFinished));
+                                if (IsAllowedPlayer(player)) Server.NextFrame(() => _ = Task.Run(async () => await PrintMapTimeToChat(player!, steamId, playerName, dBtimerTicks, timerTicks, bonusX, dBtimesFinished)));
                             }
                         }
                         else
                         {
                             Server.NextFrame(() => SharpTimerDebug($"No player record yet"));
-                            if (enableReplays == true && useMySQL == true) DumpReplayToJson(player, bonusX);
+                            if (enableReplays == true && useMySQL == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
                             await row.CloseAsync();
                             string upsertQuery = "REPLACE INTO PlayerRecords (MapName, SteamID, PlayerName, TimerTicks, LastFinished, TimesFinished, FormattedTime, UnixStamp) VALUES (@MapName, @SteamID, @PlayerName, @TimerTicks, @LastFinished, @TimesFinished, @FormattedTime, @UnixStamp)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))
@@ -336,11 +336,11 @@ namespace SharpTimer
                                 upsertCommand.Parameters.AddWithValue("@UnixStamp", timeNowUnix);
                                 upsertCommand.Parameters.AddWithValue("@SteamID", steamId);
                                 await upsertCommand.ExecuteNonQueryAsync();
-                                if (useMySQL == true && globalRanksEnabled == true) await SavePlayerPoints(steamId, playerName, playerSlot, timerTicks, dBtimerTicks, beatPB);
-                                if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == true) Server.NextFrame(() => DumpPlayerStageTimesToJson(player));
+                                if (useMySQL == true && globalRanksEnabled == true) await SavePlayerPoints(steamId, playerName, playerSlot, timerTicks, dBtimerTicks, beatPB, bonusX);
+                                if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == true) Server.NextFrame(() => _ = Task.Run(async () => await DumpPlayerStageTimesToJson(player, steamId, playerSlot)));
                                 Server.NextFrame(() => SharpTimerDebug($"Saved player {(bonusX != 0 ? $"bonus {bonusX} time" : "time")} to MySQL for {playerName} {timerTicks} {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"));
                                 if (useMySQL == true && IsAllowedPlayer(player)) await RankCommandHandler(player, steamId, playerSlot, playerName, true);
-                                if (IsAllowedPlayer(player)) Server.NextFrame(() => _ = PrintMapTimeToChat(player, playerName, dBtimerTicks, timerTicks, bonusX, 1));
+                                if (IsAllowedPlayer(player)) Server.NextFrame(() => _ = Task.Run(async () => await PrintMapTimeToChat(player!, steamId, playerName, dBtimerTicks, timerTicks, bonusX, 1)));
                             }
                         }
                     }
@@ -411,7 +411,7 @@ namespace SharpTimer
                                     value.SoundsEnabled = soundsEnabled;
                                     value.PlayerFov = playerFov;
                                     value.IsVip = isVip;
-                                    value.VipPausedGif = bigGif;
+                                    value.VipBigGif = bigGif;
                                     value.TimesConnected = timesConnected;
                                 }
                                 else
@@ -504,7 +504,7 @@ namespace SharpTimer
                     await CreatePlayerRecordsTableAsync(connection);
 
 
-                   string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, PlayerFov, IsVip, BigGifID, GlobalPoints FROM PlayerStats WHERE SteamID = @SteamID";
+                    string selectQuery = "SELECT PlayerName, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, PlayerFov, IsVip, BigGifID, GlobalPoints FROM PlayerStats WHERE SteamID = @SteamID";
                     using (var selectCommand = new MySqlCommand(selectQuery, connection))
                     {
                         selectCommand.Parameters.AddWithValue("@SteamID", steamId);
@@ -598,7 +598,7 @@ namespace SharpTimer
             }
         }
 
-        public async Task SavePlayerPoints(string steamId, string playerName, int playerSlot, int timerTicks, int oldTicks, bool beatPB = false)
+        public async Task SavePlayerPoints(string steamId, string playerName, int playerSlot, int timerTicks, int oldTicks, bool beatPB = false, int bonusX = 0)
         {
 
             SharpTimerDebug($"Trying to set player points to MySQL for {playerName}");
@@ -645,7 +645,8 @@ namespace SharpTimer
                             playerPoints = row.GetInt32("GlobalPoints");
 
                             // Modify the stats
-                            int newPoints = (int)(beatPB == false ? Convert.ToInt32(CalculatePoints(timerTicks) * globalPointsMultiplier) + playerPoints : (Convert.ToInt32(CalculatePoints(timerTicks)) - Convert.ToInt32(CalculatePoints(oldTicks)) * globalPointsMultiplier) + playerPoints + (310 * mapTier));
+                            int newPoints = (int)(beatPB == false ? Convert.ToInt32(CalculatePoints(timerTicks)! * globalPointsMultiplier!) + playerPoints
+                                                                    : Convert.ToInt32(CalculatePoints(timerTicks)! - CalculatePoints(oldTicks) * globalPointsMultiplier! + playerPoints + (310 * (bonusX == 0 ? mapTier : mapTier * 0.5))));
 
                             await row.CloseAsync();
                             // Update or insert the record
@@ -660,11 +661,11 @@ namespace SharpTimer
                                     upsertCommand.Parameters.AddWithValue("@SteamID", steamId);
                                     upsertCommand.Parameters.AddWithValue("@TimesConnected", timesConnected);
                                     upsertCommand.Parameters.AddWithValue("@LastConnected", lastConnected);
-                                    upsertCommand.Parameters.AddWithValue("@HideTimerHud", playerSlot == -1 ? false : value.HideTimerHud);
-                                    upsertCommand.Parameters.AddWithValue("@HideKeys", playerSlot == -1 ? false : value.HideKeys);
-                                    upsertCommand.Parameters.AddWithValue("@HideJS", playerSlot == -1 ? false : value.HideJumpStats);
-                                    upsertCommand.Parameters.AddWithValue("@SoundsEnabled", playerSlot == -1 ? false : value.SoundsEnabled);
-                                    upsertCommand.Parameters.AddWithValue("@PlayerFov", playerSlot == -1 ? 0 : value.PlayerFov);
+                                    upsertCommand.Parameters.AddWithValue("@HideTimerHud", playerSlot != -1 && value!.HideTimerHud);
+                                    upsertCommand.Parameters.AddWithValue("@HideKeys", playerSlot != -1 && value!.HideKeys);
+                                    upsertCommand.Parameters.AddWithValue("@HideJS", playerSlot != -1 && value!.HideJumpStats);
+                                    upsertCommand.Parameters.AddWithValue("@SoundsEnabled", playerSlot != -1 && value!.SoundsEnabled);
+                                    upsertCommand.Parameters.AddWithValue("@PlayerFov", playerSlot == -1 ? 0 : value!.PlayerFov);
                                     upsertCommand.Parameters.AddWithValue("@IsVip", isVip);
                                     upsertCommand.Parameters.AddWithValue("@BigGifID", bigGif);
                                     upsertCommand.Parameters.AddWithValue("@GlobalPoints", newPoints);
@@ -684,8 +685,8 @@ namespace SharpTimer
                         {
                             Server.NextFrame(() => SharpTimerDebug($"No player stats yet"));
 
-                            int newPoints = (int)(beatPB == false ? Convert.ToInt32(CalculatePoints(timerTicks) * globalPointsMultiplier) + playerPoints : (Convert.ToInt32(CalculatePoints(timerTicks)) - Convert.ToInt32(CalculatePoints(oldTicks)) * globalPointsMultiplier) + playerPoints + (310 * mapTier));
-
+                            int newPoints = (int)(beatPB == false ? Convert.ToInt32(CalculatePoints(timerTicks)! * globalPointsMultiplier!) + playerPoints
+                                                                    : (Convert.ToInt32(CalculatePoints(timerTicks)! - CalculatePoints(oldTicks)) * globalPointsMultiplier! + playerPoints + (310 * (bonusX == 0 ? mapTier : mapTier * 0.5))));
                             await row.CloseAsync();
 
                             string upsertQuery = "REPLACE INTO PlayerStats (PlayerName, SteamID, TimesConnected, LastConnected, HideTimerHud, HideKeys, HideJS, SoundsEnabled, PlayerFov, IsVip, BigGifID, GlobalPoints) VALUES (@PlayerName, @SteamID, @TimesConnected, @LastConnected, @HideTimerHud, @HideKeys, @HideJS, @SoundsEnabled, @PlayerFov, @IsVip, @BigGifID, @GlobalPoints)";
@@ -697,11 +698,11 @@ namespace SharpTimer
                                     upsertCommand.Parameters.AddWithValue("@SteamID", steamId);
                                     upsertCommand.Parameters.AddWithValue("@TimesConnected", 1);
                                     upsertCommand.Parameters.AddWithValue("@LastConnected", timeNowUnix);
-                                    upsertCommand.Parameters.AddWithValue("@HideTimerHud", playerSlot == -1 ? false : value.HideTimerHud);
-                                    upsertCommand.Parameters.AddWithValue("@HideKeys", playerSlot == -1 ? false : value.HideKeys);
-                                    upsertCommand.Parameters.AddWithValue("@HideJS", playerSlot == -1 ? false : value.HideJumpStats);
-                                    upsertCommand.Parameters.AddWithValue("@SoundsEnabled", playerSlot == -1 ? false : value.SoundsEnabled);
-                                    upsertCommand.Parameters.AddWithValue("@PlayerFov", playerSlot == -1 ? 0 : value.PlayerFov);
+                                    upsertCommand.Parameters.AddWithValue("@HideTimerHud", playerSlot != -1 && value!.HideTimerHud);
+                                    upsertCommand.Parameters.AddWithValue("@HideKeys", playerSlot != -1 && value!.HideKeys);
+                                    upsertCommand.Parameters.AddWithValue("@HideJS", playerSlot != -1 && value!.HideJumpStats);
+                                    upsertCommand.Parameters.AddWithValue("@SoundsEnabled", playerSlot != -1 && value!.SoundsEnabled);
+                                    upsertCommand.Parameters.AddWithValue("@PlayerFov", playerSlot == -1 ? 0 : value!.PlayerFov);
                                     upsertCommand.Parameters.AddWithValue("@IsVip", false);
                                     upsertCommand.Parameters.AddWithValue("@BigGifID", "x");
                                     upsertCommand.Parameters.AddWithValue("@GlobalPoints", newPoints);
@@ -735,7 +736,7 @@ namespace SharpTimer
                     try
                     {
                         string query = "SELECT PlayerName, GlobalPoints FROM PlayerStats ORDER BY GlobalPoints DESC LIMIT 10";
-                        using (MySqlCommand command = new MySqlCommand(query, connection))
+                        using (MySqlCommand command = new(query, connection))
                         {
                             using (MySqlDataReader reader = await command.ExecuteReaderAsync())
                             {
@@ -748,7 +749,7 @@ namespace SharpTimer
 
                                 while (await reader.ReadAsync())
                                 {
-                                    string playerName = reader["PlayerName"].ToString();
+                                    string playerName = reader["PlayerName"].ToString()!;
                                     int points = Convert.ToInt32(reader["GlobalPoints"]);
 
                                     if (points >= minGlobalPointsForRank)
@@ -780,6 +781,12 @@ namespace SharpTimer
             Server.NextFrame(() => SharpTimerDebug($"Trying to get replay VIP Gif"));
             try
             {
+                if (await IsSteamIDaTester(steamId))
+                {
+                    playerTimers[playerSlot].VipReplayGif = await GetTesterBigGif(steamId);
+                    return;
+                }
+
                 using (var connection = await OpenDatabaseConnectionAsync())
                 {
                     await CreatePlayerRecordsTableAsync(connection);
@@ -797,7 +804,7 @@ namespace SharpTimer
                             if (isVip)
                             {
                                 Server.NextFrame(() => SharpTimerDebug($"Replay is VIP setting gif..."));
-                                value.VipReplayGif = row.GetString("BigGifID");
+                                value.VipReplayGif = $"<br><img src='{vipGifHost}/{row.GetString("BigGifID")}.gif'><br>";
                             }
                             else
                             {
@@ -958,18 +965,27 @@ namespace SharpTimer
             return playerPoints;
         }
 
-        public async Task<Dictionary<string, PlayerRecord>> GetSortedRecordsFromDatabase(int bonusX = 0)
+        public async Task<Dictionary<string, PlayerRecord>> GetSortedRecordsFromDatabase(int limit = 0, int bonusX = 0, string mapName = "")
         {
             SharpTimerDebug($"Trying GetSortedRecords {(bonusX != 0 ? $"bonus {bonusX}" : "")} from MySQL");
             using (var connection = await OpenDatabaseConnectionAsync())
             {
                 try
                 {
-                    string currentMapNamee = bonusX == 0 ? currentMapName : $"{currentMapName}_bonus{bonusX}";
+                    string? currentMapNamee;
+                    if (string.IsNullOrEmpty(mapName))
+                        currentMapNamee = bonusX == 0 ? currentMapName! : $"{currentMapName}_bonus{bonusX}";
+                    else
+                        currentMapNamee = mapName;
+
                     await CreatePlayerRecordsTableAsync(connection);
 
                     // Retrieve and sort records for the current map
-                    string selectQuery = "SELECT SteamID, PlayerName, TimerTicks FROM PlayerRecords WHERE MapName = @MapName";
+                    string selectQuery;
+                    if (limit != 0)
+                        selectQuery = $"SELECT SteamID, PlayerName, TimerTicks FROM PlayerRecords WHERE MapName = @MapName ORDER BY TimerTicks ASC LIMIT {limit}";
+                    else
+                        selectQuery = "SELECT SteamID, PlayerName, TimerTicks FROM PlayerRecords WHERE MapName = @MapName";
                     using (var selectCommand = new MySqlCommand(selectQuery, connection))
                     {
                         selectCommand.Parameters.AddWithValue("@MapName", currentMapNamee);
@@ -1002,7 +1018,7 @@ namespace SharpTimer
                     SharpTimerError($"Error getting sorted records from MySQL: {ex.Message}");
                 }
             }
-            return new Dictionary<string, PlayerRecord>();
+            return [];
         }
 
         public async Task<Dictionary<string, PlayerPoints>> GetSortedPointsFromDatabase()
@@ -1048,7 +1064,7 @@ namespace SharpTimer
                     SharpTimerError($"Error getting GetSortedPoints from MySQL: {ex.Message}");
                 }
             }
-            return new Dictionary<string, PlayerPoints>();
+            return [];
         }
 
         [ConsoleCommand("css_importpoints", " ")]
@@ -1056,7 +1072,7 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_AND_SERVER)]
         public void ImportPlayerPointsCommand(CCSPlayerController? player, CommandInfo command)
         {
-            _ = ImportPlayerPoints();
+            _ = Task.Run(ImportPlayerPoints);
         }
 
         public async Task ImportPlayerPoints()
@@ -1068,12 +1084,12 @@ namespace SharpTimer
                 foreach (var kvp in sortedRecords)
                 {
                     string playerSteamID = kvp.Key;
-                    string playerName = kvp.Value.PlayerName;
+                    string playerName = kvp.Value.PlayerName!;
                     int timerTicks = kvp.Value.TimerTicks;
 
                     if (useMySQL == true && globalRanksEnabled == true)
                     {
-                        _ = SavePlayerPoints(playerSteamID, playerName, -1, timerTicks, 0);
+                        _ = Task.Run(async () => await SavePlayerPoints(playerSteamID, playerName, -1, timerTicks, 0));
                         await Task.Delay(100);
                     }
                 }
@@ -1089,7 +1105,7 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_AND_SERVER)]
         public void AddJsonTimesToDatabaseCommand(CCSPlayerController? player, CommandInfo command)
         {
-            _ = AddJsonTimesToDatabaseAsync();
+            _ = Task.Run(AddJsonTimesToDatabaseAsync);
         }
 
         public async Task AddJsonTimesToDatabaseAsync()
@@ -1097,7 +1113,7 @@ namespace SharpTimer
             try
             {
                 string recordsDirectoryNamee = "SharpTimer/PlayerRecords";
-                string playerRecordsPathh = Path.Combine(gameDir, "csgo", "cfg", recordsDirectoryNamee);
+                string playerRecordsPathh = Path.Combine(gameDir!, "csgo", "cfg", recordsDirectoryNamee);
 
                 if (!Directory.Exists(playerRecordsPathh))
                 {
@@ -1105,7 +1121,7 @@ namespace SharpTimer
                     return;
                 }
 
-                string connectionString = GetConnectionStringFromConfigFile(mySQLpath);
+                string connectionString = await GetConnectionStringFromConfigFile(mySQLpath!);
 
                 using (var connection = new MySqlConnection(connectionString))
                 {
@@ -1186,17 +1202,17 @@ namespace SharpTimer
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_AND_SERVER)]
         public void ExportDatabaseToJsonCommand(CCSPlayerController? player, CommandInfo command)
         {
-            _ = ExportDatabaseToJsonAsync();
+            _ = Task.Run(ExportDatabaseToJsonAsync);
         }
 
         public async Task ExportDatabaseToJsonAsync()
         {
             string recordsDirectoryNamee = "SharpTimer/PlayerRecords";
-            string playerRecordsPathh = Path.Combine(gameDir, "csgo", "cfg", recordsDirectoryNamee);
+            string playerRecordsPathh = Path.Combine(gameDir!, "csgo", "cfg", recordsDirectoryNamee);
 
             try
             {
-                string connectionString = GetConnectionStringFromConfigFile(mySQLpath);
+                string connectionString = await GetConnectionStringFromConfigFile(mySQLpath!);
 
                 using (var connection = new MySqlConnection(connectionString))
                 {
@@ -1221,11 +1237,11 @@ namespace SharpTimer
                                 if (File.Exists(filePath))
                                 {
                                     string existingJson = await File.ReadAllTextAsync(filePath);
-                                    records = JsonSerializer.Deserialize<Dictionary<string, PlayerRecord>>(existingJson) ?? new Dictionary<string, PlayerRecord>();
+                                    records = JsonSerializer.Deserialize<Dictionary<string, PlayerRecord>>(existingJson) ?? [];
                                 }
                                 else
                                 {
-                                    records = new Dictionary<string, PlayerRecord>();
+                                    records = [];
                                 }
 
                                 records[steamId] = new PlayerRecord
@@ -1234,10 +1250,7 @@ namespace SharpTimer
                                     TimerTicks = timerTicks
                                 };
 
-                                string updatedJson = JsonSerializer.Serialize(records, new JsonSerializerOptions
-                                {
-                                    WriteIndented = true
-                                });
+                                string updatedJson = JsonSerializer.Serialize(records, jsonSerializerOptions);
 
                                 await File.WriteAllTextAsync(filePath, updatedJson);
 

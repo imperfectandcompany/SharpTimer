@@ -29,7 +29,7 @@ namespace SharpTimer
                     var options = jsonSerializerOptions;
                     var releaseInfo = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
 
-                    string latestVersion = releaseInfo!["tag_name"].ToString()!;
+                    string latestVersion = releaseInfo!["name"].ToString()!;
 
                     return (latestVersion! == ModuleVersion!, latestVersion!);
                 }

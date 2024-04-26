@@ -30,6 +30,10 @@ SharpTimer is a "simple" Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Co
 </details>
 
 <details> 
+  <summary>Discord Webhook</summary>
+</details>
+
+<details> 
   <summary>JumpStats</summary>
 </details>
 
@@ -71,7 +75,7 @@ SharpTimer is a "simple" Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Co
 
 [**MetaMod**](https://cs2.poggu.me/metamod/installation/)
 
-[**CounterStrikeSharp** *(v178 and up)*](https://github.com/roflmuffin/CounterStrikeSharp/releases)
+[**CounterStrikeSharp** *(v215 and up)*](https://github.com/roflmuffin/CounterStrikeSharp/releases)
 
 [**SharpTimerModelSetter** *(optional but recommended for custom player models)*](https://github.com/DEAFPS/SharpTimerModelSetter/)
 
@@ -143,7 +147,8 @@ SharpTimer is a "simple" Surf/KZ/Bhop/MG/Deathrun/etc. CS2 Timer plugin using Co
   - [x] Color customization
   - [x] Special Tester Gifs
   - [x] Custom Player Gifs
-  - [ ] Velocity Bar
+  - [x] Dioscord Webhook
+  - [ ] Strafe Sync Bar on HUD
 
 
 ## Author: [@DEAFPS_](https://twitter.com/deafps_)

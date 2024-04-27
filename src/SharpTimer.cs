@@ -174,31 +174,31 @@ namespace SharpTimer
 
             HookEntityOutput("trigger_multiple", "OnStartTouch", (CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay) =>
             {
-                TriggerMultipleOnStartTouch(output, activator, caller, value);
+                TriggerMultipleOnStartTouch(activator, caller);
                 return HookResult.Continue;
             });
 
             HookEntityOutput("trigger_multiple", "OnEndTouch", (CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay) =>
             {
-                TriggerMultipleOnEndTouch(output, activator, caller, value);
+                TriggerMultipleOnEndTouch(activator, caller);
                 return HookResult.Continue;
             });
 
             HookEntityOutput("trigger_teleport", "OnEndTouch", (CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay) =>
             {
-                TriggerTeleportOnEndTouch(output, activator, caller, value);
+                TriggerTeleportOnEndTouch(activator, caller);
                 return HookResult.Continue;
             });
 
             HookEntityOutput("trigger_teleport", "OnStartTouch", (CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay) =>
             {
-                TriggerTeleportOnStartTouch(output, activator, caller, value);
+                TriggerTeleportOnStartTouch(activator, caller);
                 return HookResult.Continue;
             });
 
             HookEntityOutput("trigger_push", "OnStartTouch", (CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay) =>
             {
-                TriggerPushOnStartTouch(output, activator, caller, value);
+                TriggerPushOnStartTouch(activator, caller);
                 return HookResult.Continue;
             });
 

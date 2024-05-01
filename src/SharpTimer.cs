@@ -5,7 +5,7 @@ using CounterStrikeSharp.API.Modules.Cvars;
 
 namespace SharpTimer
 {
-    [MinimumApiVersion(215)]
+    [MinimumApiVersion(228)]
     public partial class SharpTimer : BasePlugin
     {
         public override void Load(bool hotReload)
@@ -32,9 +32,8 @@ namespace SharpTimer
 
             RegisterEventHandler<EventPlayerConnectFull>((@event, info) =>
             {
-                if (@event.Userid.IsValid)
+                if (@event.Userid!.IsValid)
                 {
-                    if (@event.Userid == null) return HookResult.Continue;
                     var player = @event.Userid;
 
                     if (player.IsValid && !player.IsBot)
@@ -47,7 +46,7 @@ namespace SharpTimer
 
             RegisterEventHandler<EventPlayerTeam>((@event, info) =>
             {
-                if (@event.Userid.IsValid)
+                if (@event.Userid!.IsValid)
                 {
                     if (@event.Userid == null) return HookResult.Continue;
                     var player = @event.Userid;
@@ -81,7 +80,7 @@ namespace SharpTimer
 
             RegisterEventHandler<EventPlayerSpawned>((@event, info) =>
             {
-                if (@event.Userid.IsValid)
+                if (@event.Userid!.IsValid)
                 {
                     if (@event.Userid == null) return HookResult.Continue;
 
@@ -118,7 +117,7 @@ namespace SharpTimer
 
             RegisterEventHandler<EventPlayerDisconnect>((@event, info) =>
             {
-                if (@event.Userid.IsValid)
+                if (@event.Userid!.IsValid)
                 {
                     var player = @event.Userid;
 
@@ -136,7 +135,7 @@ namespace SharpTimer
 
             RegisterEventHandler<EventPlayerJump>((@event, info) =>
             {
-                if (@event.Userid.IsValid)
+                if (@event.Userid!.IsValid)
                 {
                     var player = @event.Userid;
 
@@ -154,7 +153,7 @@ namespace SharpTimer
 
             RegisterEventHandler<EventPlayerSound>((@event, info) =>
             {
-                if (@event.Userid.IsValid)
+                if (@event.Userid!.IsValid)
                 {
                     var player = @event.Userid;
 

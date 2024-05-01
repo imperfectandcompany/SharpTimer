@@ -289,7 +289,7 @@ namespace SharpTimer
                                     beatPB = false;
                                     playerPoints = 320000;
                                 }
-                                if (enableReplays == true && useMySQL == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
+                                //if (enableReplays == true && useMySQL == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
                             }
                             else
                             {
@@ -322,7 +322,7 @@ namespace SharpTimer
                         else
                         {
                             Server.NextFrame(() => SharpTimerDebug($"No player record yet"));
-                            if (enableReplays == true && useMySQL == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
+                            //if (enableReplays == true && useMySQL == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
                             await row.CloseAsync();
                             string upsertQuery = "REPLACE INTO PlayerRecords (MapName, SteamID, PlayerName, TimerTicks, LastFinished, TimesFinished, FormattedTime, UnixStamp) VALUES (@MapName, @SteamID, @PlayerName, @TimerTicks, @LastFinished, @TimesFinished, @FormattedTime, @UnixStamp)";
                             using (var upsertCommand = new MySqlCommand(upsertQuery, connection))

@@ -8,8 +8,10 @@ namespace SharpTimer
 {
     public partial class SharpTimer
     {
+        public string compileTimeStamp = new DateTime(CompileTimeStamp.CompileTime, DateTimeKind.Utc).ToString();
+
         public override string ModuleName => "SharpTimer";
-        public override string ModuleVersion => $"0.2.4 - {new DateTime(Builtin.CompileTime, DateTimeKind.Utc)}";
+        public override string ModuleVersion => $"0.2.4 - {compileTimeStamp}";
         public override string ModuleAuthor => "dea https://github.com/deafps/";
         public override string ModuleDescription => "A CS2 Timer Plugin";
 

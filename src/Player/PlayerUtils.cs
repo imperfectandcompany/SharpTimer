@@ -577,26 +577,8 @@ namespace SharpTimer
             if (player == null || !player.IsValid)
                 return;
 
-            player.PlayerName = name + " ";
-
-            AddTimer(0.1f, () =>
-            {
-                if (player.IsValid)
-                {
-                    Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
-                    Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
-                }
-            });
-
-            AddTimer(0.2f, () =>
-            {
-                if (player.IsValid) player.PlayerName = name;
-            });
-
-            AddTimer(0.3f, () =>
-            {
-                if (player.IsValid) Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
-            });
+            player.PlayerName = name;
+            Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
 
             SharpTimerDebug($"Changed PlayerName to {player.PlayerName}");
         }

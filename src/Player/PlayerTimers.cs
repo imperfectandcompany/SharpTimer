@@ -100,6 +100,7 @@ namespace SharpTimer
 
             if (!ignoreJSON) SavePlayerTime(player, currentTicks);
             if (useMySQL == true) _ = Task.Run(async () => await SavePlayerTimeToDatabase(player, currentTicks, steamID, playerName, playerSlot));
+            if (enableReplays == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamID, playerSlot));
             playerTimer.IsTimerRunning = false;
             playerTimer.IsRecordingReplay = false;
 
@@ -120,6 +121,7 @@ namespace SharpTimer
 
             if (!ignoreJSON) SavePlayerTime(player, currentTicks, bonusX);
             if (useMySQL == true) _ = Task.Run(async () => await SavePlayerTimeToDatabase(player, currentTicks, steamID, playerName, playerSlot, bonusX));
+            if (enableReplays == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamID, playerSlot, bonusX));
             playerTimers[player.Slot].IsBonusTimerRunning = false;
             playerTimers[player.Slot].IsRecordingReplay = false;
         }
@@ -167,7 +169,7 @@ namespace SharpTimer
                             File.WriteAllText(mapRecordsPath, updatedJson);
 
                             if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == false) _ = Task.Run(async () => await DumpPlayerStageTimesToJson(player, steamId, playerSlot));
-                            if (enableReplays == true && useMySQL == false) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
+                            //if (enableReplays == true && useMySQL == false) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
                         }
                         else
                         {
@@ -232,9 +234,9 @@ namespace SharpTimer
                                                                $" {(previousStageTime != srStageTime ? $"[SR {FormatTimeDifference(playerTimerTicks, srStageTime)}{ChatColors.White}]" : "")}");
 
                                 if (float.TryParse(currentStageSpeed, out float speed) && speed >= 100) //workaround for staged maps with not telehops
-                                    player.PrintToChat(msgPrefix + $" Speed: {ChatColors.White}[{primaryChatColor}{currentStageSpeed}u/s{ChatColors.White}]" +
-                                                                    $" [{FormatSpeedDifferenceFromString(currentStageSpeed, previousStageSpeed)}u/s{ChatColors.White}]" +
-                                                                    $" {(previousStageSpeed != srStageSpeed ? $"[SR {FormatSpeedDifferenceFromString(currentStageSpeed, srStageSpeed)}u/s{ChatColors.White}]" : "")}");
+                                player.PrintToChat(msgPrefix + $" Speed: {ChatColors.White}[{primaryChatColor}{currentStageSpeed}u/s{ChatColors.White}]" +
+                                                               $" [{FormatSpeedDifferenceFromString(currentStageSpeed, previousStageSpeed)}u/s{ChatColors.White}]" +
+                                                               $" {(previousStageSpeed != srStageSpeed ? $"[SR {FormatSpeedDifferenceFromString(currentStageSpeed, srStageSpeed)}u/s{ChatColors.White}]" : "")}");
                             }
 
                             if (playerTimer.StageVelos != null && playerTimer.StageTimes != null && playerTimer.IsTimerRunning == true && IsAllowedPlayer(player))

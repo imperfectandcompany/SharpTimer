@@ -72,10 +72,11 @@ namespace SharpTimer
             if (disableDamage == true)
             {
                 var player = @event.Userid;
-                Vector playerSpeed = player.PlayerPawn.Value!.AbsVelocity ?? new Vector(0, 0, 0);
 
-                if (!player.IsValid)
+                if (!player!.IsValid)
                     return HookResult.Continue;
+
+                Vector playerSpeed = player!.PlayerPawn.Value!.AbsVelocity ?? new Vector(0, 0, 0);
 
                 player.PlayerPawn.Value.Health = int.MaxValue;
                 player.PlayerPawn.Value.ArmorValue = int.MaxValue;

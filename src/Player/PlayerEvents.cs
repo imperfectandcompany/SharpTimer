@@ -38,33 +38,28 @@ namespace SharpTimer
                 try
                 {
                     connectedPlayers[playerSlot] = new CCSPlayerController(player.Handle);
-
-                    PlayerTimerInfo playerTimer = new()
-                    {
-                        MovementService = new CCSPlayer_MovementServices(player.PlayerPawn.Value.MovementServices!.Handle),
-                        StageTimes = [],
-                        StageVelos = [],
-                        CurrentMapStage = 0,
-                        CurrentMapCheckpoint = 0,
-                        IsRecordingReplay = false,
-                        SetRespawnPos = null,
-                        SetRespawnAng = null
-                    };
-                    if (AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimer.ZoneToolWire = [];
-                    playerTimers[playerSlot] = playerTimer;
-
-                    if (jumpStatsEnabled) playerJumpStats[playerSlot] = new PlayerJumpStats();
+                    playerTimers[playerSlot] = new PlayerTimerInfo();
                     if (enableReplays) playerReplays[playerSlot] = new PlayerReplays();
+                    playerTimers[playerSlot].MovementService = new CCSPlayer_MovementServices(player.PlayerPawn.Value.MovementServices!.Handle);
+                    playerTimers[playerSlot].StageTimes = new Dictionary<int, int>();
+                    playerTimers[playerSlot].StageVelos = new Dictionary<int, string>();
+                    if (AdminManager.PlayerHasPermissions(player, "@css/root")) playerTimers[playerSlot].ZoneToolWire = new Dictionary<int, CBeam>();
+                    if (jumpStatsEnabled) playerJumpStats[playerSlot] = new PlayerJumpStats();
+                    playerTimers[playerSlot].CurrentMapStage = 0;
+                    playerTimers[playerSlot].CurrentMapCheckpoint = 0;
+                    playerTimers[playerSlot].IsRecordingReplay = false;
+                    playerTimers[playerSlot].SetRespawnPos = null;
+                    playerTimers[playerSlot].SetRespawnAng = null;
 
                     if (isForBot == false) _ = Task.Run(async () => await IsPlayerATester(steamID, playerSlot));
 
                     //PlayerSettings
                     if (useMySQL == true && isForBot == false) _ = Task.Run(async () => await GetPlayerStats(player, steamID, playerName, playerSlot, true));
 
-                    if (connectMsgEnabled == true && useMySQL == false) Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{playerName} {ChatColors.White}connected!");
+                    if (connectMsgEnabled == true && useMySQL == false) Server.PrintToChatAll($"{msgPrefix}Player {ChatColors.Red}{player.PlayerName} {ChatColors.White}connected!");
                     if (cmdJoinMsgEnabled == true && isForBot == false) PrintAllEnabledCommands(player);
 
-                    SharpTimerDebug($"Added player {playerName} with Slot {playerSlot} to connectedPlayers");
+                    SharpTimerDebug($"Added player {player.PlayerName} with UserID {player.UserId} to connectedPlayers");
                     SharpTimerDebug($"Total players connected: {connectedPlayers.Count}");
                     SharpTimerDebug($"Total playerTimers: {playerTimers.Count}");
                     SharpTimerDebug($"Total playerReplays: {playerReplays.Count}");
@@ -105,26 +100,32 @@ namespace SharpTimer
 
             try
             {
-                var playerSlot = player.Slot;
-                
-                if (isForBot == true && connectedReplayBots.TryGetValue(playerSlot, out var connectedReplayBot))
+                if (isForBot == true && connectedReplayBots.TryGetValue(player.Slot, out var connectedReplayBot))
                 {
-                    connectedReplayBots.Remove(playerSlot);
+                    connectedReplayBots.Remove(player.Slot);
                     SharpTimerDebug($"Removed bot {connectedReplayBot.PlayerName} with UserID {connectedReplayBot.UserId} from connectedReplayBots.");
                 }
 
-                if (connectedPlayers.TryGetValue(playerSlot, out var connectedPlayer))
+                if (connectedPlayers.TryGetValue(player.Slot, out var connectedPlayer))
                 {
-                    connectedPlayers.Remove(playerSlot);
+                    connectedPlayers.Remove(player.Slot);
 
-                    playerTimers.Remove(playerSlot);
+                    //schizo removing data from memory
+                    playerTimers[player.Slot] = new PlayerTimerInfo();
+                    playerTimers.Remove(player.Slot);
 
-                    playerCheckpoints.Remove(playerSlot);
+                    //schizo removing data from memory
+                    playerCheckpoints[player.Slot] = new List<PlayerCheckpoint>();
+                    playerCheckpoints.Remove(player.Slot);
 
                     specTargets.Remove(player.Pawn.Value!.EntityHandle.Index);
 
                     if (enableReplays)
-                        playerReplays.Remove(playerSlot);
+                    {
+                        //schizo removing data from memory
+                        playerReplays[player.Slot] = new PlayerReplays();
+                        playerReplays.Remove(player.Slot);
+                    }
 
                     SharpTimerDebug($"Removed player {connectedPlayer.PlayerName} with UserID {connectedPlayer.UserId} from connectedPlayers.");
                     SharpTimerDebug($"Removed specTarget index {player.Pawn.Value.EntityHandle.Index} from specTargets.");

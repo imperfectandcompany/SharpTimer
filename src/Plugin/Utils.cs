@@ -235,7 +235,7 @@ namespace SharpTimer
         {
             return string.Format(loc_string, args);
         }
-        
+
         static string ParsePrefixColors(string input)
         {
             Dictionary<string, string> colorNameSymbolMap = new(StringComparer.OrdinalIgnoreCase)
@@ -580,7 +580,7 @@ namespace SharpTimer
                 currentMapNamee = bonusX == 0 ? $"{currentMapName!}.json" : $"{currentMapName}_bonus{bonusX}.json";
             else
                 currentMapNamee = mapName;
-            
+
             string mapRecordsPath = Path.Combine(playerRecordsPath!, currentMapNamee);
 
             Dictionary<string, PlayerRecord> records;
@@ -921,10 +921,8 @@ namespace SharpTimer
                     else
                     {
                         (currentRespawnPos, currentRespawnAng) = FindStartTriggerPos();
-
+                        currentEndPos = FindEndTriggerPos();
                         FindBonusStartTriggerPos();
-                        FindStageTriggers();
-                        FindCheckpointTriggers();
                         SharpTimerConPrint($"RespawnPos not found, trying to hook trigger pos instead");
                         if (currentRespawnPos == null)
                         {
@@ -1075,6 +1073,12 @@ namespace SharpTimer
 
                     if (triggerPushFixEnabled == true && currentMapOverrideTriggerPushFix == false)
                         FindTriggerPushData();
+
+                    if (useTriggers == true)
+                    {
+                        FindStageTriggers();
+                        FindCheckpointTriggers();
+                    }
 
                     KillServerCommandEnts();
                 }

@@ -53,8 +53,8 @@ namespace SharpTimer
         public Vector? currentRespawnPos = null;
         public QAngle? currentRespawnAng = null;
         public Vector? currentEndPos = null;
-        public bool currentMapOverrideDisableTelehop = false;
-        public string[]? currentMapOverrideMaxSpeedLimit = null;
+        public string[]? currentMapOverrideDisableTelehop = [];
+        public string[]? currentMapOverrideMaxSpeedLimit = [];
         public bool currentMapOverrideStageRequirement = false;
         public bool currentMapOverrideTriggerPushFix = false;
         private Dictionary<int, Vector?> bonusRespawnPoses = [];

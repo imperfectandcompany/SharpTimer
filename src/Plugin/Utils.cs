@@ -934,16 +934,20 @@ namespace SharpTimer
                         }
                     }
 
-                    if (!string.IsNullOrEmpty(mapInfo.OverrideDisableTelehop))
+                    if (mapInfo.OverrideDisableTelehop != null && mapInfo.OverrideDisableTelehop.Length != 0)
                     {
                         try
                         {
-                            currentMapOverrideDisableTelehop = bool.Parse(mapInfo.OverrideDisableTelehop);
+                            currentMapOverrideDisableTelehop = mapInfo.OverrideDisableTelehop
+                                .Split(',')
+                                .Select(trigger => trigger.Trim())
+                                .ToArray();
+
                             SharpTimerConPrint($"Overriding OverrideDisableTelehop...");
                         }
                         catch (FormatException)
                         {
-                            SharpTimerError("Invalid boolean string format for OverrideDisableTelehop");
+                            SharpTimerError("Invalid string format for OverrideDisableTelehop... Example: 's1_end, s2_end, s3_end, s4_end, s5_end, s6_end, s7_end, s8_end'");
                         }
                     }
                     else
@@ -951,14 +955,14 @@ namespace SharpTimer
                         currentMapOverrideStageRequirement = false;
                     }
 
-                    if (mapInfo.OverrideMaxSpeedLimit != null && mapInfo.OverrideMaxSpeedLimit.Any())
+                    if (mapInfo.OverrideMaxSpeedLimit != null && mapInfo.OverrideMaxSpeedLimit.Length != 0)
                     {
                         try
                         {
                             SharpTimerConPrint($"Overriding MaxSpeedLimit...");
                             currentMapOverrideMaxSpeedLimit = mapInfo.OverrideMaxSpeedLimit
                                 .Split(',')
-                                .Select(color => color.Trim())
+                                .Select(trigger => trigger.Trim())
                                 .ToArray();
 
                             foreach (var trigger in currentMapOverrideMaxSpeedLimit)
@@ -1156,7 +1160,7 @@ namespace SharpTimer
 
             currentMapTier = null; //making sure previous map tier and type are wiped
             currentMapType = null;
-            currentMapOverrideDisableTelehop = false; //making sure previous map overrides are reset
+            currentMapOverrideDisableTelehop = []; //making sure previous map overrides are reset
             currentMapOverrideMaxSpeedLimit = [];
             currentMapOverrideStageRequirement = false;
             currentMapOverrideTriggerPushFix = false;

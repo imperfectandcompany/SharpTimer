@@ -78,6 +78,15 @@ namespace SharpTimer
                 return HookResult.Continue;
             });
 
+            RegisterEventHandler<EventRoundEnd>((@event, info) =>
+            {
+                foreach (CCSPlayerController player in connectedPlayers.Values)
+                {
+                    InvalidateTimer(player);
+                }
+                return HookResult.Continue;
+            }, HookMode.Pre);
+
             RegisterEventHandler<EventPlayerSpawned>((@event, info) =>
             {
                 if (@event.Userid!.IsValid)

@@ -288,19 +288,19 @@ namespace SharpTimer
 
                 if (!IsAllowedPlayer(player)) return HookResult.Continue;
 
-                if (resetTriggerTeleportSpeedEnabled) //if (resetTriggerTeleportSpeedEnabled && currentMapOverrideDisableTelehop != null)
+                if (resetTriggerTeleportSpeedEnabled)
                 {
-                    /* string triggerName = caller.Entity.Name.ToString();
-                    if (!currentMapOverrideDisableTelehop.Contains(triggerName))
-                    {
-                        Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
-                        adjustVelocity(player, 0, false);
-                    } */
-                    if (!currentMapOverrideDisableTelehop)
+                    string triggerName = caller.Entity!.Name.ToString();
+                    if (currentMapOverrideDisableTelehop != null && (!currentMapOverrideDisableTelehop!.Contains(triggerName) || currentMapOverrideDisableTelehop![0].ToLower() == "true"))
                     {
                         Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
                         adjustVelocity(player, 0, false);
                     }
+                    /* if (!currentMapOverrideDisableTelehop)
+                    {
+                        Action<CCSPlayerController?, float, bool> adjustVelocity = use2DSpeed ? AdjustPlayerVelocity2D : AdjustPlayerVelocity;
+                        adjustVelocity(player, 0, false);
+                    } */
                 }
 
                 return HookResult.Continue;

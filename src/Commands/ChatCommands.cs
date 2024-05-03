@@ -690,7 +690,7 @@ namespace SharpTimer
                     serverPlacement = await GetPlayerServerPlacement(player, steamId, playerName, false, true, false);
                 }
 
-                int pbTicks = useMySQL ? await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName!, playerName) : GetPreviousPlayerRecord(player, steamId);
+                int pbTicks = useMySQL ? await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapName!, playerName) : await GetPreviousPlayerRecord(player, steamId);
 
                 Server.NextFrame(() =>
                 {

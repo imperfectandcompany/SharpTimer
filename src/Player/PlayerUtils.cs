@@ -194,7 +194,7 @@ namespace SharpTimer
             return (0, string.Empty);
         }
 
-        private int GetPreviousPlayerRecord(CCSPlayerController? player, string steamId, int bonusX = 0)
+        public async Task<int> GetPreviousPlayerRecord(CCSPlayerController? player, string steamId, int bonusX = 0)
         {
             if (!IsAllowedPlayer(player))
             {
@@ -203,24 +203,23 @@ namespace SharpTimer
             }
 
             string currentMapNamee = bonusX == 0 ? currentMapName! : $"{currentMapName}_bonus{bonusX}";
-
             string mapRecordsFileName = $"{currentMapNamee}.json";
             string mapRecordsPath = Path.Combine(playerRecordsPath!, mapRecordsFileName);
 
-            if (!File.Exists(mapRecordsPath))
-            {
-                SharpTimerDebug($"Map records file does not exist: {mapRecordsPath}");
-                return 0;
-            }
-
             try
             {
-                string json = File.ReadAllText(mapRecordsPath);
-                Dictionary<string, PlayerRecord> records = JsonSerializer.Deserialize<Dictionary<string, PlayerRecord>>(json) ?? [];
-
-                if (records.TryGetValue(steamId, out PlayerRecord? playerRecord))
+                JsonDocument? jsonDoc = await LoadJson(mapRecordsPath);
+                if (jsonDoc != null)
                 {
-                    return playerRecord.TimerTicks;
+                    var root = jsonDoc.RootElement;
+                    if (root.TryGetProperty(steamId, out var playerRecordElement))
+                    {
+                        return playerRecordElement.GetProperty("TimerTicks").GetInt32();
+                    }
+                }
+                else
+                {
+                    SharpTimerDebug($"Map records file does not exist: {mapRecordsPath}");
                 }
             }
             catch (Exception ex)
@@ -272,7 +271,7 @@ namespace SharpTimer
 
                 string currentMapNamee = bonusX == 0 ? currentMapName! : $"{currentMapName}_bonus{bonusX}";
 
-                int savedPlayerTime = useMySQL ? await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapNamee!, playerName) : GetPreviousPlayerRecord(player, steamId, bonusX);
+                int savedPlayerTime = useMySQL ? await GetPreviousPlayerRecordFromDatabase(player, steamId, currentMapNamee!, playerName) : await GetPreviousPlayerRecord(player, steamId, bonusX);
 
                 if (savedPlayerTime == 0)
                     return getRankImg ? unrankedIcon : "Unranked";

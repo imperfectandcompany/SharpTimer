@@ -112,7 +112,11 @@ namespace SharpTimer
 
                         if (jumpStatsEnabled == true) OnJumpStatTick(player, playerSpeed, player.Pawn?.Value!.CBodyComponent?.SceneNode!.AbsOrigin!, player.PlayerPawn?.Value.EyeAngles!, playerButtons);
 
-                        if (forcePlayerSpeedEnabled == true) ForcePlayerSpeed(player, player.Pawn!.Value!.WeaponServices!.ActiveWeapon.Value!.DesignerName);
+                        if (forcePlayerSpeedEnabled == true)
+                        {
+                            string designerName = player.Pawn!.Value!.WeaponServices!.ActiveWeapon?.Value?.DesignerName ?? "no_knife";
+                            ForcePlayerSpeed(player, designerName);
+                        }
 
                         if (playerTimer.IsRankPbCached == false)
                         {
@@ -219,7 +223,7 @@ namespace SharpTimer
             }
             catch (Exception ex)
             {
-                if (ex.Message != "Invalid game event") SharpTimerError($"Error in TimerOnTick: {ex.Message}");
+                if (ex.Message != "Invalid game event") SharpTimerError($"Error in TimerOnTick: {ex.StackTrace}");
             }
         }
 

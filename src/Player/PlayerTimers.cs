@@ -115,7 +115,7 @@ namespace SharpTimer
 
             if (!ignoreJSON) SavePlayerTime(player, currentTicks);
             if (useMySQL == true) _ = Task.Run(async () => await SavePlayerTimeToDatabase(player, currentTicks, steamID, playerName, playerSlot));
-            if (enableReplays == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamID, playerSlot));
+            //if (enableReplays == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamID, playerSlot));
             playerTimer.IsTimerRunning = false;
             playerTimer.IsRecordingReplay = false;
 
@@ -136,7 +136,7 @@ namespace SharpTimer
 
             if (!ignoreJSON) SavePlayerTime(player, currentTicks, bonusX);
             if (useMySQL == true) _ = Task.Run(async () => await SavePlayerTimeToDatabase(player, currentTicks, steamID, playerName, playerSlot, bonusX));
-            if (enableReplays == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamID, playerSlot, bonusX));
+            //if (enableReplays == true) _ = Task.Run(async () => await DumpReplayToJson(player!, steamID, playerSlot, bonusX));
             playerTimers[player.Slot].IsBonusTimerRunning = false;
             playerTimers[player.Slot].IsRecordingReplay = false;
         }
@@ -184,7 +184,7 @@ namespace SharpTimer
                             File.WriteAllText(mapRecordsPath, updatedJson);
 
                             if ((stageTriggerCount != 0 || cpTriggerCount != 0) && bonusX == 0 && useMySQL == false) _ = Task.Run(async () => await DumpPlayerStageTimesToJson(player, steamId, playerSlot));
-                            //if (enableReplays == true && useMySQL == false) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
+                            if (enableReplays == true && useMySQL == false) _ = Task.Run(async () => await DumpReplayToJson(player!, steamId, playerSlot, bonusX));
                         }
                         else
                         {

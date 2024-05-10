@@ -1261,17 +1261,13 @@ namespace SharpTimer
                 return number + "th";
             }
 
-            switch (number % 10)
+            return (number % 10) switch
             {
-                case 1:
-                    return number + "st";
-                case 2:
-                    return number + "nd";
-                case 3:
-                    return number + "rd";
-                default:
-                    return number + "th";
-            }
+                1 => number + "st",
+                2 => number + "nd",
+                3 => number + "rd",
+                _ => number + "th",
+            };
         }
 
         static int GetNumberBeforeSlash(string input)

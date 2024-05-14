@@ -1,10 +1,8 @@
 > [!CAUTION]
-> This project will not receive any further updates as im unable to continue working on it. Thank you for all the support and time spend testing the pre-release versions. Feel free to fork and yoink anything you want and build uppon it
+> This project will not receive any further updates as im unable to continue working on it. Thank you for all the support and time spend testing the pre-release versions. Feel free to fork and yoink anything you want and build upon it
 
 <div align="center">
   <img src="https://github.com/DEAFPS/SharpTimer/assets/43534349/c353662a-eb64-43e7-9294-40cfed3d58af" alt="" style="margin: 0;">
-  <a href='https://ko-fi.com/L3L7T5ZSB' target='_blank'><img src='https://github.com/DEAFPS/SharpTimer/assets/43534349/06a05e4d-a4aa-4ed8-b94d-4bfa2939d66f' alt='Buy Me a Coffee at ko-fi.com' style="margin: 0;"></a>
-  <a href='https://discord.gg/SmQXeyMcny' target='_blank'><img src='https://github.com/DEAFPS/SharpTimer/assets/43534349/9ecf2010-4273-420e-900c-cdd37b75ee70' alt='SharpTimer Discord' style="margin: 0;"></a>
 </div>
 
 

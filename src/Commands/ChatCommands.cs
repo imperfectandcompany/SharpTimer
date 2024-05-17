@@ -874,6 +874,7 @@ namespace SharpTimer
             }
         }
 
+        [ConsoleCommand("css_startpos", "Saves a custom respawn point within the start trigger")]
         [ConsoleCommand("css_setresp", "Saves a custom respawn point within the start trigger")]
         [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void SetRespawnCommand(CCSPlayerController? player, CommandInfo command)

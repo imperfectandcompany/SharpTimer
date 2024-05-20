@@ -1,3 +1,4 @@
+.vs/
 bin/
 obj/
 addons/
@@ -9,3 +10,8 @@ CounterStrikeSharp.API.dll
 cfg/SharpTimer/MapData/MapExecs/bhop_.cfg
 cfg/SharpTimer/MapData/MapExecs/kz_.cfg
 cfg/SharpTimer/MapData/MapExecs/surf_.cfg
+Publish/
+Properties/
+Release/
+*.user
+Notes.txt

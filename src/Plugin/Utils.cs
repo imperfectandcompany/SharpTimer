@@ -218,7 +218,7 @@ namespace SharpTimer
 
         public double CalculatePoints(int timerTicks)
         {
-            double basePoints = 1000.0;
+            double basePoints = 10000.0;
             double timeFactor = 0.0001;
             double tierMult = 0.1;
 

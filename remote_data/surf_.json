@@ -1,4 +1,40 @@
 {
+  "surf_genesis": {
+    "Tier": 1,
+    "Type": "Staged"
+  },
+  "surf_inui": {
+    "Tier": 1,
+    "Type": "Staged"
+  },
+  "surf_giza": {
+    "Tier": 2,
+    "Type": "Linear"
+  },
+  "surf_school_kzg": {
+    "Tier": 1,
+    "Type": "Hybrid"
+  },
+  "surf_advanced": {
+    "Tier": 3,
+    "Type": "Staged"
+  },
+  "surf_atlas": {
+    "Tier": 2,
+    "Type": "Linear"
+  },
+  "surf_2pacisalive": {
+    "Tier": 2,
+    "Type": "Linear"
+  },
+  "surf_feverdream": {
+    "Tier": 1,
+    "Type": "Linear"
+  },
+  "surf_frostedge": {
+    "Tier": 2,
+    "Type": "Linear"
+  },
   "winsurf": {
     "Tier": 1,
     "Type": "Linear"
@@ -40,7 +76,7 @@
     "Type": "Staged"
   },
   "surf_astra": {
-    "Tier": 1,
+    "Tier": 2,
     "Type": "Linear"
   },
   "surf_anime_fun": {
@@ -80,7 +116,7 @@
     "Type": "Linear"
   },
   "surf_longreach": {
-    "Tier": 2,
+    "Tier": 3,
     "Type": "Linear"
   },
   "surf_hyzer": {

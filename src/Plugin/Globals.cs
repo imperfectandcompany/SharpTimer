@@ -166,7 +166,7 @@ namespace SharpTimer
         public bool discordWebhookEnabled = false;
         public string discordWebhookBotName = "SharpTimer";
         public string discordWebhookPFPUrl = "https://cdn.discordapp.com/icons/1196646791450472488/634963a8207fdb1b30bf909d31f05e57.webp";
-        public string discordWebhookImageRepoURL = "https://raw.githubusercontent.com/imperfectandcompany/SharpTimerDiscordWebhookMapPics/main/images/";
+        public string discordWebhookImageRepoURL = "https://raw.githubusercontent.com/Letaryat/poor-sharptimermappics/main/pics/";
         public string? discordPBWebhookUrl;
         public string? discordSRWebhookUrl;
         public string? discordPBBonusWebhookUrl;

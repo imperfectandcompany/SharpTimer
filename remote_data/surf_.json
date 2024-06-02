@@ -1,10 +1,14 @@
 {
+  "surf_race": {
+    "Tier": 1,
+    "Type": "Staged"
+  },
   "surf_genesis": {
     "Tier": 1,
     "Type": "Staged"
   },
   "surf_inui": {
-    "Tier": 1,
+    "Tier": 2,
     "Type": "Staged"
   },
   "surf_giza": {

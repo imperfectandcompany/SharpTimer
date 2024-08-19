@@ -439,8 +439,8 @@
         "Tier": 2,
         "Type": "Linear"
     },
-    "surf_6": {
-        "Tier": 2,
+    "surf_6_d": {
+        "Tier": 3,
         "Type": "Linear"
     },
     "surf_81st_network": {

@@ -39,6 +39,10 @@
         "Tier": 1,
         "Type": "Linear"
     },
+    "surf_and_bhop_d": {
+        "Tier": 3,
+        "Type": "Linear"
+    },
     "surf_andromeda": {
         "Tier": 1,
         "Type": "Linear"

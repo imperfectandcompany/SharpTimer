@@ -1,4 +1,8 @@
 {
+    "winsurf": {
+        "Tier": 1,
+        "Type": "Linear"
+    },
     "surf_2pacisalive": {
         "Tier": 2,
         "Type": "Linear"
@@ -58,6 +62,10 @@
     "surf_aser": {
         "Tier": 1,
         "Type": "Hybrid"
+    },
+    "surf_assail": {
+        "Tier": 5,
+        "Type": "linear"
     },
     "surf_astra": {
         "Tier": 2,
@@ -154,6 +162,10 @@
     "surf_feverdream": {
         "Tier": 1,
         "Type": "Hybrid"
+     },
+    "surf_fiellu": {
+        "Tier": 3,
+        "Type": "Linear"
     },
     "surf_firetemple_fixed": {
         "Tier": 2,
@@ -178,6 +190,10 @@
     "surf_gleam": {
         "Tier": 2,
         "Type": "Linear"
+     },
+    "surf_giza": {
+        "Tier": 3,
+        "Type": "Linear"   
     },
     "surf_guitar_hi": {
         "Tier": 2,
@@ -343,6 +359,10 @@
         "Tier": 1,
         "Type": "Linear"
     },
+    "surf_reprise": {
+        "Tier": 1,
+        "Type": "Linear"
+    },
     "surf_rgb": {
         "Tier": 3,
         "Type": "Linear"
@@ -388,6 +408,10 @@
         "Type": "Staged"
     },
     "surf_tranquil": {
+        "Tier": 2,
+        "Type": "Linear"
+    },
+    "surf_trazhtec": {
         "Tier": 2,
         "Type": "Linear"
     },

@@ -37,7 +37,11 @@
     },
     "surf_aircontrol_ksf": {
         "Tier": 1,
-        "Type": "Linear"
+        "Type": "Linear"        
+    },
+    "surf_artois": {
+        "Tier": 1,
+        "Type": "Staged"
     },
     "surf_akai_final": {
         "Tier": 1,
@@ -77,6 +81,10 @@
     },
     "surf_atrium": {
         "Tier": 1,
+        "Type": "Linear"        
+    },
+    "surf_axiom_fix": {
+        "Tier": 4,
         "Type": "Linear"
     },
     "surf_beginner": {
@@ -128,6 +136,10 @@
         "Type": "Hybrid"
     },
     "surf_delight": {
+        "Tier": 2,
+        "Type": "Linear"        
+    },
+    "surf_driftless": {
         "Tier": 2,
         "Type": "Linear"
     },
@@ -381,7 +393,11 @@
     },
     "surf_sandtrap2": {
         "Tier": 2,
-        "Type": "Linear"
+        "Type": "Linear"        
+    },
+    "surf_santorini_ksf": {
+        "Tier": 1,
+        "Type": "Staged"
     },
     "surf_saturday": {
         "Tier": 2,

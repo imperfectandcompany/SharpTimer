@@ -69,7 +69,7 @@
     },
     "surf_assail": {
         "Tier": 5,
-        "Type": "linear"
+        "Type": "Linear"
     },
     "surf_astra": {
         "Tier": 2,

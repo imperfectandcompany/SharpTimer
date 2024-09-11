@@ -81,7 +81,11 @@
     },
     "surf_atrium": {
         "Tier": 1,
-        "Type": "Linear"        
+        "Type": "Linear"     
+  },
+    "surf_aura": {
+        "Tier": 1,
+        "Type": "Staged"  
     },
     "surf_axiom_fix": {
         "Tier": 4,
@@ -393,6 +397,10 @@
     },
     "surf_reprise": {
         "Tier": 1,
+        "Type": "Linear"
+  },
+    "surf_ravine": {
+        "Tier": 2,
         "Type": "Linear"
     },
     "surf_rgb": {

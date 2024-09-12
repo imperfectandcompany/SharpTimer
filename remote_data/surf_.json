@@ -202,6 +202,10 @@
     "surf_fruits": {
         "Tier": 3,
         "Type": "Staged"
+     },
+    "surf_garden": {
+        "Tier": 1,
+        "Type": "Staged"
     },
     "surf_galaxy_easy": {
         "Tier": 1,
@@ -329,6 +333,10 @@
     },
     "surf_mom": {
         "Tier": 1,
+        "Type": "Staged"
+    },
+    "surf_momentum": {
+        "Tier": 2,
         "Type": "Staged"
     },
     "surf_neon_final": {

@@ -387,6 +387,10 @@
         "Tier": 1,
         "Type": "Hybrid"
     },
+    "surf_prelude_ksf": {
+        "Tier": 1,
+        "Type": "Linear"
+    },
     "surf_psycho": {
         "Tier": 2,
         "Type": "Staged"

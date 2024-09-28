@@ -459,6 +459,10 @@
         "Tier": 3,
         "Type": "Linear"
     },
+    "surf_squirrelsonvacation": {
+        "Tier": 2,
+        "Type": "Linear"
+    },
     "surf_technique": {
         "Tier": 5,
         "Type": "Staged"

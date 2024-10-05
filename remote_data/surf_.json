@@ -98,6 +98,10 @@
     "surf_benevolent": {
         "Tier": 1,
         "Type": "Staged"
+     },
+    "surf_beyond": {
+        "Tier": 1,
+        "Type": "Staged"
     },
     "surf_borderlands": {
         "Tier": 1,
@@ -253,6 +257,10 @@
     },
     "surf_ing": {
         "Tier": 2,
+        "Type": "Linear"
+    },
+    "surf_jade": {
+        "Tier": 1,
         "Type": "Linear"
     },
     "surf_jive": {

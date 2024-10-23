@@ -466,6 +466,10 @@
     "surf_subway": {
         "Tier": 3,
         "Type": "Linear"
+     },
+    "surf_simpsons_go_rc2_d": {
+        "Tier": 1,
+        "Type": "Staged"
     },
     "surf_squirrelsonvacation": {
         "Tier": 2,

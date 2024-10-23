@@ -455,6 +455,10 @@
         "Tier": 4,
         "Type": "Linear"
     },
+    "surf_simpsons_go_rc2_d": {
+        "Tier": 1,
+        "Type": "Staged"
+    },
     "surf_skipalot": {
         "Tier": 2,
         "Type": "Linear"

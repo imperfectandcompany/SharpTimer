@@ -75,14 +75,6 @@
         "Tier": 5,
         "Type": "Linear"
     },
-    "surf_astra": {
-        "Tier": 2,
-        "Type": "Linear"
-    },
-    "surf_atrium": {
-        "Tier": 1,
-        "Type": "Linear"     
-  },
     "surf_aura": {
         "Tier": 1,
         "Type": "Staged"  
@@ -391,10 +383,6 @@
         "Tier": 2,
         "Type": "Staged"
     },
-    "surf_prisma": {
-        "Tier": 1,
-        "Type": "Hybrid"
-    },
     "surf_prelude_ksf": {
         "Tier": 1,
         "Type": "Linear"
@@ -442,6 +430,18 @@
     "surf_santorini_ksf": {
         "Tier": 1,
         "Type": "Staged"
+    },
+    "surf_hologram2": {
+        "Tier": 2,
+        "Type": "Linear"
+    },
+    "surf_sunday": {
+        "Tier": 2,
+        "Type": "Staged"
+    },
+    "surf_pandora": {
+        "Tier": 2,
+        "Type": "Linear"
     },
     "surf_saturday": {
         "Tier": 2,
